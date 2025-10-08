@@ -1,0 +1,5 @@
+# Ignore Claude configuration folder
+.claude/
+
+# Ignore bmad-core folder
+.bmad-core/

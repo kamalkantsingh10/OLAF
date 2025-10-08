@@ -3,3 +3,6 @@
 
 # Ignore bmad-core folder
 .bmad-core/
+
+# Ignore content drafts (LinkedIn posts, videos, etc.)
+.content/

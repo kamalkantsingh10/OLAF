@@ -1,42 +1,47 @@
-# Epic 4: Conversational AI Integration
+# Epic 4: AI Agent Framework
 
-**Epic Goal:** Integrate Claude API for natural language understanding and generation, enabling Olaf to engage in contextual conversations with personality-driven beep/expression responses (no text/voice output) and local voice input capabilities.
+**Epic Goal:** Build an agent framework that brings AI agents to physical life, enabling tool use, function calling, and embodied intelligence. Integrate hybrid local + cloud AI: Hailo-accelerated Whisper for speech recognition + cloud AI agents (Claude/GPT-4) for reasoning, with personality-driven responses and multi-step planning.
 
 **Dependencies:**
 - Epic 1 (Foundation + Minimal Personality) must be complete
 - Epic 3 (Complete Personality Expression System) must be complete
 
-**Estimated Effort:** 45-55 hours (2 weeks)
+**Estimated Effort:** 50-60 hours (2-3 weeks)
+
+**Note:** Agent framework implementation (Pydantic AI, LangGraph, or custom) will be finalized during technical architecture phase.
 
 ---
 
 ## User Stories
 
-### Story 4.1: Claude API Integration Foundation
+### Story 4.1: Agent Framework Foundation & Cloud AI Integration
 
-**As a** developer building conversational AI,
-**I want** a robust Claude API client in the orchestrator,
-**so that** Olaf can process natural language requests reliably.
+**As a** developer building an embodied AI agent,
+**I want** an agent framework integrated with cloud AI APIs,
+**so that** AI agents can reason, plan, and control Olaf through tool use.
 
 #### Acceptance Criteria:
-1. Claude API client module created in orchestrator (Python)
-2. API key loaded from secure config file: `~/.olaf/secrets/claude_api_key`
-3. Client supports Claude 3.5 Sonnet model (configurable in `config.yaml`)
-4. Request/response handling with proper error management:
+1. Agent framework architecture designed (framework TBD: Pydantic AI, LangGraph, or custom)
+2. Claude API client module created in orchestrator (Python)
+3. API key loaded from secure config file: `~/.olaf/secrets/claude_api_key`
+4. Client supports Claude 3.5 Sonnet model with **tool use / function calling**
+5. Request/response handling with proper error management:
    - Network timeout: 30 seconds, auto-retry 3 times
    - Rate limiting: respect 429 responses, exponential backoff
    - API errors: log and gracefully degrade (fallback responses)
-5. Token usage tracking and logging (input/output tokens per request)
-6. Cost estimation calculator: tracks daily/monthly API spend
-7. ROS2 service created: `/olaf/ai/query` (input: text, output: response)
-8. Unit tests verify API integration with mock responses
-9. Environment variable override: `OLAF_CLAUDE_API_KEY` (for testing)
+6. Token usage tracking and logging (input/output tokens per request)
+7. Cost estimation calculator: tracks daily/monthly API spend
+8. ROS2 service created: `/olaf/agent/execute` (input: text, output: agent actions)
+9. Tool/function definition structure designed (will be populated in later stories)
+10. Unit tests verify API integration with mock responses
+11. Environment variable override: `OLAF_CLAUDE_API_KEY` (for testing)
 
 **Technical Notes:**
-- Use `anthropic` Python SDK
+- Use `anthropic` Python SDK with tools/function calling support
 - Implement request queue to prevent concurrent API calls
 - Store API key with 600 permissions for security
 - Log all requests/responses for debugging (sanitize sensitive data)
+- Design for extensibility: support multiple agent frameworks later
 
 ---
 
@@ -97,32 +102,37 @@
 
 ---
 
-### Story 4.4: Voice Input Integration
+### Story 4.4: Local Whisper STT Integration (Hailo-Accelerated)
 
 **As a** user interacting with Olaf hands-free,
-**I want** to speak to Olaf and have it understand my speech,
-**so that** conversations feel natural and accessible.
+**I want** fast, accurate speech recognition running locally on Olaf,
+**so that** conversations feel natural and responsive without cloud dependency.
 
 #### Acceptance Criteria:
-1. Voice input module created using Vosk for offline speech-to-text (STT)
-2. Microphone input captured via Raspberry Pi USB mic
-3. Wake word detection: "Hey Olaf" or "Olaf" triggers listening mode
-4. Listening mode indicated by expression change: CURIOUS at intensity 3
-5. STT transcribes user speech to text with < 2 second latency
-6. Transcribed text published to `/olaf/conversation/user_input` topic
-7. Voice input errors handled gracefully:
+1. **Hailo AI Kit setup:** Hailo-8L accelerator configured for Whisper inference
+2. **Whisper model deployment:** Whisper tiny or base model loaded on Hailo NPU
+3. Voice input module created using Hailo-accelerated Whisper for STT
+4. Microphone input captured via Raspberry Pi USB mic or I2S mic array
+5. Wake word detection: "Hey Olaf" or "Olaf" triggers listening mode (Porcupine or similar)
+6. Listening mode indicated by expression change: CURIOUS at intensity 3
+7. **STT performance:** Transcribes user speech to text with < 1 second latency (Hailo-accelerated)
+8. Transcribed text published to `/olaf/agent/user_input` topic
+9. Voice input errors handled gracefully:
    - No speech detected: timeout after 10 seconds, revert to idle
-   - Unintelligible speech: "I didn't catch that, can you repeat?" response
+   - Unintelligible speech: trigger CONFUSED expression, prompt retry
    - Ambient noise filtering: reduce false wake word triggers
-8. Voice input disabled in Quiet Mode (10 PM - 7 AM)
-9. Manual push-to-talk mode: button press activates listening (no wake word)
-10. Voice input tested in noisy environments (TV, music, multiple speakers)
+10. Voice input disabled in Quiet Mode (10 PM - 7 AM)
+11. Manual push-to-talk mode: button press activates listening (no wake word)
+12. Voice input tested in noisy environments (TV, music, multiple speakers)
+13. **Offline capability:** STT works without internet connection
 
 **Technical Notes:**
-- Use Vosk with lightweight English model (50MB)
-- Wake word detection via Porcupine (Picovoice)
-- Microphone: USB, 16kHz sample rate, mono
-- Implement noise gate to filter ambient sound
+- Use Hailo Dataflow Compiler to optimize Whisper for Hailo-8L NPU
+- Whisper tiny (39M params) or base (74M params) for speed/accuracy balance
+- Wake word detection via Porcupine (Picovoice) or alternatives
+- Microphone: USB (16kHz, mono) or I2S mic array for better quality
+- Implement VAD (Voice Activity Detection) to trigger STT only when speech detected
+- Benchmark latency: target <1s from speech end to transcription
 
 ---
 
@@ -377,14 +387,16 @@
 
 ## Success Metrics
 
-- **Conversation Latency:** < 5 seconds total (STT 2s + API 3s + expression instant)
-- **STT Accuracy:** > 90% wake word detection, > 85% transcription accuracy
-- **API Reliability:** > 99% uptime, < 1% error rate
-- **Expression Mapping:** > 90% appropriate emotion triggered for response sentiment
-- **Context Retention:** 10 exchanges maintained without loss
-- **Function Call Success:** > 95% valid parameter extraction and execution
-- **User Engagement:** Average 5+ exchanges per conversation (expression-only feedback)
-- **Community Engagement:** ≥ 150 YouTube views, ≥ 30 LinkedIn reactions within first week
+- **Conversation Latency:** < 3 seconds total (Whisper STT <1s + Cloud agent <2s + expression instant)
+- **STT Accuracy:** > 95% wake word detection, > 90% transcription accuracy (Hailo-accelerated Whisper)
+- **Agent Reliability:** > 99% uptime, < 1% error rate
+- **Tool Use Success:** > 95% valid tool calls executed correctly
+- **Expression Mapping:** > 90% appropriate emotion triggered for agent responses
+- **Context Retention:** 10+ exchanges maintained without loss
+- **Multi-step Planning:** Agent successfully executes 3-step action sequences
+- **Offline STT:** Whisper operates without internet, latency <1s
+- **User Engagement:** Average 5+ exchanges per conversation (expression-based feedback)
+- **Community Engagement:** ≥ 200 YouTube views, ≥ 50 LinkedIn reactions within first week (agent framework demo)
 
 ---
 
@@ -392,10 +404,16 @@
 
 - Epic 1: ROS2 foundation, orchestrator
 - Epic 3: Expression system (beep/emotion-driven responses)
-- Python libraries: `anthropic`, `vosk`, `porcupine`, `jinja2`, `flask`, `vaderSentiment`
-- Hardware: USB microphone (connected to Raspberry Pi), passive piezo buzzer (for beeps)
-- Claude API key (requires Anthropic account)
-- Vosk English model (50MB)
+- **Hailo AI Kit:** Raspberry Pi 5 AI Hat with Hailo-8L NPU (13 TOPS)
+- **Python libraries:** `anthropic`, `openai-whisper`, `porcupine`, `jinja2`, `flask`, `vaderSentiment`
+- **Agent framework:** TBD (Pydantic AI, LangGraph, or custom implementation)
+- **Hailo tools:** Hailo Dataflow Compiler, Hailo Python API
+- **Hardware:**
+  - Raspberry Pi 5 8GB + Hailo AI Kit
+  - USB microphone or I2S mic array (connected to Raspberry Pi)
+  - Passive piezo buzzer (for beeps)
+- **Cloud AI:** Claude API key (requires Anthropic account)
+- **Whisper model:** Tiny (39M) or Base (74M) optimized for Hailo-8L
 
 ---
 

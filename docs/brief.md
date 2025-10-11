@@ -8,7 +8,7 @@
 
 **Target Audience:** DIY robotics builders who can solder, code Python, and access 3D printers—people who want to build physical AI in public and contribute to an evolving open-source ecosystem.
 
-**The Solution:** A modular robot architecture where each component (head with vision/OLED eyes, articulated ears/neck, projection system, hoverboard-based mobility) operates independently via ESP32 modules, coordinated by a Raspberry Pi 8GB running local orchestration while leveraging cloud AI for intelligence. Built around the MECE principle (Mutually Exclusive, Collectively Exhaustive), each module can be developed in weekend sprints, tested in isolation, and shared with the community.
+**The Solution:** A modular robot architecture where each component (head with vision/OLED eyes, articulated ears/neck, projection system, hoverboard-based mobility) operates independently via ESP32 modules, coordinated by a Raspberry Pi 5 8GB with Hailo AI Kit running local AI agent framework. Built around the MECE principle (Mutually Exclusive, Collectively Exhaustive), each module can be developed in weekend sprints, tested in isolation, and shared with the community. **Bringing AI agents to life** through local speech recognition (Whisper), on-device AI acceleration (Hailo-8L), and cloud LLM orchestration for decision-making.
 
 **Key Value Proposition:**
 - **Physical AI personality** - Expressive movements (3-DOF neck, 2-DOF ears), emotional OLED eyes, R2D2-style communication that feels alive
@@ -80,7 +80,7 @@ The maker community is ready—proven by successful ROS2 adoption (Linorobot2) a
 
 **Core Concept:**
 
-Olaf is a **personality-first, modular robotics framework** that bridges AI intelligence and physical expression through a distributed architecture. Unlike existing platforms that bolt personality onto functional robots, Olaf is designed from the ground up for **emotional engagement** while proving practical assistance capabilities through modular expansion.
+Olaf is a **personality-first, modular robotics framework** that **brings AI agents to physical life**. Unlike existing platforms that bolt personality onto functional robots, Olaf is designed from the ground up to embody AI agents with **emotional engagement**, local AI processing (Hailo AI Kit + Whisper), and practical assistance capabilities through modular expansion. Think of it as giving Claude, GPT-4, or any AI agent a physical body with personality.
 
 **The Architecture:**
 
@@ -92,18 +92,22 @@ Olaf is a **personality-first, modular robotics framework** that bridges AI inte
    - Modules communicate via I2C hub + ROS2 topics
    - MECE Principle: Each module owns its domain exclusively, no cross-dependencies
 
-2. **Orchestration Layer (Raspberry Pi 8GB)**
-   - Central coordinator running Python-based orchestration engine
-   - Receives high-level commands from AI layer
-   - Translates abstract intentions into coordinated module behaviors
+2. **Orchestration Layer (Raspberry Pi 5 8GB + Hailo AI Kit)**
+   - Central coordinator running Python-based agent orchestration engine
+   - **Hailo-8L AI accelerator:** 13 TOPS for local AI inference (Whisper STT, vision models)
+   - **Local Whisper:** Fast, responsive on-device speech recognition
+   - Receives high-level commands from AI agent layer
+   - Translates abstract agent decisions into coordinated module behaviors
    - Example: "Express excitement" → coordinate ear wiggle + eye animation + happy beep sequence
    - Handles SLAM navigation, sensor fusion, module discovery
 
-3. **Intelligence Layer (Cloud AI)**
-   - Conversational AI (Claude/GPT-4 API) for natural language understanding
-   - Decision-making: Route user requests to appropriate module functions
-   - Context maintenance: Remember conversation history, user preferences
+3. **Intelligence Layer (Hybrid: Local + Cloud AI Agents)**
+   - **Local AI (Hailo-accelerated):** Whisper speech-to-text, real-time vision processing, fast response loops
+   - **Cloud AI Agents (Claude/GPT-4 API):** Natural language understanding, reasoning, complex decision-making
+   - **Agent Framework:** Tool use, function calling, multi-step task planning
+   - Context maintenance: Remember conversation history, user preferences, learned behaviors
    - Personality engine: Generate R2D2-style emotional responses matched to context
+   - **Embodied intelligence:** AI agents can see, hear, move, and express through physical form
 
 **Key Differentiators:**
 
@@ -130,10 +134,12 @@ Olaf is a **personality-first, modular robotics framework** that bridges AI inte
 - **Full Olaf** (~$1000): + Projection system, RGBD camera, full assistant features
 - Builders choose features based on budget/needs
 
-**5. Physical AI Integration**
-- Cloud AI for intelligence, local execution for responsiveness
-- Sensor data → Raspberry Pi → Cloud AI decision → Local orchestration → Module execution
-- Example flow: "Show me a good pasta recipe" → AI decides to project → Orchestrator activates projector + fetches content → Displays on floor while beeping encouragingly
+**5. Embodied AI Agent Integration**
+- **Bringing agents to physical life:** AI agents gain physical embodiment through Olaf
+- **Hybrid intelligence:** Local AI (Hailo + Whisper) for fast sensing, cloud agents for reasoning
+- **Agent capabilities:** Tool use, multi-step planning, decision-making in physical space
+- Example flow: "Show me a good pasta recipe" → Agent triggers display tool → Orchestrator activates projector + fetches content → Displays on floor while beeping encouragingly
+- **Framework TBD:** Agent framework selection during technical architecture phase
 
 **How This Solves the Problem:**
 
@@ -421,10 +427,11 @@ A robot that **feels alive** through coordinated personality expression, **helps
 - Operates in typical home lighting conditions
 
 **Compute Requirements:**
-- Raspberry Pi 8GB RAM for orchestration layer
+- Raspberry Pi 5 8GB RAM with Hailo AI Kit (13 TOPS AI acceleration) for orchestration layer
+- **Hailo-8L accelerator:** Local AI inference for Whisper STT, vision models, fast response loops
 - Multiple ESP32 microcontrollers for module-level processing (each ESP32 acts as a ROS2 node)
-- Cloud API access for AI inference (Claude/GPT-4)
-- Internet connectivity (WiFi) required for cloud AI
+- Cloud API access for AI agent reasoning (Claude/GPT-4)
+- Internet connectivity (WiFi) for cloud AI agents (local AI works offline)
 
 **Sensors:**
 - RGBD camera (head module) with built-in IMU for depth sensing, vision, and orientation
@@ -453,8 +460,10 @@ A robot that **feels alive** through coordinated personality expression, **helps
 **Backend (Orchestration Layer):**
 - Python 3.x on Raspberry Pi OS
 - ROS2 Humble or newer for module communication
-- Custom orchestration engine for personality coordination
-- RESTful API integration for cloud AI services
+- **Hailo AI Kit integration:** Local Whisper STT, vision model inference
+- Custom agent orchestration engine for personality coordination
+- Agent framework (TBD: Pydantic AI, LangGraph, or custom) for tool use and decision-making
+- RESTful API integration for cloud AI agent services
 
 **Module Firmware (ESP32):**
 - C/C++ using Arduino framework or ESP-IDF
@@ -489,7 +498,8 @@ olaf/
 │   └── base/              # Hoverboard mobility platform, IMU
 ├── orchestrator/           # Raspberry Pi orchestration engine
 │   ├── personality/       # Expression coordination
-│   ├── ai_integration/    # Cloud AI interface
+│   ├── agent_framework/   # AI agent integration (tool use, planning)
+│   ├── local_ai/          # Hailo-accelerated Whisper STT, vision
 │   └── navigation/        # SLAM, path planning
 ├── tests/                  # Module and integration tests
 └── tools/                  # Setup scripts, utilities
@@ -498,14 +508,16 @@ olaf/
 **Service Architecture:**
 - **Modular Design**: Each hardware module is an independent service (ESP32 + firmware)
 - **ROS2 Node Architecture**: Each ESP32 acts as a logical ROS2 node, hosting node services and publishing/subscribing to topics
-- **Central Orchestrator**: Raspberry Pi runs orchestration engine coordinating modules
-- **Cloud AI Layer**: External API calls for intelligence (stateless from robot perspective)
+- **Central Orchestrator**: Raspberry Pi 5 + Hailo AI Kit runs agent orchestration engine coordinating modules
+- **Hybrid AI Layer**: Local AI (Hailo-accelerated Whisper, vision) + Cloud AI agents (Claude/GPT-4 API)
 - **ROS2 Topics**: Standardized pub/sub for module communication
 - **I2C Hub**: Physical communication backbone for power and data
 
 **Integration Requirements:**
 - ROS2 topic definitions for standard messages (movement commands, sensor data, expressions)
-- Cloud AI API integration (HTTP REST calls with retry logic)
+- **Hailo AI Kit integration:** Whisper STT model deployment, vision model inference
+- **Agent framework integration:** Tool definitions, function calling, context management (framework TBD)
+- Cloud AI agent API integration (HTTP REST calls with retry logic)
 - SLAM library integration (likely RTAB-Map or similar for RGBD)
 - Audio input/output libraries for voice and beeping
 - GPIO/I2C libraries for hardware control

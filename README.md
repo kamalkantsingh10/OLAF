@@ -32,7 +32,6 @@ The technology to build advanced AI companions is now accessible to individual b
 
 Big tech focuses on bringing AI assistants *to* the masses. OLAF proves a different thesis: **the most meaningful AI companions will be the ones people build themselves** - growing alongside their creators through adaptation and co-evolution.
 
-This is the **Linux moment for physical AI** - open, accessible, community-driven embodied intelligence.
 
 ---
 
@@ -69,16 +68,16 @@ ROS2 Humble framework coordinates all modules through dedicated driver nodes:
 ## Documentation
 
 **Core Documents:**
-- [**Product Requirements Document (PRD)**](docs/prd.md) - Complete feature requirements, success metrics, timeline
-- [**Technical Architecture**](docs/architecture.md) - Full system design, decisions, tradeoffs, protocols
-- [**Architecture Quick Reference**](docs/architecture-quick-ref.md) - 1-page cheat sheet with I2C map, tech stack, troubleshooting
-- [**Project Brief**](docs/brief.md) - Original vision and design philosophy
+- [**Product Requirements Document (PRD)**](docs/prd/index.md) - Complete feature requirements, success metrics, timeline
+- [**Technical Architecture**](docs/architecture/index.md) - Full system design, decisions, tradeoffs, protocols
+- [**Tech Stack**](docs/architecture/tech-stack.md) - Technology choices and rationale
+- [**Coding Standards**](docs/architecture/coding-standards.md) - Development guidelines and best practices
 
 **Development Roadmap:**
-- [**Epic 01**: Foundation & Minimal Personality](docs/epics/epic-01-foundation.md) - ROS2 setup, head module, basic expressions
-- [**Epic 02**: Mobility & Autonomy](docs/epics/epic-02-mobility.md) - Self-balancing, SLAM, navigation
-- [**Epic 03**: AI Integration](docs/epics/epic-03-ai-integration.md) - Whisper STT, Claude integration, conversation
-- [**Epic 04**: Conversational AI & Context](docs/epics/epic-04-conversational-ai.md) - Memory, context, function routing
+- [**Epic 01**: Foundation & Minimal Personality](docs/prd/epic-01-foundation.md) - ROS2 setup, head module, basic expressions
+- [**Epic 02**: 3D Design & Hardware Build](docs/prd/epic-02-3d-design.md) - Physical construction and assembly
+- [**Epic 03**: Advanced Personality System](docs/prd/epic-03-personality.md) - Full expression coordination
+- [**Epic 04**: Conversational AI & Context](docs/prd/epic-04-conversational-ai.md) - Memory, context, AI integration
 
 ---
 

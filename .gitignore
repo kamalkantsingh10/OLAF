@@ -6,3 +6,46 @@
 
 # Ignore content drafts (LinkedIn posts, videos, etc.)
 .content/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+ENV/
+*.egg
+*.egg-info/
+dist/
+build/
+
+# ROS2
+build/
+install/
+log/
+*.bag
+
+# PlatformIO
+.pio/
+.vscode/
+*.bin
+
+# Environment and secrets
+.env
+*.key
+*.pem
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

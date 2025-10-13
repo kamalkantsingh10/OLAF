@@ -9,12 +9,12 @@
 
 ## What is OLAF?
 
-OLAF  is a self-balancing AI companion robot designed to demonstrate that anyone with passion, a 3D printer, and access to modern tools (LLMs, SBCs, affordable electronics) can build their own JARVIS or R2D2.
+OLAF is a self-balancing AI companion robot designed to demonstrate that anyone with passion, a 3D printer, and access to modern tools (LLMs, SBCs, affordable electronics) can build their own JARVIS or R2D2.
 
 Unlike commercial AI assistants that position users as passive consumers, OLAF embodies a different philosophy: **when you BUILD your AI partner, it becomes a true collaborator, not a servant.**
 
 OLAF combines:
-- **R2D2-style personality** through coordinated expression (OLED eyes, articulated ears, beeps)
+- **R2D2-style personality** through coordinated expression (round TFT eyes, articulated ears, heart LCD, beeps)
 - **Autonomous mobility** with self-balancing hoverboard base and SLAM navigation
 - **Conversational AI** powered by hybrid local/cloud intelligence (Hailo Whisper + Claude/GPT-4)
 - **Floor projection** for visual information display
@@ -28,10 +28,9 @@ The technology to build advanced AI companions is now accessible to individual b
 - **3D printing** has democratized custom hardware
 - **LLMs** provide powerful coding assistance and reasoning
 - **Modern SBCs** (Raspberry Pi 5 + Hailo AI Kit) bring 13 TOPS of AI acceleration at $150
-- **ESP32 modules** enable sophisticated distributed control at $5/unit
+- **ESP32-S3 modules** enable sophisticated distributed control at $5/unit
 
 Big tech focuses on bringing AI assistants *to* the masses. OLAF proves a different thesis: **the most meaningful AI companions will be the ones people build themselves** - growing alongside their creators through adaptation and co-evolution.
-
 
 ---
 
@@ -39,45 +38,55 @@ Big tech focuses on bringing AI assistants *to* the masses. OLAF proves a differ
 
 OLAF uses a three-layer modular architecture optimized for power efficiency, low latency, and builder accessibility:
 
-### **Module Layer** (5× ESP32 Smart Peripherals)
-Five independent ESP32-WROOM-32 modules handle dedicated functions:
-- **Head Module** (0x08): OLED eyes, mmWave presence sensor, microphone array, speaker
-- **Ears Module** (0x09): 4× servo-driven articulated ears
-- **Neck Module** (0x0A): 3-DOF pan/tilt/roll servos
-- **Projector Module** (0x0B): DLP floor projection display
-- **Base Module** (0x0C): Self-balancing at 200Hz with MPU6050 IMU, ODrive motor controller, hoverboard motors
+### **Module Layer** (4× ESP32-S3 Smart Peripherals)
 
-**Key Decision**: I2C-only communication (no WiFi on ESP32s) achieves 5-20ms latency vs 80-200ms and saves 1000mA power.
+Four independent ESP32-S3-WROOM-2 modules handle dedicated functions via I2C:
+
+- **Head Module** (0x08): 2× GC9A01 round TFT eyes (1.28", 240×240, SPI), mmWave presence sensor, microphone array, speaker
+- **Ears + Neck Module** (0x09): 4× ear servos (UART1) + 3× neck servos (UART2) on shared ESP32, full upper-body articulation
+- **Body Module** (0x0A): GC9A01 heart LCD (emotion display), WS2812B RGB LEDs, projector power control (optocoupler)
+- **Base Module** (0x0B): Self-balancing at 200Hz with MPU6050 IMU, ODrive motor controller (UART1), kickstand servo (UART2)
+
+**Key Decision**: I2C-only communication (no WiFi on ESP32s) achieves 5-20ms latency vs 80-200ms and saves 1000mA power. Dual UART interfaces enable simultaneous servo/motor control.
 
 ### **Orchestration Layer** (Raspberry Pi 5 + Hailo-8L)
+
 ROS2 Humble framework coordinates all modules through dedicated driver nodes:
-- `/olaf/personality_coordinator` - Expression synchronization across channels
+- `/olaf/personality_coordinator` - Expression synchronization across eyes, heart, ears, neck, beeps
 - `/olaf/ai_agent` - Hailo Whisper (local STT) + Claude API (reasoning)
 - `/olaf/navigation` - Cartographer SLAM + Nav2 path planning
-- Hardware driver nodes bridge ROS2 topics to I2C registers
+- Hardware driver nodes bridge ROS2 topics to I2C registers (4× drivers for 4 modules)
 
 ### **Intelligence Layer** (Hybrid AI)
-- **Local**: Hailo Whisper (tiny/base) for <200ms speech-to-text
+
+- **Local**: Hailo-8L accelerated Whisper (tiny/base) for <200ms speech-to-text
 - **Cloud**: Claude 3.5 Sonnet for personality and reasoning (WiFi from Pi only)
 - **Target**: <3s end-to-end AI response time (P90)
 
-**Key Decision**: Closed-loop ODrive motor controller enables accurate SLAM odometry (±10cm) vs open-loop alternatives.
+**Key Decision**: Closed-loop ODrive motor controller enables accurate SLAM odometry (±10cm) vs open-loop alternatives. 200Hz balancing PID runs on Base ESP32 for real-time guarantees.
 
 ---
 
 ## Documentation
 
 **Core Documents:**
-- [**Product Requirements Document (PRD)**](docs/prd/index.md) - Complete feature requirements, success metrics, timeline
-- [**Technical Architecture**](docs/architecture/index.md) - Full system design, decisions, tradeoffs, protocols
-- [**Tech Stack**](docs/architecture/tech-stack.md) - Technology choices and rationale
-- [**Coding Standards**](docs/architecture/coding-standards.md) - Development guidelines and best practices
+- [**Product Requirements Document (PRD)**](docs/prd/) - Complete feature requirements, success metrics, timeline
+- [**Technical Architecture**](docs/architecture/) - Full system design, decisions, tradeoffs, protocols
+- [**Epic List**](docs/prd/epic-list.md) - 12-epic development roadmap
 
-**Development Roadmap:**
-- [**Epic 01**: Foundation & Minimal Personality](docs/prd/epic-01-foundation.md) - ROS2 setup, head module, basic expressions
-- [**Epic 02**: 3D Design & Hardware Build](docs/prd/epic-02-3d-design.md) - Physical construction and assembly
-- [**Epic 03**: Advanced Personality System](docs/prd/epic-03-personality.md) - Full expression coordination
-- [**Epic 04**: Conversational AI & Context](docs/prd/epic-04-conversational-ai.md) - Memory, context, AI integration
+**Development Roadmap (12 Epics):**
+- [**Epic 01**: Foundation & I2C Communication](docs/prd/epic-01-foundation.md) - ROS2 setup, heart LCD, power system (2 weeks)
+- [**Epic 02**: Head Module - Eyes & Sensors](docs/prd/) - Dual round TFT eyes, presence detection (2-3 weeks)
+- [**Epic 03**: Ears - 2-DOF Articulation](docs/prd/) - 4× servo ears, emotional expression (1-2 weeks)
+- [**Epic 04**: Neck - 3-DOF Gimbal](docs/prd/) - Pan/tilt/roll head movement (2-3 weeks)
+- [**Epic 05**: Self-Balancing Base](docs/prd/) - Autonomous mobility, kickstand (3-4 weeks)
+- [**Epic 06**: Body Chassis & Integration](docs/prd/) - Complete assembly, cable management (2-3 weeks)
+- [**Epic 07**: Basic Personality System](docs/prd/) - Coordinated emotion expression (2-3 weeks)
+- [**Epic 08**: SLAM & Spatial Awareness](docs/prd/) - Mapping and localization (3-4 weeks)
+- [**Epic 09**: Autonomous Navigation](docs/prd/) - Path planning, obstacle avoidance (2-3 weeks)
+- [**Epic 10**: Computer Vision](docs/prd/) - Object/person/face recognition (2-3 weeks)
+- [**Epic 11**: AI Agent Framework & Voice](docs/prd/) - Conversational AI (3-4 weeks)
+- [**Epic 12**: Floor Projection & Polish](docs/prd/) - Final integration, documentation (2-3 weeks)
 
 ---
 
@@ -86,13 +95,17 @@ ROS2 Humble framework coordinates all modules through dedicated driver nodes:
 | Component | Technology | Decision Rationale |
 |-----------|------------|-------------------|
 | **Communication** | I2C @ 400kHz-1MHz | 5-20ms latency vs 80-200ms WiFi, saves 1000mA |
+| **Modules** | 4× ESP32-S3 (not 5) | Ears+Neck consolidated, Body module added for heart LCD |
 | **ROS2 Nodes** | Pi only (no micro-ROS) | Simpler - ESP32s are smart I2C slaves |
-| **OLED Display** | SPI (not I2C) | 30-60 FPS vs 10-15 FPS for smooth animation |
+| **Eye Displays** | GC9A01 Round TFT (SPI) | 60 FPS full-color (240×240) vs OLED monochrome |
+| **Heart Display** | GC9A01 Round TFT (SPI) | Emotion-driven BPM animation (50-120 BPM) |
+| **Servo Control** | Dual UART per ESP32 | Simultaneous control: ears+neck, motors+kickstand |
 | **Motor Control** | ODrive v3.6 closed-loop | Accurate odometry for SLAM (±10cm) |
-| **SLAM** | Cartographer | Lighter footprint than RTAB-Map |
+| **SLAM** | Google Cartographer | Lighter footprint than RTAB-Map |
 | **Self-Balancing** | 200Hz PID on ESP32 | Pi can't guarantee real-time control |
 | **Power** | 36V hoverboard battery | 2-4 hour runtime with buck converters |
 | **AI Acceleration** | Hailo-8L (13 TOPS) | <200ms local STT vs 1-1.5s cloud |
+| **Projector Power** | Optocoupler | Galvanic isolation for safety |
 
 ---
 
@@ -101,19 +114,24 @@ ROS2 Humble framework coordinates all modules through dedicated driver nodes:
 ```
 olaf/
 ├── docs/                       # PRD, architecture, epics, build guides
-├── modules/                    # ESP32 firmware for 5 hardware modules
-│   ├── head/                   # OLED eyes, presence sensor, audio
-│   ├── ears/                   # Articulated servo ears
-│   ├── neck/                   # 3-DOF servo neck
-│   ├── projector/              # Floor projection display
-│   └── base/                   # Self-balancing + odometry
+│   ├── prd/                    # Sharded PRD (12 epics)
+│   └── architecture/           # Sharded architecture docs
+├── modules/                    # ESP32-S3 firmware (4 hardware modules)
+│   ├── head/                   # Round TFT eyes, presence sensor, audio
+│   ├── ears_neck/              # Articulated ears + neck (shared ESP32)
+│   ├── body/                   # Heart LCD, LEDs, projector control
+│   └── base/                   # Self-balancing + odometry + kickstand
 ├── orchestrator/               # Raspberry Pi ROS2 nodes
 │   ├── ros2_nodes/
-│   │   ├── hardware_drivers/   # I2C bridge to ESP32 modules
+│   │   ├── hardware_drivers/   # I2C bridge to 4× ESP32 modules
 │   │   ├── personality/        # Expression coordination
 │   │   ├── ai_integration/     # Whisper + Claude
 │   │   └── navigation/         # SLAM + Nav2
 │   └── ota_server/             # Wireless firmware updates
+├── hardware/                   # 3D models, wiring, BOM
+│   ├── 3d-models/              # STL files for 3D printing
+│   ├── wiring/                 # Fritzing diagrams, schematics
+│   └── bom/                    # Bills of materials
 ├── shared/                     # Common headers (I2C registers, protocols)
 └── tools/                      # Diagnostics, testing utilities
 ```
@@ -122,15 +140,16 @@ olaf/
 
 ## Current Status
 
-**Development Timeline**: 4 months (October 2025 - January 2026)
-**Budget**: 1000 CHF (~$1100 USD)
+**Development Timeline**: 26-36 weeks (6-9 months of weekend development)
+**Budget**: ~$1000 USD (configurable: $400 minimal to $1000 full-featured)
 **Build Approach**: Weekly progress updates with full transparency
 
 **Milestones:**
 - ✅ PRD and technical architecture complete
-- ✅ Epic roadmap defined
+- ✅ 12-epic roadmap defined with faster milestone cadence
+- ✅ 4-module I2C architecture finalized
 - 🟡 Component sourcing (in progress)
-- ⏳ Epic 01: Foundation & Minimal Personality (starting)
+- ⏳ Epic 01: Foundation & I2C Communication (starting)
 
 ---
 
@@ -139,7 +158,7 @@ olaf/
 OLAF development follows complete transparency - documenting every decision, success, and failure:
 
 - **Weekly LinkedIn posts** (2-3/week) - Progress updates, technical deep-dives, lessons learned
-- **Epic milestone videos** (1 per epic) - Demonstrations and technical explanations
+- **Epic milestone videos** (12 videos, 1 per epic) - Demonstrations and technical explanations
 - **Reddit engagement** (1/week) - Community discussions and technical Q&A
 - **GitHub activity** - All code, documentation, issues, discussions public from day one
 
@@ -151,11 +170,44 @@ This isn't just about building a robot - it's about proving that **individual bu
 
 - **Robotics Framework**: ROS2 Humble (LTS until 2027)
 - **Orchestrator**: Python 3.11 on Raspberry Pi OS 64-bit (Debian 12)
-- **Firmware**: C++17 with Arduino/PlatformIO for ESP32
+- **Firmware**: C++17 with Arduino/PlatformIO for ESP32-S3
 - **AI**: Hailo Whisper (local) + Claude 3.5 Sonnet (cloud)
 - **SLAM**: Google Cartographer + Nav2
 - **Database**: SQLite for conversation history
 - **OTA**: Flask HTTP server for wireless ESP32 firmware updates
+- **Displays**: GC9A01 Round TFT (1.28", 240×240, SPI, 60 FPS)
+- **Servos**: Feetech SCS0009 (ears) + STS3215 (neck, kickstand) via UART bus
+
+---
+
+## Architecture Overview
+
+### 4-Module I2C Architecture
+
+```
+┌─────────────────────────────────────────┐
+│    ORCHESTRATION (Raspberry Pi 5)      │
+│         ROS2 Humble + Hailo-8L          │
+└──┬─────────┬─────────┬─────────┬────────┘
+   │ I2C     │ I2C     │ I2C     │ I2C
+   │ 0x08    │ 0x09    │ 0x0A    │ 0x0B
+   ↓         ↓         ↓         ↓
+┌──────┐ ┌──────────┐ ┌──────┐ ┌──────┐
+│ HEAD │ │EARS+NECK │ │ BODY │ │ BASE │
+│ESP32 │ │  ESP32   │ │ESP32 │ │ESP32 │
+└──┬───┘ └─┬────┬───┘ └─┬──┬─┘ └─┬──┬─┘
+   │ SPI   │    │       │  │     │  │
+   │       │    │       │  │     │  │
+   ↓       ↓    ↓       ↓  ↓     ↓  ↓
+ Eyes   Ears Neck    Heart LEDs ODrv Stand
+(GC9A01) (4×) (3×)  (GC9A01)    (UART)(UART)
+```
+
+**Communication Protocols:**
+- **I2C**: Pi ↔ All ESP32-S3 modules (commands, sensor data, 5-20ms latency)
+- **SPI**: ESP32 → GC9A01 displays (eyes + heart, 60 FPS rendering)
+- **UART**: ESP32 → servo controllers, motor controllers (dual UART per module)
+- **WiFi**: Pi → Cloud AI APIs only (Claude/GPT-4)
 
 ---
 
@@ -168,6 +220,11 @@ This isn't just about building a robot - it's about proving that **individual bu
 - 3D printer access
 - Basic electronics and programming knowledge
 - Budget: ~$400-1000 (configurable based on component choices)
+
+**Configuration Tiers:**
+- **Minimal OLAF (~$400)**: Head (eyes, mic, speaker) + Ears + Neck + Body (heart LCD) - Personality focus
+- **Standard OLAF (~$700)**: Minimal + Hoverboard base + Basic RGBD camera - Adds mobility
+- **Full OLAF (~$1000)**: Standard + Floor projector + High-quality RGBD camera - Complete feature set
 
 **Development workflow:**
 1. **Firmware**: PlatformIO → compile → upload via USB (OTA post-V1)
@@ -210,11 +267,11 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 - **GitHub Issues**: Questions, discussions, and feature requests welcome
 - **LinkedIn**: Weekly progress updates and physical AI insights
-- **YouTube**: Epic milestone demonstrations and technical deep-dives
+- **YouTube**: Epic milestone demonstrations and technical deep-dives (12 videos planned)
 - **Reddit**: r/robotics, r/ROS, r/DIYrobotics community engagement
 
 ---
 
 *"The Linux moment for physical AI - proving embodied intelligence belongs to builders, not just consumers."*
 
-**Latest Update**: October 2025 | **Current Epic**: 01 - Foundation & Minimal Personality
+**Latest Update**: January 2026 | **Current Epic**: 01 - Foundation & I2C Communication

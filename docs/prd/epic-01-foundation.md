@@ -249,11 +249,182 @@
 
 ---
 
-## Story 1.5: Head Module ESP32 Firmware - I2C Slave + SPI Animation Engine
+## Story 1.5: Body Module - Hardware Assembly (Heart LCD + Projector Control + LEDs)
+
+**As a** hardware builder,
+**I want** a body module with heart LCD display, projector power control, and status LEDs,
+**so that** Olaf can express emotions through heartbeat animation and control body-mounted indicators.
+
+### Acceptance Criteria:
+
+1. **Components Acquired:**
+   - 1× ESP32-S3-WROOM-2 (N8R8) or ESP32-WROOM-32
+   - 1× GC9A01 Round TFT Display (1.28", 240×240, SPI interface) - Heart display
+   - 1× Relay or MOSFET module (for 12V projector power switching)
+   - 1× WS2812B RGB LED strip (addressable, 5-10 LEDs for status indicators)
+   - Jumper wires for SPI + I2C + GPIO connections
+   - Breadboard for prototyping
+
+2. **SPI Heart Display Wiring (ESP32 → GC9A01):**
+   - **Heart LCD to ESP32 (SPI):**
+     - VCC → 3.3V (ESP32)
+     - GND → GND
+     - SCL (CLK) → GPIO18 (ESP32 SPI SCK)
+     - SDA (MOSI) → GPIO23 (ESP32 SPI MOSI)
+     - RES (RST) → GPIO4 (ESP32 reset pin)
+     - DC → GPIO2 (ESP32 data/command pin)
+     - CS → GPIO5 (ESP32 chip select)
+
+3. **I2C Wiring (Pi → ESP32 for commands):**
+   - **Pi to ESP32 (I2C):**
+     - Pi GPIO2 (SDA) → ESP32 GPIO21 (I2C SDA)
+     - Pi GPIO3 (SCL) → ESP32 GPIO22 (I2C SCL)
+     - Pi GND → ESP32 GND (common ground)
+     - Pi 5V → ESP32 VIN (power from buck converter)
+
+4. **Projector Power Control Wiring:**
+   - **Relay/MOSFET:**
+     - ESP32 GPIO (e.g., GPIO15) → Relay signal pin
+     - Relay COM → 12V power supply (from buck converter)
+     - Relay NO (normally open) → Projector 12V input
+     - Projector GND → Power supply GND
+
+5. **LED Strip Wiring:**
+   - **WS2812B:**
+     - 5V → 5V power rail (buck converter)
+     - GND → Common ground
+     - DIN (data in) → ESP32 GPIO (e.g., GPIO16)
+
+6. **I2C Address Assignment:**
+   - ESP32 Body module configured as I2C slave at address **0x0A**
+
+7. **Communication Tests:**
+   - **SPI test:** Upload GC9A01 library example, heart shape displays at 60 FPS
+   - **I2C test:** `sudo i2cdetect -y 1` shows device at address `0x0A`
+   - **Relay test:** GPIO high/low toggles projector power (measure with multimeter)
+   - **LED test:** WS2812B strip displays test pattern (rainbow cycle)
+
+8. **Physical Mounting:**
+   - Module secured to breadboard or temporary body mock-up
+   - Heart display positioned on "chest" area (front center of body)
+   - LED strip positioned as status indicator ring or accent lighting
+
+9. **Documentation:**
+   - Wiring photos: `hardware/wiring/body-module-assembly.jpg`
+   - Pin mapping documented in `modules/body/README.md`
+   - BOM updated with all body module components
+
+**Dependencies:** Story 1.2 (5V power), Story 1.3 (I2C enabled on Pi)
+
+**Estimated Effort:** 4-5 hours
+
+---
+
+## Story 1.6: Body Module ESP32 Firmware - Heart Animation + Projector + LEDs
+
+**As a** firmware developer,
+**I want** ESP32 firmware managing heart animation, projector power control, and LED patterns,
+**so that** Olaf's body indicators respond to orchestrator commands and personality states.
+
+### Acceptance Criteria:
+
+1. **Development Environment:**
+   - PlatformIO project: `modules/body/firmware/`
+   - Libraries installed:
+     - `TFT_eSPI` or `Adafruit_GC9A01A` (heart display)
+     - `FastLED` or `Adafruit_NeoPixel` (WS2812B LEDs)
+     - `Wire.h` (built-in, I2C slave)
+
+2. **I2C Slave Implementation:**
+   - ESP32 configured as I2C slave at address **0x0A**
+   - I2C receive/request handlers implemented (same pattern as head module)
+
+3. **I2C Register Map (Body Module 0x0A):**
+   - **Common Registers:**
+     - `0x00`: Module ID (returns 0x0A)
+     - `0x02`: Status byte (READY/BUSY/ERROR)
+   - **Heart Display (0x10-0x1F):**
+     - `0x10`: Emotion type (maps to heart rate: 0=neutral, 1=happy, etc.)
+     - `0x11`: Emotion intensity (1-5, affects beat amplitude)
+     - `0x12`: Heart rate override (BPM, 0=auto from emotion)
+     - `0x13`: Heart color (R component, 0-255)
+     - `0x14`: Heart color (G component, 0-255)
+     - `0x15`: Heart color (B component, 0-255)
+   - **Projector Control (0x20-0x2F):**
+     - `0x20`: Projector power (0=OFF, 1=ON)
+     - `0x21`: Projector status (read-only: 0=OFF, 1=ON, 2=ERROR)
+   - **LED Control (0x30-0x4F):**
+     - `0x30`: LED mode (0=OFF, 1=solid, 2=breathing, 3=rainbow, 4=pulse)
+     - `0x31`: LED brightness (0-255)
+     - `0x32`: LED color (R component)
+     - `0x33`: LED color (G component)
+     - `0x34`: LED color (B component)
+
+4. **Heart Animation Engine:**
+   - Heart sprite (240×240 circular display, centered heart shape)
+   - Beating animation: Scale/pulse effect synchronized to heart rate
+   - **Emotion-to-BPM mapping:**
+     - Neutral: 60-70 BPM (calm, steady)
+     - Happy: 80-90 BPM (upbeat)
+     - Excited: 100-120 BPM (rapid)
+     - Sad: 50-60 BPM (slow, heavy)
+     - Curious: 70-80 BPM (alert)
+     - Thinking: 65-75 BPM (focused)
+     - Confused: 75-85 BPM (uncertain)
+   - Intensity affects beat amplitude: 1=subtle (10% scale), 5=dramatic (50% scale)
+   - Color variations based on emotion (red=default, blue=sad, yellow=happy, etc.)
+   - 60 FPS smooth animation, no tearing or flicker
+
+5. **Projector Power Control:**
+   - GPIO control for relay/MOSFET
+   - Write to register `0x20`: 0=turn off, 1=turn on
+   - Status monitoring: Read register `0x21` returns current state
+   - Graceful power sequencing (optional: delay before shutdown)
+
+6. **LED Pattern Engine:**
+   - Solid color mode: All LEDs same color
+   - Breathing mode: Fade in/out (synchronized with heart if emotion active)
+   - Rainbow mode: Color cycle animation
+   - Pulse mode: Quick flash (notification indicator)
+   - Pattern updates at 30+ Hz for smooth animations
+
+7. **Testing:**
+   - Firmware compiled and uploaded via USB
+   - Serial monitor shows: "I2C Slave initialized at 0x0A"
+   - Heart beats at default 70 BPM on startup (neutral emotion)
+   - Module responsive to I2C commands (tested via `i2cset` from Pi)
+   - Projector relay toggles correctly
+   - LED strip displays all test patterns
+
+8. **Performance:**
+   - Heart animation: 60 FPS maintained
+   - LED update rate: 30+ Hz
+   - I2C response latency: <10ms
+   - Stable memory: Free heap stable over 10 minutes
+
+9. **Code Quality:**
+   - Organized structure:
+     - `main.cpp`: Setup, loop, I2C handlers
+     - `heart_animation.cpp`: Heart rendering logic
+     - `projector_control.cpp`: Relay control
+     - `led_patterns.cpp`: WS2812B pattern engine
+     - `i2c_slave.cpp`: Register map handling
+   - Comments explain I2C protocol and register map
+   - Code committed to `modules/body/firmware/`
+
+**Dependencies:** Story 1.5 (body module hardware assembled)
+
+**Estimated Effort:** 8-10 hours
+
+---
+
+## Story 1.7: Head Module ESP32 Firmware - I2C Slave + SPI Animation Engine
 
 **As a** firmware developer,
 **I want** ESP32 firmware that acts as I2C slave and renders animations on SPI OLED,
 **so that** I can receive high-level commands from Pi and execute smooth eye animations locally.
+
+**Note:** Original Story 1.5 - renumbered due to body module addition (Stories 1.5-1.6)
 
 ### Acceptance Criteria:
 
@@ -334,7 +505,7 @@
 
 ---
 
-## Story 1.6: ROS2 Head Driver Node - I2C Bridge
+## Story 1.8: ROS2 Head Driver Node - I2C Bridge
 
 **As a** software developer,
 **I want** a ROS2 node that translates ROS2 topics into I2C register writes,
@@ -396,7 +567,7 @@
 
 ---
 
-## Story 1.7: Minimal Orchestrator - Blink Coordinator
+## Story 1.9: Minimal Orchestrator - Blink Coordinator
 
 **As a** software developer,
 **I want** a minimal orchestrator node that sends blink commands via ROS2,
@@ -437,13 +608,13 @@
    - Clean, commented code
    - Committed to `orchestrator/ros2_nodes/minimal_coordinator.py`
 
-**Dependencies:** Story 1.6 (head driver node)
+**Dependencies:** Story 1.8 (head driver node)
 
 **Estimated Effort:** 3-4 hours
 
 ---
 
-## Story 1.8: Test Harness CLI - I2C Direct Testing
+## Story 1.10: Test Harness CLI - I2C Direct Testing
 
 **As a** developer or tester,
 **I want** a command-line tool to send I2C commands directly to modules,
@@ -482,13 +653,13 @@
    - Usage guide: `tools/diagnostics/README.md`
    - Examples for each command
 
-**Dependencies:** Story 1.5 (ESP32 firmware), Story 1.3 (I2C enabled)
+**Dependencies:** Story 1.7 (ESP32 firmware), Story 1.3 (I2C enabled)
 
 **Estimated Effort:** 3-4 hours
 
 ---
 
-## Story 1.9: Launch File - Automated Startup
+## Story 1.11: Launch File - Automated Startup
 
 **As a** system operator,
 **I want** a ROS2 launch file that starts all Epic 1 nodes,
@@ -535,13 +706,13 @@
    - Launch file documented in README
    - "Quick Start" section updated
 
-**Dependencies:** Story 1.6 (driver), Story 1.7 (coordinator)
+**Dependencies:** Story 1.8 (driver), Story 1.9 (coordinator)
 
 **Estimated Effort:** 2-3 hours
 
 ---
 
-## Story 1.10: 30-Minute Continuous Operation Test
+## Story 1.12: 30-Minute Continuous Operation Test
 
 **As a** quality assurance tester,
 **I want** to run the minimal system for 30 minutes without failures,
@@ -581,13 +752,13 @@
    - Results: `tests/integration/epic1_30min_test_results.md`
    - Screenshot of terminal after 30 min
 
-**Dependencies:** All Epic 1 stories (1.1-1.9)
+**Dependencies:** All Epic 1 stories (1.1-1.11)
 
 **Estimated Effort:** 1 hour test + 2-4 hours fixes if needed
 
 ---
 
-## Story 1.11: Epic 1 Documentation & Content
+## Story 1.13: Epic 1 Documentation & Content
 
 **As a** future contributor or follower,
 **I want** comprehensive Epic 1 documentation and build-in-public content,
@@ -648,17 +819,17 @@
 
 ## Epic 1 Summary
 
-**Total Stories:** 11
-**Estimated Total Effort:** 50-65 hours (2-3 weeks for solo builder)
+**Total Stories:** 13 (includes body module: Stories 1.5-1.6)
+**Estimated Total Effort:** 62-80 hours (3-4 weeks for solo builder)
 
 **Key Deliverables:**
 - ✅ Repository structure with shared I2C register definitions
 - ✅ Power system (36V hoverboard battery + buck converters)
 - ✅ ROS2 Humble on Raspberry Pi with I2C enabled
-- ✅ ESP32 firmware as I2C slave (address 0x08)
-- ✅ SPI-driven OLED rendering at 30-60 FPS
-- ✅ ROS2 driver node translating topics → I2C registers
-- ✅ Orchestrator sending coordinated blink commands
+- ✅ **Head Module:** ESP32 firmware as I2C slave (address 0x08), SPI OLED eyes at 30-60 FPS
+- ✅ **Body Module:** Heart LCD (GC9A01, 60 FPS emotion BPM), projector power control, WS2812B LEDs (address 0x0A)
+- ✅ ROS2 driver nodes translating topics → I2C registers (head + body)
+- ✅ Orchestrator sending coordinated commands (blink + heartbeat)
 - ✅ Test harness for direct I2C module testing
 - ✅ Launch file for automated system startup
 - ✅ 30-minute continuous operation validated

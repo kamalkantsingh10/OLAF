@@ -105,36 +105,40 @@ olaf/
 │  • Local AI (Whisper, Vision) • Sensor Fusion              │
 │  • State Management         • Tool Execution                │
 │  • I2C Master Controller    • OTA Server (HTTP)             │
-└──┬────────┬────────┬────────┬────────┬──────────────────────┘
-   │        │        │        │        │
-   │  I2C   │  I2C   │  I2C   │  I2C   │  I2C (Wired Only)
-   │ 0x08   │ 0x09   │ 0x0A   │ 0x0B   │ 0x0C
-   │        │        │        │        │
-┌──▼───┐ ┌─▼────┐ ┌─▼────┐ ┌─▼──────┐ ┌▼─────┐
-│ HEAD │ │ EARS │ │ NECK │ │PROJECT-│ │ BASE │
-│ESP32 │ │ESP32 │ │ESP32 │ │OR ESP32│ │ESP32 │
-│+OTA  │ │+OTA  │ │+OTA  │ │ +OTA   │ │+OTA  │
-└──┬───┘ └──┬───┘ └──┬───┘ └───┬────┘ └──┬───┘
-   │        │        │         │         │
-   │ SPI    │ Servo  │ Servo   │ DLP     │ UART
-   │ OLEDs  │ I2C    │ I2C     │ Control │ ODrive
-   │        │        │         │         │ +IMU
-   │        │        │         │         │ +Servo
-   │        │        │         │         │(Kickstand)
-┌──▼────────▼────────▼─────────▼─────────▼────┐
-│       MODULE LAYER (Physical Hardware)       │
-│  • 2× GC9A01 Round TFT Eyes (1.28", 240×240, SPI, 60 FPS color) │
-│  • RGBD Camera (USB to Pi)                   │
-│  • 2× Ears (2-DOF, 4× Feetech SCS0009, dedicated bus servo ctrl) │
-│  • Neck (3-DOF, 3× Feetech STS3215, shared bus servo ctrl)      │
-│  • Floor Projector (DLP)                     │
-│  • Self-Balancing Base:                      │
-│    - Hoverboard Motors + ODrive (UART)       │
-│    - MPU6050 IMU (200Hz balancing)          │
-│    - 1× Feetech STS3215 Kickstand (30 kg·cm, via shared servo ctrl) │
-│  • mmWave Presence Sensor                    │
-│  • Microphone Array, Speaker/Beeper          │
-└──────────────────────────────────────────────┘
+└──┬─────────────┬─────────────┬─────────────┬────────────────────┘
+   │             │             │             │
+   │  I2C 0x08   │  I2C 0x09   │  I2C 0x0A   │  I2C 0x0B  (Wired Only)
+   │             │             │             │
+┌──▼──────┐  ┌──▼──────────┐ ┌▼──────────┐ ┌▼─────────┐
+│  HEAD   │  │ EARS + NECK │ │   BODY    │ │   BASE   │
+│ ESP32-S3│  │  ESP32-S3   │ │ ESP32-S3  │ │ ESP32-S3 │
+│  +OTA   │  │   +OTA      │ │  +OTA     │ │  +OTA    │
+└──┬──────┘  └─┬──────┬────┘ └┬────┬─────┘ └┬────┬────┘
+   │           │      │       │    │        │    │
+   │ SPI       │Servo │Servo  │SPI │Relay   │UART│Servo
+   │ Eyes      │Bus A │Bus B  │LCD │+LEDs   │ODrv│Stand
+   │(GC9A01)   │(4×)  │(3×)   │Hrt │WS2812B │+IMU│STS15
+   │           │Ears  │Neck   │    │        │    │
+┌──▼──────────────────────────────────────────────────────┐
+│          MODULE LAYER (Physical Hardware)               │
+│  • HEAD MODULE (0x08):                                  │
+│    - 2× GC9A01 Round TFT Eyes (1.28", 240×240, SPI)    │
+│    - mmWave Presence Sensor, Mic Array, Speaker        │
+│  • EARS + NECK MODULE (0x09):                           │
+│    - 4× Feetech SCS0009 (ears, Bus Servo Ctrl A)       │
+│    - 3× Feetech STS3215 (neck, Bus Servo Ctrl B)       │
+│  • BODY MODULE (0x0A):                                  │
+│    - 1× GC9A01 Heart Display (1.28", 240×240, SPI)     │
+│    - DLP Projector (HDMI to Pi, power via relay)       │
+│    - WS2812B RGB LEDs (status/mood indicators)         │
+│  • BASE MODULE (0x0B):                                  │
+│    - 2× Hoverboard Motors + ODrive (UART)              │
+│    - MPU6050 IMU (200Hz balancing)                     │
+│    - 1× Feetech STS3215 Kickstand (30 kg·cm)           │
+│  • ORCHESTRATOR (Pi 5):                                 │
+│    - OAK-D Pro RGBD Camera (USB)                       │
+│    - Hailo-8L AI Accelerator (PCIe)                    │
+└─────────────────────────────────────────────────────────┘
 
 Communication Protocols:
 ━━━━━━━━ I2C: Pi ↔ All ESP32-S3 modules (commands, sensor data)

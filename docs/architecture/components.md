@@ -29,97 +29,106 @@ head_controller.ino
 
 ---
 
-## Ears Module
+## Ears + Neck Module (Shared ESP32)
 
-**Responsibility:** 2-DOF articulated ears (Chappie-inspired), 4× Feetech SCS0009 servos.
+**Responsibility:** Upper body articulation - 2-DOF ears (4× servos) and 3-DOF neck gimbal (3× servos).
 
 **Hardware:**
 - ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
-- 4× Feetech SCS0009 servos
-- Bus Servo Controller (dedicated for ears, STSC series compatible)
-  - Integrates servo power supply and control circuit
-  - Serial bus interface to ESP32
+- 2× Bus Servo Controllers (STSC series compatible):
+  - **Controller A:** 4× Feetech SCS0009 servos (ears only, 2-DOF × 2)
+  - **Controller B:** 3× Feetech STS3215 servos (neck only: pan/tilt/roll, 30 kg·cm torque)
+- Serial bus interfaces to ESP32
 
-**Firmware:**
+**Firmware Architecture:**
 ```
-ears_controller.ino
+ears_neck_controller.ino
 ├── i2c_slave.cpp
-├── servo_bus_controller.cpp    // STSC bus servo driver
+├── ear_servo_controller.cpp       // Controller A (SCS0009 × 4)
+├── neck_servo_controller.cpp      // Controller B (STS3215 × 3)
 ├── motion_profiles.cpp
-└── position_calibration.cpp
+├── kinematics.cpp                 // Neck 3-DOF forward/inverse kinematics
+└── coordinated_gestures.cpp       // Ears + neck synchronized movements
 ```
+
+**Key Features:**
+- Unified upper-body control (ears + neck coordination)
+- Independent ear articulation (2-DOF each: horizontal + vertical)
+- 3-DOF neck kinematics (pan ±90°, tilt ±45°, roll ±30°)
+- Coordinated gestures (e.g., "look left" = neck pan + ears orient)
+
+**I2C Address:** 0x09
 
 ---
 
-## Neck Module
-
-**Responsibility:** 3-DOF head articulation (pan ±90°, tilt ±45°, roll ±30°). Shares servo controller with Base module kickstand.
-
-**Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
-- 3× Feetech STS3215 servos (30 kg·cm torque)
-- Shared Bus Servo Controller (STSC series compatible)
-  - Controls 3× neck servos + 1× base kickstand servo
-  - Integrates servo power supply and control circuit
-  - Serial bus interface to ESP32
-
-**Firmware:**
-```
-neck_controller.ino
-├── i2c_slave.cpp
-├── servo_bus_controller.cpp    // STSC bus servo driver (4 servos total)
-├── kinematics.cpp
-├── trajectory_planner.cpp
-└── safety_limits.cpp
-```
-
----
-
-## Base Module (Self-Balancing)
+## Base Module (Self-Balancing + Kickstand)
 
 **Responsibility:** Autonomous two-wheel balancing with 200Hz PID control, ODrive motor coordination, kickstand deployment.
 
 **Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM) - Upgraded for superior LX7 real-time performance (200Hz PID control)
-- MPU6050 IMU (200Hz sampling)
-- ODrive v3.6 motor controller
-- 2× hoverboard hub motors (350W each)
-- 1× Feetech STS3215 kickstand servo (30 kg·cm torque)
-  - Controlled via shared Bus Servo Controller (managed by Neck module)
+- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM) - LX7 dual-core for real-time control
+- MPU6050 IMU (200Hz sampling, I2C)
+- ODrive v3.6 motor controller (UART)
+- 2× Hoverboard hub motors (350W each)
+- **1× Feetech STS3215 kickstand servo** (30 kg·cm torque, fall protection)
 
 **Firmware Architecture:**
 ```
-base_controller.ino (most complex)
+base_controller.ino
 ├── i2c_slave.cpp
-├── balancing_controller.cpp    // 200Hz PID loop
-├── imu_fusion.cpp
-├── odrive_uart.cpp
-├── kickstand_control.cpp       // Commands sent to Neck module's servo controller
-├── state_machine.cpp
-├── odometry_publisher.cpp
-└── safety_monitor.cpp
+├── balancing_controller.cpp       // 200Hz PID loop (FreeRTOS task)
+├── imu_fusion.cpp                 // MPU6050 complementary filter
+├── odrive_uart.cpp                // Motor velocity commands
+├── kickstand_control.cpp          // STS3215 servo (deploy <200ms)
+├── state_machine.cpp              // RELAXED → BALANCING → EMERGENCY
+├── odometry_publisher.cpp         // 10Hz wheel encoder data
+└── safety_monitor.cpp             // Fall detection: |pitch| > 45°
 ```
 
 **Key Features:**
-- 200Hz real-time PID balancing
-- State machine: RELAXED → TRANSITIONING → BALANCING → EMERGENCY_STOP
-- Fall detection: |pitch| > 45° triggers kickstand
-- 10Hz odometry publication
+- 200Hz real-time PID balancing (ESP32 FreeRTOS guarantees)
+- State machine: RELAXED (kickstand down) → TRANSITIONING → BALANCING → EMERGENCY_STOP
+- Fall detection triggers kickstand deployment within 200ms
+- 10Hz odometry publication to orchestrator (SLAM-grade accuracy)
+- Kickstand managed locally for time-critical fall protection
+
+**I2C Address:** 0x0B
 
 ---
 
-## Projector Module
+## Body Module (Heart Display + Projector Control + LEDs)
 
-**Responsibility:** Floor projection for AI-generated content display.
+**Responsibility:** Body-mounted indicators - heart display emotion visualization, projector power management, system status LEDs.
 
 **Hardware:**
 - ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
-- TI DLP LightCrafter OR HDMI pico projector
-- 12V power supply
+- 1× GC9A01 Round TFT Display (1.28", 240×240, SPI) - Heart animation
+- 1× Relay or MOSFET module (12V projector power switching)
+- Nx WS2812B RGB LED strip (addressable, 5-10 LEDs for status indicators)
 
-**Note:** If HDMI mode, Pi drives projector directly, ESP32 only controls power relay.
+**Firmware Architecture:**
+```
+body_controller.ino
+├── i2c_slave.cpp
+├── heart_animation.cpp
+├── gc9a01_driver_spi.cpp    // Round TFT driver (240×240)
+├── projector_power.cpp      // Relay control + status monitoring
+└── led_controller.cpp       // WS2812B addressable LED patterns
+```
+
+**Key Features:**
+- 60 FPS heart animation (emotion-driven BPM 50-120)
+- Heart color variations for emotional states (red=default, blue=sad, yellow=happy)
+- Projector power switching (ON/OFF via relay)
+- RGB LED patterns (status indicators, mood lighting, breathing effects synchronized with heart)
+- Coordinated with personality system
+
+**I2C Address:** 0x0A
+
+**Note:** Projector content driven directly by Pi via HDMI; ESP32 only controls power and LEDs.
 
 ---
+
 
 ## Orchestration Layer (Raspberry Pi)
 
@@ -132,7 +141,7 @@ base_controller.ino (most complex)
 ```
 orchestrator/
 ├── ros2_nodes/
-│   ├── hardware_drivers/       # 5× I2C bridge nodes
+│   ├── hardware_drivers/       # 4× I2C bridge nodes (Head, Ears+Neck, Body, Base)
 │   ├── personality/
 │   ├── ai_integration/
 │   ├── navigation/
@@ -142,6 +151,12 @@ orchestrator/
 ├── config/
 └── ota_server/
 ```
+
+**I2C Module Summary:**
+- 0x08: Head (eyes, sensors, audio)
+- 0x09: Ears + Neck (7 servos via 2 controllers)
+- 0x0A: Body (heart LCD, projector relay, LEDs)
+- 0x0B: Base (balancing, odometry, kickstand)
 
 ---
 

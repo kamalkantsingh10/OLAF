@@ -1,0 +1,93 @@
+# OLAF Module I2C Address Configuration
+#
+# This file defines the I2C addresses and descriptions for all ESP32 modules.
+# The orchestrator uses these addresses to communicate with hardware modules
+# via the I2C bus on the Raspberry Pi.
+#
+# Architecture: 4-Module Design (consolidated from earlier 5-module layout)
+# I2C Bus: Raspberry Pi GPIO 2 (SDA) and GPIO 3 (SCL)
+# Address Range: 0x08-0x0B (reserved OLAF address space)
+
+modules:
+  head:
+    i2c_address: 0x08
+    description: "Eyes (2× GC9A01), mmWave sensor, I2S mics, speaker"
+    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    responsibilities:
+      - "Eye animations (60 FPS rendering)"
+      - "Presence detection (DFRobot SEN0395 mmWave)"
+      - "Audio input (2× INMP441 I2S microphones)"
+      - "Audio output (PAM8403 amplifier + speaker)"
+    register_map: "shared/i2c_registers.h"
+
+  ears_neck:
+    i2c_address: 0x09
+    description: "Ears 4× servos + Neck 3× servos (2 UART controllers)"
+    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    responsibilities:
+      - "Ear expressions (4× Feetech SCS0009 servos, 2-DOF × 2)"
+      - "Head orientation (3× Feetech STS3215 servos: pan/tilt/roll)"
+      - "Coordinated upper-body gestures"
+      - "Dual UART controllers (Controller A: ears, Controller B: neck)"
+    servo_buses:
+      controller_a: "UART1 - 4× SCS0009 ear servos"
+      controller_b: "UART2 - 3× STS3215 neck servos"
+    register_map: "shared/i2c_registers.h"
+
+  body:
+    i2c_address: 0x0A
+    description: "Heart LCD (GC9A01), projector relay, WS2812B LEDs"
+    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    responsibilities:
+      - "Heart animation (60 FPS, emotion-driven BPM 50-120)"
+      - "Projector power control (12V relay module)"
+      - "Status LED indicators (WS2812B RGB strip, 5-10 LEDs)"
+      - "Body-mounted visual feedback"
+    register_map: "shared/i2c_registers.h"
+
+  base:
+    i2c_address: 0x0B
+    description: "Self-balancing (MPU6050, ODrive, kickstand servo)"
+    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    responsibilities:
+      - "Self-balancing control (200Hz PID loop)"
+      - "Motor control (ODrive v3.6, 2× 350W hoverboard motors)"
+      - "Kickstand deployment (1× Feetech STS3215 servo)"
+      - "Fall detection and safety cutoff"
+    control_loops:
+      balancing_rate: "200Hz"
+      imu_sensor: "MPU6050"
+      motor_controller: "ODrive v3.6 (UART1)"
+      kickstand_servo: "Feetech STS3215 (UART2)"
+    register_map: "shared/i2c_registers.h"
+
+# I2C Bus Configuration
+i2c_bus:
+  bus_id: 1  # I2C bus 1 on Raspberry Pi (/dev/i2c-1)
+  speed: 100000  # 100kHz (standard mode)
+  timeout_ms: 100  # Communication timeout
+
+# Address Conflict Detection
+# If you add new I2C devices (sensors, peripherals), ensure they don't
+# conflict with the reserved OLAF module address space (0x08-0x0B).
+reserved_addresses:
+  - 0x08  # Head Module
+  - 0x09  # Ears+Neck Module
+  - 0x0A  # Body Module
+  - 0x0B  # Base Module
+
+# Development Notes
+#
+# Historical Context:
+# - Original design: 5 separate modules (head, ears, neck, projector, base)
+# - Addresses: 0x08 (head), 0x09 (ears), 0x0A (neck), 0x0B (projector), 0x0C (base)
+#
+# Current Design Rationale:
+# - Ears + Neck unified: Both use UART servo controllers, sharing ESP32 reduces cost
+# - Body module created: Groups heart LCD, projector relay, LEDs under single controller
+# - Base address changed: 0x0C → 0x0B to fill address gap after consolidation
+#
+# References:
+# - Architecture: docs/architecture/components.md
+# - I2C Register Map: docs/architecture/data-models.md
+# - Source Tree: docs/architecture/source-tree.md

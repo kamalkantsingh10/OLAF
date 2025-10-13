@@ -118,56 +118,56 @@ modules/
 │   ├── firmware/
 │   │   ├── head_controller.ino
 │   │   ├── i2c_slave.cpp/h
-│   │   ├── oled_driver_spi.cpp/h
+│   │   ├── gc9a01_driver_spi.cpp/h  # GC9A01 round TFT driver
 │   │   ├── animation_engine.cpp/h
 │   │   ├── animations/    # Pre-built emotion animation frames
+│   │   ├── mmwave_sensor.cpp/h      # DFRobot SEN0395 driver
 │   │   └── config.h       # Pin assignments, I2C address
 │   ├── platformio.ini     # PlatformIO build configuration
 │   ├── test/              # Unit tests (Arduino Unit Test)
 │   └── README.md          # Hardware setup, I2C API, troubleshooting
-├── ears/                  # Ears Module (I2C 0x09)
+├── ears-neck/             # Ears + Neck Module (I2C 0x09)
 │   ├── firmware/
-│   │   ├── ears_controller.ino
-│   │   ├── servo_control.cpp/h  # Feetech SCS0009 serial bus
+│   │   ├── ears_neck_controller.ino
+│   │   ├── feetech_scs.cpp/h   # SCS0009 servo protocol (ears)
+│   │   ├── feetech_sts.cpp/h   # STS3215 servo protocol (neck)
+│   │   ├── gesture_sequencer.cpp/h  # Coordinated gesture engine
 │   │   └── config.h
 │   ├── platformio.ini
 │   └── README.md
-├── neck/                  # Neck Module (I2C 0x0A)
+├── body/                  # Body Module (I2C 0x0A)
 │   ├── firmware/
-│   │   ├── neck_controller.ino
-│   │   ├── servo_control.cpp/h  # Feetech STS3215 serial bus
+│   │   ├── body_controller.ino
+│   │   ├── gc9a01_driver_spi.cpp/h  # Heart LCD driver
+│   │   ├── heart_animation.cpp/h    # 60 FPS heart animation
+│   │   ├── projector_relay.cpp/h    # 12V projector power control
+│   │   ├── ws2812b_leds.cpp/h       # RGB LED strip control
 │   │   └── config.h
 │   ├── platformio.ini
 │   └── README.md
-├── projector/             # Projector Module (I2C 0x0B)
-│   ├── firmware/
-│   │   ├── projector_controller.ino
-│   │   ├── dlp_control.cpp/h
-│   │   └── config.h
-│   ├── platformio.ini
-│   └── README.md
-├── base/                  # Base Module (I2C 0x0C) - Self-Balancing
-│   ├── firmware/
-│   │   ├── base_controller.ino
-│   │   ├── balancing_controller.cpp/h  # 200Hz PID loop
-│   │   ├── odrive_uart.cpp/h          # ODrive motor control
-│   │   ├── kickstand_control.cpp/h
-│   │   └── config.h
-│   ├── platformio.ini
-│   └── README.md
-└── body/                  # Body Module (LED indicators, status)
+└── base/                  # Base Module (I2C 0x0B) - Self-Balancing
     ├── firmware/
-    │   ├── body_controller.ino
-    │   └── led_control.cpp/h
+    │   ├── base_controller.ino
+    │   ├── balancing_controller.cpp/h  # 200Hz PID loop
+    │   ├── odrive_uart.cpp/h          # ODrive motor control
+    │   ├── kickstand_control.cpp/h    # Kickstand servo (STS3215)
+    │   └── config.h
     ├── platformio.ini
     └── README.md
 ```
 
 **Key Concepts:**
-- **I2C Slave Architecture:** Each ESP32 acts as intelligent I2C slave (addresses 0x08-0x0C)
+- **I2C Slave Architecture:** Each ESP32 acts as intelligent I2C slave (addresses 0x08-0x0B)
+- **4-Module Design:** Consolidated architecture reduces hardware cost and simplifies upper-body coordination
 - **Embedded Intelligence:** Contains full hardware drivers, animation engines, real-time control loops
 - **Semantic Commands:** Receives high-level commands from orchestrator (e.g., "express happy level 3")
 - **Standalone Testing:** Each module testable independently without other modules connected
+
+**Module Responsibilities:**
+- **Head (0x08):** Eyes (2× GC9A01), mmWave sensor, I2S mics, speaker
+- **Ears+Neck (0x09):** 4× ear servos + 3× neck servos (unified upper-body control)
+- **Body (0x0A):** Heart LCD (GC9A01), projector relay, WS2812B LEDs
+- **Base (0x0B):** Self-balancing (MPU6050, ODrive, kickstand servo)
 
 **Development Workflow:**
 1. Edit firmware in `firmware/` directory
@@ -189,9 +189,8 @@ orchestrator/
 ├── ros2_nodes/            # ROS2 node implementations
 │   ├── hardware_drivers/  # I2C driver nodes (one per module)
 │   │   ├── head_driver_node.py
-│   │   ├── ears_driver_node.py
-│   │   ├── neck_driver_node.py
-│   │   ├── projector_driver_node.py
+│   │   ├── ears_neck_driver_node.py
+│   │   ├── body_driver_node.py
 │   │   └── base_driver_node.py
 │   ├── personality/       # Personality coordination
 │   │   ├── personality_coordinator_node.py

@@ -35,17 +35,16 @@ head_controller.ino
 
 **Hardware:**
 - ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
-- 2× Bus Servo Controllers (STSC series compatible):
-  - **Controller A:** 4× Feetech SCS0009 servos (ears only, 2-DOF × 2)
-  - **Controller B:** 3× Feetech STS3215 servos (neck only: pan/tilt/roll, 30 kg·cm torque)
-- Serial bus interfaces to ESP32
+- 2× Bus Servo Controllers (STSC series compatible), connected via UART:
+  - **Controller A (UART1):** 4× Feetech SCS0009 servos (ears only, 2-DOF × 2)
+  - **Controller B (UART2):** 3× Feetech STS3215 servos (neck only: pan/tilt/roll, 30 kg·cm torque)
 
 **Firmware Architecture:**
 ```
 ears_neck_controller.ino
 ├── i2c_slave.cpp
-├── ear_servo_controller.cpp       // Controller A (SCS0009 × 4)
-├── neck_servo_controller.cpp      // Controller B (STS3215 × 3)
+├── ear_servo_controller.cpp       // Controller A via UART1 (SCS0009 × 4)
+├── neck_servo_controller.cpp      // Controller B via UART2 (STS3215 × 3)
 ├── motion_profiles.cpp
 ├── kinematics.cpp                 // Neck 3-DOF forward/inverse kinematics
 └── coordinated_gestures.cpp       // Ears + neck synchronized movements
@@ -56,6 +55,7 @@ ears_neck_controller.ino
 - Independent ear articulation (2-DOF each: horizontal + vertical)
 - 3-DOF neck kinematics (pan ±90°, tilt ±45°, roll ±30°)
 - Coordinated gestures (e.g., "look left" = neck pan + ears orient)
+- Dual UART interface for simultaneous control of both servo buses
 
 **I2C Address:** 0x09
 
@@ -68,9 +68,9 @@ ears_neck_controller.ino
 **Hardware:**
 - ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM) - LX7 dual-core for real-time control
 - MPU6050 IMU (200Hz sampling, I2C)
-- ODrive v3.6 motor controller (UART)
+- ODrive v3.6 motor controller (UART1)
 - 2× Hoverboard hub motors (350W each)
-- **1× Feetech STS3215 kickstand servo** (30 kg·cm torque, fall protection)
+- **1× Feetech STS3215 kickstand servo** (30 kg·cm torque, fall protection, UART2 serial bus)
 
 **Firmware Architecture:**
 ```
@@ -78,8 +78,8 @@ base_controller.ino
 ├── i2c_slave.cpp
 ├── balancing_controller.cpp       // 200Hz PID loop (FreeRTOS task)
 ├── imu_fusion.cpp                 // MPU6050 complementary filter
-├── odrive_uart.cpp                // Motor velocity commands
-├── kickstand_control.cpp          // STS3215 servo (deploy <200ms)
+├── odrive_uart.cpp                // Motor velocity commands via UART1
+├── kickstand_control.cpp          // STS3215 servo via UART2 (deploy <200ms)
 ├── state_machine.cpp              // RELAXED → BALANCING → EMERGENCY
 ├── odometry_publisher.cpp         // 10Hz wheel encoder data
 └── safety_monitor.cpp             // Fall detection: |pitch| > 45°

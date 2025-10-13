@@ -2,9 +2,9 @@
 
 ## Technical Summary
 
-OLAF is a **distributed embedded robotics system** with hybrid AI intelligence, built on a three-layer architecture. The **Orchestration Layer** (Raspberry Pi 5 8GB + Hailo-8L AI Kit running ROS2 Humble) coordinates five independent **Module Layer** smart peripherals (ESP32-based: Head, Ears, Neck, Projector, Base) via I2C bus communication. The **Intelligence Layer** combines local AI acceleration (Hailo-accelerated Whisper STT for <200ms speech recognition) with cloud-based AI agents (Claude/GPT-4 APIs for reasoning and personality generation).
+OLAF is a **distributed embedded robotics system** with hybrid AI intelligence, built on a three-layer architecture. The **Orchestration Layer** (Raspberry Pi 5 8GB + Hailo-8L AI Kit running ROS2 Humble) coordinates four independent **Module Layer** smart peripherals (ESP32-based: Head, Ears+Neck, Body, Base) via I2C bus communication. The **Intelligence Layer** combines local AI acceleration (Hailo-accelerated Whisper STT for <200ms speech recognition) with cloud-based AI agents (Claude/GPT-4 APIs for reasoning and personality generation).
 
-Key architectural decisions include: (1) I2C-only module communication eliminates WiFi complexity and achieves 5-20ms latency vs 80-200ms WiFi/ROS2, (2) ROS2 nodes run exclusively on Pi with ESP32-S3s as smart I2C slaves containing full hardware drivers, animation engines, and real-time control loops, (3) SPI-connected GC9A01 round TFT displays (240×240) enable 60 FPS full-color personality expression, (4) Bus servo controllers manage 4× ear servos (dedicated) and 4× neck+kickstand servos (shared) via serial bus, (5) ODrive motor controller provides closed-loop SLAM-grade odometry, (6) Self-balancing two-wheel base with 30 kg·cm kickstand managed via Neck module's servo controller (200Hz PID control runs on Base ESP32-S3), and (7) OTA firmware updates in V1 enable rapid iteration without robot disassembly. This architecture achieves <3s AI response latency (NFR1), supports 2-4 hour battery runtime (NFR4), and enables weekend-sprint modular development per MECE principles.
+Key architectural decisions include: (1) I2C-only module communication eliminates WiFi complexity and achieves 5-20ms latency vs 80-200ms WiFi/ROS2, (2) ROS2 nodes run exclusively on Pi with ESP32-S3s as smart I2C slaves containing full hardware drivers, animation engines, and real-time control loops, (3) SPI-connected GC9A01 round TFT displays (240×240) enable 60 FPS full-color personality expression, (4) Dual UART bus servo controllers per ESP32 enable simultaneous control: Ears+Neck ESP32 manages 4× ear servos (UART1) + 3× neck servos (UART2); Base ESP32 manages ODrive motors (UART1) + kickstand servo (UART2), (5) Body ESP32 controls heart LCD display, LED indicators, and projector power via optocoupler, (6) Self-balancing two-wheel base with 200Hz PID control and time-critical kickstand deployment (both managed by Base ESP32), and (7) OTA firmware updates in V1 enable rapid iteration without robot disassembly. This architecture achieves <3s AI response latency (NFR1), supports 2-4 hour battery runtime (NFR4), and enables weekend-sprint modular development per MECE principles.
 
 ## Platform and Infrastructure Choice
 
@@ -115,26 +115,26 @@ olaf/
 │  +OTA   │  │   +OTA      │ │  +OTA     │ │  +OTA    │
 └──┬──────┘  └─┬──────┬────┘ └┬────┬─────┘ └┬────┬────┘
    │           │      │       │    │        │    │
-   │ SPI       │Servo │Servo  │SPI │Relay   │UART│Servo
-   │ Eyes      │Bus A │Bus B  │LCD │+LEDs   │ODrv│Stand
-   │(GC9A01)   │(4×)  │(3×)   │Hrt │WS2812B │+IMU│STS15
-   │           │Ears  │Neck   │    │        │    │
+   │ SPI       │UART1 │UART2  │SPI │Opto    │UART│UART
+   │ Eyes      │Ear   │Neck   │LCD │+LEDs   │1:  │2:
+   │(GC9A01)   │Ctrl  │Ctrl   │Hrt │WS2812B │ODrv│Stand
+   │           │(4×)  │(3×)   │    │        │+IMU│STS15
 ┌──▼──────────────────────────────────────────────────────┐
 │          MODULE LAYER (Physical Hardware)               │
 │  • HEAD MODULE (0x08):                                  │
 │    - 2× GC9A01 Round TFT Eyes (1.28", 240×240, SPI)    │
 │    - mmWave Presence Sensor, Mic Array, Speaker        │
 │  • EARS + NECK MODULE (0x09):                           │
-│    - 4× Feetech SCS0009 (ears, Bus Servo Ctrl A)       │
-│    - 3× Feetech STS3215 (neck, Bus Servo Ctrl B)       │
+│    - 4× Feetech SCS0009 (ears, via UART1 to Ctrl A)   │
+│    - 3× Feetech STS3215 (neck, via UART2 to Ctrl B)   │
 │  • BODY MODULE (0x0A):                                  │
 │    - 1× GC9A01 Heart Display (1.28", 240×240, SPI)     │
-│    - DLP Projector (HDMI to Pi, power via relay)       │
+│    - DLP Projector (HDMI to Pi, power via optocoupler) │
 │    - WS2812B RGB LEDs (status/mood indicators)         │
 │  • BASE MODULE (0x0B):                                  │
-│    - 2× Hoverboard Motors + ODrive (UART)              │
+│    - 2× Hoverboard Motors + ODrive (UART1)             │
 │    - MPU6050 IMU (200Hz balancing)                     │
-│    - 1× Feetech STS3215 Kickstand (30 kg·cm)           │
+│    - 1× Feetech STS3215 Kickstand (30 kg·cm, UART2)   │
 │  • ORCHESTRATOR (Pi 5):                                 │
 │    - OAK-D Pro RGBD Camera (USB)                       │
 │    - Hailo-8L AI Accelerator (PCIe)                    │
@@ -144,8 +144,10 @@ Communication Protocols:
 ━━━━━━━━ I2C: Pi ↔ All ESP32-S3 modules (commands, sensor data)
 - - - - - WiFi: Pi → Cloud AI APIs only (Claude/GPT-4)
 ━ ━ ━ ━ ━ SPI: ESP32-S3 → GC9A01 TFT displays (high-speed color graphics)
-━·━·━·━·━ UART: Base ESP32-S3 → ODrive motor controller
-─ ─ ─ ─ ─ Serial Bus: ESP32-S3 → Bus Servo Controllers (STSC series)
+━·━·━·━·━ UART: ESP32-S3 modules → servo controllers, motor controllers
+          • Ears+Neck ESP32: UART1→Ear Ctrl (4× SCS0009), UART2→Neck Ctrl (3× STS3215)
+          • Base ESP32: UART1→ODrive, UART2→Kickstand Servo (1× STS3215)
+─ ─ ─ ─ ─ Digital: WS2812B LEDs (addressable RGB), Optocoupler (projector power button)
 ```
 
 ## Architectural Patterns

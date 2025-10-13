@@ -5,9 +5,9 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ## Epic Structure Overview (12 Epics for Faster Milestones)
 
 **Epic 1: Foundation & Core I2C Communication**
-**Goal:** Establish ROS2 + I2C infrastructure, power system, and prove architecture with minimal working personality (eye blink + heart beat animation). Includes body module with heart LCD, projector control, and status LEDs.
+**Goal:** Establish ROS2 + I2C infrastructure, power system, and prove architecture with minimal working personality—a beating heart LCD showing emotion-driven animation. Heart display only (no eyes, no projector, no LEDs in V1).
 
-**Duration:** 2-3 weeks | **Value:** Quick win proving I2C + SPI architecture, heart display emotion feedback
+**Duration:** 2 weeks | **Value:** Quick win proving I2C + SPI architecture, heart display emotion feedback
 
 ---
 

@@ -226,11 +226,17 @@ This isn't just about building a robot - it's about proving that **individual bu
 - **Standard OLAF (~$700)**: Minimal + Hoverboard base + Basic RGBD camera - Adds mobility
 - **Full OLAF (~$1000)**: Standard + Floor projector + High-quality RGBD camera - Complete feature set
 
-**Development workflow:**
-1. **Firmware**: PlatformIO → compile → upload via USB (OTA post-V1)
-2. **Orchestrator**: `colcon build` → ROS2 workspace
-3. **Launch**: `ros2 launch orchestrator olaf_full.launch.py`
-4. **Test**: `./tools/diagnostics/olaf-test <module> <command>`
+---
+
+### Development Setup
+
+📖 **[Setup Instructions](docs/user-guide/setup-instructions.md)** - Complete guide to hybrid PC+Pi development workflow
+
+**Quick overview:**
+- Develop on your PC (runs application nodes)
+- Raspberry Pi handles hardware (runs driver nodes for I2C communication)
+- They talk over WiFi via ROS2
+- Deploy to Pi for production—same code, zero changes
 
 ---
 

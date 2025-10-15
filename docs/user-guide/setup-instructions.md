@@ -22,7 +22,7 @@ This guide walks through setting up both machines and getting them talking to ea
 **Hardware:**
 - Raspberry Pi 5 (8GB recommended, 4GB works)
 - MicroSD card (64GB minimum, 128GB if you want breathing room)
-- Development PC running Ubuntu 22.04 (Windows/Mac with Docker also supported)
+- Development PC running Ubuntu 22.04 (native or VM)
 - Both machines on the same WiFi network
 
 **Software (we'll install together):**
@@ -104,14 +104,10 @@ Type `yes` when it asks about the fingerprint. You'll only see this once.
 
 ```bash
 cd ~
-git clone https://github.com/<your-username>/OLAF.git olaf
+git clone https://github.com/kamalkantsingh10/OLAF.git olaf
 cd olaf
 ```
 
-**Private repo?** Use a personal access token:
-```bash
-git clone https://<token>@github.com/<your-username>/OLAF.git olaf
-```
 
 ### Step 4: Run the Setup Script
 
@@ -167,11 +163,9 @@ If all checks pass, your Pi is ready. If something failed, check `tools/setup/RE
 
 ## Part 2: PC Development Setup
 
-Your PC needs ROS2 Humble to communicate with the Pi over WiFi. Two options: native Ubuntu or Docker.
+Your PC needs ROS2 Humble to communicate with the Pi over WiFi.
 
-### Option A: Ubuntu 22.04 (Recommended)
-
-If you're already running Ubuntu 22.04, this is the cleanest path.
+**Requirement:** Ubuntu 22.04 LTS (native or VM)
 
 **Install ROS2 Humble:**
 
@@ -214,9 +208,22 @@ source ~/.bashrc
 
 ```bash
 cd ~
-git clone https://github.com/<your-username>/OLAF.git olaf
+git clone https://github.com/kamalkantsingh10/OLAF.git olaf
 cd olaf
 pip3 install -r orchestrator/requirements.txt
+```
+
+**Build the ROS2 workspace:**
+
+```bash
+# Build packages
+colcon build --packages-select olaf_interfaces olaf_orchestrator
+
+# Source the workspace
+source install/setup.bash
+
+# Add to ~/.bashrc for automatic sourcing
+echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ```
 
 **Verify:**
@@ -226,47 +233,6 @@ ros2 --version  # Should show humble
 echo $ROS_DOMAIN_ID  # Should show 42
 ros2 topic list  # Should show /parameter_events, /rosout
 ```
-
-### Option B: Docker (Windows/Mac/Linux)
-
-If you're on Windows or Mac, Docker gives you a Linux environment with ROS2 pre-installed.
-
-**Create `Dockerfile` in your OLAF directory:**
-
-```dockerfile
-FROM ros:humble
-
-RUN apt-get update && apt-get install -y \
-    python3-pip \
-    python3-colcon-common-extensions \
-    ros-humble-rqt* \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV ROS_DOMAIN_ID=42
-WORKDIR /workspace
-
-RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
-
-CMD ["/bin/bash"]
-```
-
-**Build and run:**
-
-```bash
-# Build image
-docker build -t olaf-ros2-dev .
-
-# Run (Linux - uses host network)
-docker run -it --rm --network host -v $(pwd):/workspace olaf-ros2-dev
-
-# Run (Windows/Mac - requires explicit port mapping)
-docker run -it --rm -v $(pwd):/workspace olaf-ros2-dev
-
-# Inside container
-pip3 install -r orchestrator/requirements.txt
-```
-
-**Note for Windows/Mac users:** Docker's `--network host` doesn't work the same way. ROS2 discovery might require additional configuration (static DDS peers). For simplicity, Ubuntu native is recommended if you can dual-boot or use a VM.
 
 ---
 

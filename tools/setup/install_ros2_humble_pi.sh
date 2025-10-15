@@ -124,13 +124,12 @@ install_ros2() {
     sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
     # Map Debian codename to Ubuntu codename for ROS2 repositories
-    # Debian Bookworm (12) -> Ubuntu Jammy (22.04)
-    # Debian Trixie (13) -> Ubuntu Noble (24.04)
+    # ROS2 Humble requires Ubuntu Jammy (22.04) repositories
+    # Both Debian Bookworm (12) and Trixie (13) should use Jammy for Humble
     . /etc/os-release
-    if [ "$VERSION_CODENAME" = "bookworm" ]; then
+    if [ "$VERSION_CODENAME" = "bookworm" ] || [ "$VERSION_CODENAME" = "trixie" ]; then
         UBUNTU_CODENAME="jammy"
-    elif [ "$VERSION_CODENAME" = "trixie" ]; then
-        UBUNTU_CODENAME="noble"
+        log_info "Using Ubuntu Jammy repository for ROS2 Humble on Debian $VERSION_CODENAME"
     else
         log_error "Unsupported Debian version: $VERSION_CODENAME"
         exit 1

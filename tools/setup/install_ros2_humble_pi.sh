@@ -122,7 +122,21 @@ install_ros2() {
     # Add ROS2 apt repository
     log_info "Adding ROS2 apt repository..."
     sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+    # Map Debian codename to Ubuntu codename for ROS2 repositories
+    # Debian Bookworm (12) -> Ubuntu Jammy (22.04)
+    # Debian Trixie (13) -> Ubuntu Noble (24.04)
+    . /etc/os-release
+    if [ "$VERSION_CODENAME" = "bookworm" ]; then
+        UBUNTU_CODENAME="jammy"
+    elif [ "$VERSION_CODENAME" = "trixie" ]; then
+        UBUNTU_CODENAME="noble"
+    else
+        log_error "Unsupported Debian version: $VERSION_CODENAME"
+        exit 1
+    fi
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $UBUNTU_CODENAME main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
     # Update apt cache
     sudo apt update

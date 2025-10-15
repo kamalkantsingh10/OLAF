@@ -117,7 +117,7 @@ install_ros2() {
 
     # Install prerequisites
     log_info "Installing prerequisites..."
-    sudo apt install -y software-properties-common curl gnupg lsb-release
+    sudo apt install -y curl gnupg lsb-release
 
     # Add ROS2 apt repository
     log_info "Adding ROS2 apt repository..."

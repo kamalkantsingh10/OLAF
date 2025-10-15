@@ -22,14 +22,14 @@ This guide walks through setting up both machines and getting them talking to ea
 **Hardware:**
 - Raspberry Pi 5 (8GB recommended, 4GB works)
 - MicroSD card (64GB minimum, 128GB if you want breathing room)
-- Development PC running Ubuntu 22.04 (native or VM)
+- Development PC running Ubuntu 24.04 (native or VM)
 - Both machines on the same WiFi network
 
 **Software (we'll install together):**
 - Raspberry Pi Imager (free tool for flashing the OS)
 - SSH client (built into Linux/Mac, use PuTTY on Windows)
 - Git (for version control)
-- ROS2 Humble (the robotics framework)
+- ROS2 Jazzy (the robotics framework)
 
 **What you should know:**
 - Basic command-line navigation (`cd`, `ls`, `mkdir`)
@@ -44,21 +44,21 @@ You don't need to be a Linux expert. If you can follow along with terminal comma
 
 The Pi needs an operating system and some software before it can talk to hardware. We'll flash Raspberry Pi OS, install ROS2, and enable I2C (the protocol for talking to ESP32 modules).
 
-### Step 1: Flash Raspberry Pi OS
+### Step 1: Flash Ubuntu Server 24.04
 
-**Why Raspberry Pi Imager over dd/Etcher?** It lets you pre-configure WiFi and SSH, so you never need to plug in a monitor.
+**Why Ubuntu Server instead of Raspberry Pi OS?** ROS2 Jazzy has official Tier 1 support for Ubuntu 24.04 on ARM64, making installation straightforward with pre-built packages.
 
 1. **Download Raspberry Pi Imager:**
    - https://www.raspberrypi.com/software/
    - Install it like any other program
 
-2. **Flash the OS:**
+2. **Flash Ubuntu Server:**
    - Insert your microSD card
    - Open Raspberry Pi Imager
    - **Choose Device:** Raspberry Pi 5
-   - **Choose OS:** Raspberry Pi OS (64-bit) - **IMPORTANT: Select "Raspberry Pi OS (Legacy, 64-bit)" based on Debian Bookworm**
-     - ⚠️ **Do NOT use the latest Trixie-based version** - ROS2 Humble requires Debian Bookworm
-     - Look for the version that says "Debian version: 12 (bookworm)" in the description
+   - **Choose OS:** Other general-purpose OS → Ubuntu → **Ubuntu Server 24.04 LTS (64-bit)**
+     - ⚠️ **Make sure it says "24.04 LTS" (Noble Numbat)**
+     - This is the official version with ROS2 Jazzy support
    - **Choose Storage:** Your microSD card
 
 3. **Configure pre-boot settings (this is key):**
@@ -111,36 +111,97 @@ cd olaf
 ```
 
 
-### Step 4: Run the Setup Script
+### Step 4: Install ROS2 Jazzy
 
-We've automated most of the heavy lifting—ROS2 installation, I2C configuration, user permissions.
+Now we'll install ROS2 Jazzy on the Pi. This process takes 10-15 minutes.
 
 ```bash
-cd ~/olaf
-./tools/setup/install_ros2_humble_pi.sh
+# Update system packages
+sudo apt update
+sudo apt upgrade -y
+
+# Install prerequisites
+sudo apt install -y software-properties-common curl gnupg lsb-release
+
+# Add ROS2 apt repository
+sudo add-apt-repository universe
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+# Update apt cache
+sudo apt update
+
+# Install ROS2 Jazzy Desktop (this takes 10-15 minutes)
+sudo apt install -y ros-jazzy-desktop
+
+# Install development tools
+sudo apt install -y python3-colcon-common-extensions python3-rosdep
+
+# Initialize rosdep
+sudo rosdep init
+rosdep update
 ```
 
-**What this does:**
-- Checks you're running Debian 12 Bookworm on 64-bit ARM (will exit if not)
-- Installs ROS2 Humble Desktop from Ubuntu Jammy repositories (10-15 minutes)
-- Enables I2C hardware and sets bus speed to 400kHz
-- Installs `smbus2` (Python I2C library)
-- Installs `colcon` (ROS2 build tool)
-- Configures `ROS_DOMAIN_ID=42` (so PC and Pi can see each other)
-- Adds your user to the `i2c` group (allows non-root hardware access)
+### Step 5: Configure ROS2 Environment
 
-**Follow the prompts:**
-- ROS2 Domain ID: Press Enter for default (42), or choose 0-101
-- The script will ask to reboot at the end—say **yes**
+Add ROS2 to your shell environment so it's available every time you log in:
 
-### Step 5: Verify Installation
+```bash
+# Add ROS2 environment to .bashrc
+echo "" >> ~/.bashrc
+echo "# ROS2 Jazzy environment" >> ~/.bashrc
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
+
+# Apply changes to current session
+source ~/.bashrc
+```
+
+**What is ROS_DOMAIN_ID?** It isolates your robot from other ROS2 systems on the network. We use `42` as the default. Your PC must use the same number to communicate with the Pi.
+
+### Step 6: Enable and Configure I2C
+
+I2C is the protocol we use to talk to the ESP32 modules. We need to enable it and configure permissions:
+
+```bash
+# Enable I2C in boot config
+echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt
+echo "dtparam=i2c_arm_baudrate=400000" | sudo tee -a /boot/firmware/config.txt
+
+# Load I2C kernel module
+sudo modprobe i2c-dev
+echo "i2c-dev" | sudo tee -a /etc/modules
+
+# Install I2C tools
+sudo apt install -y i2c-tools
+
+# Add your user to i2c group (allows non-root access)
+sudo usermod -a -G i2c $USER
+```
+
+### Step 7: Install Python I2C Library
+
+```bash
+sudo apt install -y python3-pip
+pip3 install smbus2
+```
+
+### Step 8: Reboot
+
+Reboot for I2C and group membership changes to take effect:
+
+```bash
+sudo reboot
+```
+
+### Step 9: Verify Installation
 
 After reboot, SSH back in and run these checks:
 
 ```bash
 # ROS2 installed?
 ros2 --version
-# Expected: ros2 doctor 0.10.x (humble)
+# Expected: ros2 doctor 0.34.x (jazzy)
 
 # I2C enabled?
 ls /dev/i2c-*
@@ -159,17 +220,17 @@ echo $ROS_DOMAIN_ID
 # Expected: 42
 ```
 
-If all checks pass, your Pi is ready. If something failed, check `tools/setup/README.md` for troubleshooting.
+If all checks pass, your Pi is ready!
 
 ---
 
 ## Part 2: PC Development Setup
 
-Your PC needs ROS2 Humble to communicate with the Pi over WiFi.
+Your PC needs ROS2 Jazzy to communicate with the Pi over WiFi.
 
-**Requirement:** Ubuntu 22.04 LTS (native or VM)
+**Requirement:** Ubuntu 24.04 LTS (native or VM)
 
-**Install ROS2 Humble:**
+**Install ROS2 Jazzy:**
 
 ```bash
 # Locale setup
@@ -185,9 +246,9 @@ sudo apt update && sudo apt install curl -y
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
-# Install ROS2 Humble Desktop
+# Install ROS2 Jazzy Desktop
 sudo apt update
-sudo apt install ros-humble-desktop -y
+sudo apt install ros-jazzy-desktop -y
 
 # Development tools
 sudo apt install python3-colcon-common-extensions python3-rosdep -y
@@ -199,7 +260,7 @@ rosdep update
 
 ```bash
 # Add to ~/.bashrc
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -231,7 +292,7 @@ echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 **Verify:**
 
 ```bash
-ros2 --version  # Should show humble
+ros2 --version  # Should show jazzy
 echo $ROS_DOMAIN_ID  # Should show 42
 ros2 topic list  # Should show /parameter_events, /rosout
 ```

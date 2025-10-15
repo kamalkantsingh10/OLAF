@@ -56,7 +56,9 @@ The Pi needs an operating system and some software before it can talk to hardwar
    - Insert your microSD card
    - Open Raspberry Pi Imager
    - **Choose Device:** Raspberry Pi 5
-   - **Choose OS:** Raspberry Pi OS (64-bit)—pick Debian Bookworm or Trixie
+   - **Choose OS:** Raspberry Pi OS (64-bit) - **IMPORTANT: Select "Raspberry Pi OS (Legacy, 64-bit)" based on Debian Bookworm**
+     - ⚠️ **Do NOT use the latest Trixie-based version** - ROS2 Humble requires Debian Bookworm
+     - Look for the version that says "Debian version: 12 (bookworm)" in the description
    - **Choose Storage:** Your microSD card
 
 3. **Configure pre-boot settings (this is key):**
@@ -119,8 +121,8 @@ cd ~/olaf
 ```
 
 **What this does:**
-- Checks you're running Debian 12/13 on 64-bit ARM (will warn if not)
-- Installs ROS2 Humble Desktop (10-15 minutes)
+- Checks you're running Debian 12 Bookworm on 64-bit ARM (will exit if not)
+- Installs ROS2 Humble Desktop from Ubuntu Jammy repositories (10-15 minutes)
 - Enables I2C hardware and sets bus speed to 400kHz
 - Installs `smbus2` (Python I2C library)
 - Installs `colcon` (ROS2 build tool)

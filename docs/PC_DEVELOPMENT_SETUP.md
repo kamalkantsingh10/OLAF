@@ -47,21 +47,16 @@ This guide explains how to set up your PC for OLAF development using the hybrid 
 ## Prerequisites
 
 ### Hardware Requirements
-- PC running Ubuntu 22.04 LTS (native or VM) **OR** Windows/Mac with Docker
+- PC running Ubuntu 22.04 LTS (native or VM)
 - Raspberry Pi 5 with OLAF setup complete (Story 1.3)
 - Both PC and Pi on the same WiFi network
 
 ### Software Requirements
 - Ubuntu 22.04 LTS (for native ROS2 Humble support)
-- OR Docker Desktop (for Windows/Mac users)
 
 ---
 
-## Installation Options
-
-Choose one of the following based on your platform:
-
-### Option A: Ubuntu 22.04 (Native) - Recommended
+## Installation Steps
 
 #### 1. Install ROS2 Humble on PC
 
@@ -111,57 +106,18 @@ cd ~/olaf
 pip3 install -r orchestrator/requirements.txt
 ```
 
----
-
-### Option B: Docker (Windows/Mac/Linux)
-
-#### 1. Install Docker Desktop
-
-Download and install from: https://www.docker.com/products/docker-desktop
-
-#### 2. Create ROS2 Humble Docker Image
-
-Create `Dockerfile` in your OLAF repository:
-
-```dockerfile
-FROM ros:humble
-
-# Install development tools
-RUN apt-get update && apt-get install -y \
-    python3-pip \
-    python3-colcon-common-extensions \
-    ros-humble-rqt* \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set ROS2 domain ID (must match Pi)
-ENV ROS_DOMAIN_ID=42
-
-# Set working directory
-WORKDIR /workspace
-
-# Source ROS2 in every bash session
-RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
-
-CMD ["/bin/bash"]
-```
-
-#### 3. Build and Run Docker Container
+#### 4. Build ROS2 Workspace
 
 ```bash
-# Build image
-docker build -t olaf-ros2-dev .
+# Build the olaf_interfaces and orchestrator packages
+cd ~/olaf
+colcon build --packages-select olaf_interfaces olaf_orchestrator
 
-# Run container (Linux)
-docker run -it --rm \
-  --network host \
-  -v $(pwd):/workspace \
-  olaf-ros2-dev
+# Source the workspace
+source install/setup.bash
 
-# Run container (Windows/Mac - requires explicit port mapping)
-docker run -it --rm \
-  -p 11311:11311 \
-  -v $(pwd):/workspace \
-  olaf-ros2-dev
+# Add to ~/.bashrc for automatic sourcing
+echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ```
 
 ---
@@ -174,7 +130,7 @@ The `ROS_DOMAIN_ID` isolates your robot from other ROS2 systems on the network.
 
 **On PC:**
 ```bash
-# Add to ~/.bashrc (Ubuntu) or set in Docker
+# Add to ~/.bashrc (should already be set if you followed installation steps)
 export ROS_DOMAIN_ID=42
 ```
 
@@ -216,7 +172,7 @@ If you don't see topics, check troubleshooting section below.
 
 ```bash
 cd ~
-git clone <your-olaf-repo-url> olaf
+git clone https://github.com/kamalkantsingh10/OLAF.git olaf
 cd olaf
 ```
 
@@ -288,7 +244,7 @@ ros2 launch olaf_orchestrator olaf_full.launch.py
 
 ## ESP32 Firmware Development on PC
 
-You can also compile and upload ESP32 firmware from your PC:
+You can also compile and upload ESP32 firmware from your PC (once firmware is implemented):
 
 ### 1. Install PlatformIO
 
@@ -297,9 +253,10 @@ You can also compile and upload ESP32 firmware from your PC:
 pip3 install platformio
 ```
 
-### 2. Compile Firmware
+### 2. Compile Firmware (when available)
 
 ```bash
+# Example for head module (once platformio.ini exists)
 cd modules/head
 pio run
 ```
@@ -311,12 +268,7 @@ pio run
 pio run -t upload
 ```
 
-### 4. Deploy Compiled Binaries to Pi (for OTA)
-
-```bash
-# Copy .bin files to Pi's OTA server
-scp .pio/build/esp32/firmware.bin pi@raspberrypi.local:~/olaf/orchestrator/ota_server/firmware_binaries/
-```
+**Note:** ESP32 firmware development is covered in later stories. For now, focus on ROS2 orchestrator development on PC.
 
 ---
 
@@ -424,9 +376,6 @@ ros2 topic list  # Only shows /parameter_events and /rosout
    - Some corporate/guest WiFi networks block multicast
    - Solution: Use same local network or configure static DDS peers
 
-4. **Docker network mode (Windows/Mac)**
-   - `--network host` only works on Linux
-   - Windows/Mac requires explicit port mapping or DDS peer configuration
 
 ### Issue: Permission denied on Pi I2C
 
@@ -510,8 +459,9 @@ sudo systemctl status olaf.service
 ## Summary
 
 **PC Development:**
-- Install ROS2 Humble (Ubuntu native or Docker)
+- Install ROS2 Humble on Ubuntu 22.04
 - Set `ROS_DOMAIN_ID=42`
+- Build workspace with colcon
 - Run application nodes: `ros2 launch olaf_orchestrator app_nodes.launch.py`
 - Use your existing PC automation and tools
 

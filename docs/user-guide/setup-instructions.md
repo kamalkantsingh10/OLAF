@@ -106,11 +106,15 @@ Type `yes` when it asks about the fingerprint. You'll only see this once.
 
 ### Step 3: Clone the Repository
 
+Get the OLAF project code onto your Pi.
+
 ```bash
-cd ~
-git clone https://github.com/kamalkantsingh10/OLAF.git olaf
-cd olaf
+cd ~                                                      # Go to home directory
+git clone https://github.com/kamalkantsingh10/OLAF.git olaf  # Clone repository
+cd olaf                                                   # Enter project directory
 ```
+
+**Why?** This downloads all the ROS2 code, driver nodes, and configuration files you'll need. We clone it to `~/olaf` so it's in a consistent location on both your PC and Pi.
 
 
 ### Step 4: Install ROS2 Jazzy
@@ -119,119 +123,214 @@ Now we'll install ROS2 Jazzy on the Pi. This process takes 10-15 minutes.
 
 **Following the official installation guide:** https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
 
+#### What each step does:
+
 ```bash
 # Update system packages
-sudo apt update
-sudo apt upgrade -y
+sudo apt update           # Refreshes the list of available packages
+sudo apt upgrade -y      # Upgrades all installed packages to latest versions
+```
+**Why?** Ensures your system has the latest security patches and bug fixes before installing ROS2.
 
+```bash
 # Set up locale
-locale  # check for UTF-8
+locale                   # Check current locale settings
 sudo apt install -y locales
-sudo locale-gen en_US en_US.UTF-8
-sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-export LANG=en_US.UTF-8
+sudo locale-gen en_US en_US.UTF-8      # Generate US English UTF-8 locale
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8  # Set as default
+export LANG=en_US.UTF-8  # Apply to current session
+```
+**Why?** ROS2 requires UTF-8 encoding to properly handle international characters in messages and logs.
 
+```bash
 # Add ROS2 apt repository (official method)
-sudo apt install -y software-properties-common
-sudo add-apt-repository universe
-sudo apt update && sudo apt install curl -y
+sudo apt install -y software-properties-common  # Tools for managing repositories
+sudo add-apt-repository universe                # Enable Ubuntu's community-maintained packages
+sudo apt update && sudo apt install curl -y     # Install curl for downloading files
+```
+**Why?** Prepares your system to download and install packages from additional sources.
+
+```bash
+# Download and install the official ROS2 repository configuration
 export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
 curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
 sudo dpkg -i /tmp/ros2-apt-source.deb
+```
+**Why?** This downloads the official ROS2 repository configuration package, which adds the ROS2 package sources and GPG keys to your system. This is the recommended method as it automatically stays up-to-date.
 
+```bash
 # Update apt cache
-sudo apt update
+sudo apt update  # Refresh package list to include ROS2 packages
+```
+**Why?** Makes the newly added ROS2 packages visible to the package manager.
 
+```bash
 # Install ROS2 Jazzy Desktop (this takes 10-15 minutes)
 sudo apt install -y ros-jazzy-desktop
+```
+**Why?** Installs the full ROS2 Desktop package, which includes:
+- Core ROS2 libraries and tools
+- RViz (3D visualization tool)
+- rqt (graphical tools for debugging)
+- Demo packages and tutorials
 
+```bash
 # Install development tools
 sudo apt install -y python3-colcon-common-extensions python3-rosdep
-
-# Initialize rosdep
-sudo rosdep init
-rosdep update
 ```
+**Why?**
+- `colcon`: Build tool for compiling ROS2 packages
+- `rosdep`: Dependency management tool that automatically installs package dependencies
+
+```bash
+# Initialize rosdep
+sudo rosdep init   # Create system-wide rosdep configuration
+rosdep update      # Download dependency database
+```
+**Why?** Sets up rosdep's database of package dependencies, which you'll need when building custom ROS2 packages.
 
 ### Step 5: Configure ROS2 Environment
 
-Add ROS2 to your shell environment so it's available every time you log in:
+Add ROS2 to your shell environment so it's available every time you log in.
+
+#### What each step does:
 
 ```bash
 # Add ROS2 environment to .bashrc
-echo "" >> ~/.bashrc
-echo "# ROS2 Jazzy environment" >> ~/.bashrc
-echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
-echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
+echo "" >> ~/.bashrc                                      # Add blank line for readability
+echo "# ROS2 Jazzy environment" >> ~/.bashrc              # Add comment
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc      # Load ROS2 environment
+echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc               # Set domain ID
+```
+**Why?**
+- `source /opt/ros/jazzy/setup.bash`: Loads ROS2 into your shell PATH so you can run `ros2` commands. Without this, the system won't find ROS2 executables.
+- `export ROS_DOMAIN_ID=42`: Sets your ROS2 network domain. This is like a WiFi channel - only devices with matching domain IDs can communicate. We use 42 arbitrarily (any number 0-101 works).
+- Adding to `~/.bashrc` means these commands run automatically every time you log in.
 
+```bash
 # Apply changes to current session
 source ~/.bashrc
 ```
+**Why?** The `.bashrc` file only runs when you start a new terminal. This command applies the changes immediately without needing to log out and back in.
 
-**What is ROS_DOMAIN_ID?** It isolates your robot from other ROS2 systems on the network. We use `42` as the default. Your PC must use the same number to communicate with the Pi.
+**What is ROS_DOMAIN_ID?** Think of it as a network isolation layer. If you have multiple robots or ROS2 systems on the same WiFi network, different domain IDs prevent them from interfering with each other. Your PC must use the same number (42) to communicate with the Pi.
 
 ### Step 6: Enable and Configure I2C
 
-I2C is the protocol we use to talk to the ESP32 modules. We need to enable it and configure permissions:
+I2C is the protocol we use to talk to the ESP32 modules. We need to enable it and configure permissions.
+
+#### What each step does:
 
 ```bash
 # Enable I2C in boot config
 echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt
 echo "dtparam=i2c_arm_baudrate=400000" | sudo tee -a /boot/firmware/config.txt
+```
+**Why?**
+- `dtparam=i2c_arm=on`: Enables the I2C hardware interface on the Pi's GPIO pins at boot time.
+- `dtparam=i2c_arm_baudrate=400000`: Sets I2C speed to 400kHz (fast mode). Default is 100kHz (standard mode), but our ESP32 modules support the faster speed for better performance.
+- These settings persist across reboots.
 
+```bash
 # Load I2C kernel module
-sudo modprobe i2c-dev
-echo "i2c-dev" | sudo tee -a /etc/modules
+sudo modprobe i2c-dev                        # Load the I2C driver immediately
+echo "i2c-dev" | sudo tee -a /etc/modules    # Auto-load on every boot
+```
+**Why?** The I2C kernel module (`i2c-dev`) provides the `/dev/i2c-*` device files that programs use to communicate over I2C. `modprobe` loads it now; adding to `/etc/modules` ensures it loads automatically on future boots.
 
+```bash
 # Install I2C tools
 sudo apt install -y i2c-tools
+```
+**Why?** Installs command-line utilities for debugging I2C:
+- `i2cdetect`: Scan for I2C devices and show their addresses
+- `i2cget`: Read data from I2C devices
+- `i2cset`: Write data to I2C devices
+- `i2cdump`: Display all registers from an I2C device
 
+```bash
 # Add your user to i2c group (allows non-root access)
 sudo usermod -a -G i2c $USER
 ```
+**Why?** By default, only root can access `/dev/i2c-*` devices. This adds your user to the `i2c` group, granting permission to use I2C without `sudo`. The change takes effect after logout/reboot.
 
 ### Step 7: Install Python I2C Library
 
+Install the Python library that our ROS2 driver nodes use to communicate over I2C.
+
 ```bash
-sudo apt install -y python3-pip
-pip3 install smbus2
+sudo apt install -y python3-pip    # Install pip (Python package manager)
+pip3 install smbus2                # Install smbus2 library
 ```
+
+**Why?** `smbus2` is a pure-Python I2C library that provides a simple interface for reading/writing to I2C devices. Our driver nodes use it to send commands to the ESP32 modules via the `/dev/i2c-1` device.
 
 ### Step 8: Reboot
 
-Reboot for I2C and group membership changes to take effect:
+Reboot to apply all configuration changes.
 
 ```bash
 sudo reboot
 ```
 
+**Why?** Several changes require a reboot to take effect:
+- I2C hardware enablement from `/boot/firmware/config.txt`
+- I2C kernel module auto-loading from `/etc/modules`
+- Group membership changes (being added to the `i2c` group)
+
 ### Step 9: Verify Installation
 
-After reboot, SSH back in and run these checks:
+After reboot (wait 60 seconds, then SSH back in), run these checks to confirm everything is working:
 
+#### Check 1: ROS2 Installation
 ```bash
-# ROS2 installed?
 ros2 --version
 # Expected: ros2 doctor 0.34.x (jazzy)
+```
+**What this checks:** Verifies ROS2 Jazzy is installed and in your PATH.
 
-# I2C enabled?
+#### Check 2: I2C Hardware Enabled
+```bash
 ls /dev/i2c-*
 # Expected: /dev/i2c-1
+```
+**What this checks:** Confirms the I2C device file exists, meaning the I2C hardware is enabled and the kernel module loaded.
 
-# Non-root I2C access?
+#### Check 3: I2C Permissions
+```bash
 groups
 # Expected output includes: i2c
+```
+**What this checks:** Verifies your user is in the `i2c` group, allowing non-root access to I2C devices.
 
-# Python I2C library works?
+#### Check 4: Python I2C Library
+```bash
+# Create a quick test script
+cat > /tmp/test_i2c_open.py << 'EOF'
+try:
+    from smbus2 import SMBus
+    bus = SMBus(1)
+    bus.close()
+    print("[SUCCESS] I2C bus opened successfully!")
+except Exception as e:
+    print(f"[FAILED] {e}")
+EOF
+
 python3 /tmp/test_i2c_open.py
 # Expected: [SUCCESS] I2C bus opened successfully!
+```
+**What this checks:** Tests that Python can import smbus2 and open the I2C bus without permission errors.
 
-# ROS2 domain ID set?
+#### Check 5: ROS2 Environment Variables
+```bash
 echo $ROS_DOMAIN_ID
 # Expected: 42
 ```
+**What this checks:** Confirms your `.bashrc` environment setup is working and ROS_DOMAIN_ID is set correctly.
 
-If all checks pass, your Pi is ready!
+---
+
+**If all checks pass, your Pi is ready!** If any fail, see the Troubleshooting section below.
 
 ---
 
@@ -241,9 +340,11 @@ Your PC needs ROS2 Jazzy to communicate with the Pi over WiFi.
 
 **Requirement:** Ubuntu 24.04 LTS (native or VM)
 
-**Install ROS2 Jazzy:**
+### Install ROS2 Jazzy
 
 **Following the official installation guide:** https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
+
+The PC installation is nearly identical to the Pi, except we skip I2C setup (the PC doesn't need it).
 
 ```bash
 # Locale setup
@@ -270,7 +371,9 @@ sudo rosdep init
 rosdep update
 ```
 
-**Configure environment:**
+*See Step 4 in Part 1 for detailed explanations of what each command does.*
+
+### Configure Environment
 
 ```bash
 # Add to ~/.bashrc
@@ -279,9 +382,9 @@ echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-**Critical:** `ROS_DOMAIN_ID` must be **42** (matching the Pi). ROS2 uses this to isolate networks—different domains can't see each other.
+**Critical:** `ROS_DOMAIN_ID` must be **42** (matching the Pi). Different domains can't communicate with each other.
 
-**Clone the repository:**
+### Clone and Build the OLAF Workspace
 
 ```bash
 cd ~
@@ -290,12 +393,18 @@ cd olaf
 pip3 install -r orchestrator/requirements.txt
 ```
 
-**Build the ROS2 workspace:**
+**Why?** Clones the repository and installs Python dependencies (like `smbus2` for I2C simulation, AI libraries, etc.).
 
 ```bash
-# Build packages
+# Build ROS2 packages
 colcon build --packages-select olaf_interfaces olaf_orchestrator
+```
 
+**What this does:** Compiles the custom ROS2 packages:
+- `olaf_interfaces`: Custom message types (Expression, MotorCommand, etc.)
+- `olaf_orchestrator`: Application nodes (personality coordinator, AI integration, etc.)
+
+```bash
 # Source the workspace
 source install/setup.bash
 
@@ -303,13 +412,20 @@ source install/setup.bash
 echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ```
 
-**Verify:**
+**Why?** Makes your custom ROS2 packages available to the system. Adding to `.bashrc` means they're automatically available in new terminals.
+
+### Verify Installation
 
 ```bash
-ros2 --version  # Should show jazzy
-echo $ROS_DOMAIN_ID  # Should show 42
-ros2 topic list  # Should show /parameter_events, /rosout
+ros2 --version           # Should show: ros2 doctor 0.34.x (jazzy)
+echo $ROS_DOMAIN_ID      # Should show: 42
+ros2 topic list          # Should show: /parameter_events, /rosout
 ```
+
+**What this checks:**
+- ROS2 is installed and working
+- Domain ID is set correctly
+- Basic ROS2 communication is functional
 
 ---
 

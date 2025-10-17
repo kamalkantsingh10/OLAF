@@ -42,7 +42,7 @@ You don't need to be a Linux expert. If you can follow along with terminal comma
 
 ## Part 1: Raspberry Pi Setup
 
-The Pi needs an operating system and some software before it can talk to hardware. We'll flash Raspberry Pi OS, install ROS2, and enable I2C (the protocol for talking to ESP32 modules).
+The Pi needs an operating system and some software before it can talk to hardware. We'll flash Ubuntu Server 24.04, install ROS2 Jazzy, and enable I2C (the protocol for talking to ESP32 modules).
 
 ### Step 1: Flash Ubuntu Server 24.04
 
@@ -67,7 +67,7 @@ The Pi needs an operating system and some software before it can talk to hardwar
 
    - **Hostname:** `olaf` (or whatever you want)
    - **Enable SSH:** ✅ Check "Use password authentication"
-   - **Username:** `pi` (standard convention)
+   - **Username:** Your choice (e.g., `pi`, `kamal`, etc. - just remember it for SSH)
    - **Password:** Something you'll remember
    - **WiFi:**
      - SSID: Your network name
@@ -88,7 +88,9 @@ No monitor needed—we'll do everything over SSH.
 
 **From Linux/Mac:**
 ```bash
-ssh pi@olaf.local
+ssh <username>@olaf.local
+# Example: ssh kamal@olaf.local
+# Or: ssh pi@olaf.local
 ```
 
 **From Windows:**
@@ -115,18 +117,27 @@ cd olaf
 
 Now we'll install ROS2 Jazzy on the Pi. This process takes 10-15 minutes.
 
+**Following the official installation guide:** https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
+
 ```bash
 # Update system packages
 sudo apt update
 sudo apt upgrade -y
 
-# Install prerequisites
-sudo apt install -y software-properties-common curl gnupg lsb-release
+# Set up locale
+locale  # check for UTF-8
+sudo apt install -y locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
 
-# Add ROS2 apt repository
+# Add ROS2 apt repository (official method)
+sudo apt install -y software-properties-common
 sudo add-apt-repository universe
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt update && sudo apt install curl -y
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+sudo dpkg -i /tmp/ros2-apt-source.deb
 
 # Update apt cache
 sudo apt update
@@ -232,6 +243,8 @@ Your PC needs ROS2 Jazzy to communicate with the Pi over WiFi.
 
 **Install ROS2 Jazzy:**
 
+**Following the official installation guide:** https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
+
 ```bash
 # Locale setup
 sudo apt update && sudo apt install locales
@@ -239,12 +252,13 @@ sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-# Add ROS2 repository
+# Add ROS2 repository (official method)
 sudo apt install software-properties-common
 sudo add-apt-repository universe
 sudo apt update && sudo apt install curl -y
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+sudo dpkg -i /tmp/ros2-apt-source.deb
 
 # Install ROS2 Jazzy Desktop
 sudo apt update

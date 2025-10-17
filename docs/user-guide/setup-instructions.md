@@ -260,10 +260,12 @@ Install the Python library that our ROS2 driver nodes use to communicate over I2
 
 ```bash
 sudo apt install -y python3-pip    # Install pip (Python package manager)
-pip3 install smbus2                # Install smbus2 library
+pip3 install smbus2 --break-system-packages  # Install smbus2 library
 ```
 
 **Why?** `smbus2` is a pure-Python I2C library that provides a simple interface for reading/writing to I2C devices. Our driver nodes use it to send commands to the ESP32 modules via the `/dev/i2c-1` device.
+
+**Note:** The `--break-system-packages` flag is needed on Ubuntu 24.04 due to PEP 668 externally-managed-environment protection. This is safe for `smbus2` as it's an isolated library that doesn't conflict with system packages.
 
 ### Step 8: Reboot
 
@@ -284,10 +286,10 @@ After reboot (wait 60 seconds, then SSH back in), run these checks to confirm ev
 
 #### Check 1: ROS2 Installation
 ```bash
-ros2 --version
-# Expected: ros2 doctor 0.34.x (jazzy)
+ros2 topic list
+# Expected: /parameter_events, /rosout
 ```
-**What this checks:** Verifies ROS2 Jazzy is installed and in your PATH.
+**What this checks:** Verifies ROS2 Jazzy is installed and in your PATH. If you see these two topics, ROS2 is working correctly.
 
 #### Check 2: I2C Hardware Enabled
 ```bash
@@ -417,9 +419,8 @@ echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ### Verify Installation
 
 ```bash
-ros2 --version           # Should show: ros2 doctor 0.34.x (jazzy)
-echo $ROS_DOMAIN_ID      # Should show: 42
 ros2 topic list          # Should show: /parameter_events, /rosout
+echo $ROS_DOMAIN_ID      # Should show: 42
 ```
 
 **What this checks:**

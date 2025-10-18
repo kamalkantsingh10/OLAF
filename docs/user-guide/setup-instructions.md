@@ -4,6 +4,47 @@
 
 ---
 
+## Table of Contents
+
+- [What You're Building](#what-youre-building)
+- [What You'll Need](#what-youll-need)
+- [Part 1: Raspberry Pi Setup](#part-1-raspberry-pi-setup)
+  - [Step 1: Flash Ubuntu Server 24.04](#step-1-flash-ubuntu-server-2404)
+  - [Step 2: SSH into the Pi](#step-2-ssh-into-the-pi)
+  - [Step 3: Clone the Repository](#step-3-clone-the-repository)
+  - [Step 4: Install ROS2 Jazzy](#step-4-install-ros2-jazzy)
+  - [Step 5: Configure ROS2 Environment](#step-5-configure-ros2-environment)
+  - [Step 6: Enable and Configure I2C](#step-6-enable-and-configure-i2c)
+  - [Step 7: Install Python I2C Library](#step-7-install-python-i2c-library)
+  - [Step 8: Reboot](#step-8-reboot)
+  - [Step 9: Verify Installation](#step-9-verify-installation)
+- [Part 2: PC Development Setup](#part-2-pc-development-setup)
+  - [Install ROS2 Jazzy](#install-ros2-jazzy)
+  - [Configure Environment](#configure-environment)
+  - [Install Poetry (Skip if already installed)](#install-poetry-skip-if-already-installed)
+  - [Clone and Build the OLAF Workspace](#clone-and-build-the-olaf-workspace)
+  - [Verify Installation](#verify-installation)
+- [Part 3: Test Network Communication](#part-3-test-network-communication)
+  - [Test Pi → PC Communication](#test-pi--pc-communication)
+  - [Test PC → Pi Communication](#test-pc--pi-communication)
+- [Part 4: Development Workflow](#part-4-development-workflow)
+  - [Morning Setup (Once Per Session)](#morning-setup-once-per-session)
+  - [On Your PC (Where You'll Work)](#on-your-pc-where-youll-work)
+  - [Quick Iteration Cycle](#quick-iteration-cycle)
+  - [ESP32 Firmware Development](#esp32-firmware-development)
+- [Part 5: Deploy to Production](#part-5-deploy-to-production)
+- [Troubleshooting](#troubleshooting)
+  - [PC Can't See Pi Nodes](#pc-cant-see-pi-nodes)
+  - [Permission Denied on I2C (Pi)](#permission-denied-on-i2c-pi)
+  - [I2C Device Not Found (Pi)](#i2c-device-not-found-pi)
+  - [Module Import Errors](#module-import-errors)
+- [Quick Reference](#quick-reference)
+  - [Launch Files](#launch-files)
+  - [Common Commands](#common-commands)
+- [Next Steps](#next-steps)
+
+---
+
 ## What You're Building
 
 OLAF's development setup splits responsibilities between your PC and a Raspberry Pi:

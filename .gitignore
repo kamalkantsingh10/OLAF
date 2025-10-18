@@ -21,6 +21,11 @@ ENV/
 dist/
 build/
 
+# Poetry
+poetry.lock
+.venv/
+*.poetry/
+
 # ROS2
 build/
 install/

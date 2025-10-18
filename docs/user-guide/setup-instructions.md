@@ -386,16 +386,43 @@ source ~/.bashrc
 
 **Critical:** `ROS_DOMAIN_ID` must be **42** (matching the Pi). Different domains can't communicate with each other.
 
+### Install Poetry (Skip if already installed)
+
+We use Poetry for Python dependency management instead of pip. This keeps your Python environment clean and isolated.
+
+**Check if Poetry is already installed:**
+```bash
+poetry --version
+```
+
+If you see a version number, skip this section. Otherwise, install Poetry:
+
+```bash
+# Install Poetry (official method)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify installation
+poetry --version
+```
+
+**Why Poetry?** Poetry manages Python dependencies in isolation without polluting the system or breaking ROS2's Python packages. It handles virtual environments automatically.
+
 ### Clone and Build the OLAF Workspace
 
 ```bash
 cd ~
 git clone https://github.com/kamalkantsingh10/OLAF.git olaf
 cd olaf
-pip3 install -r orchestrator/requirements.txt
+
+# Install Python dependencies using Poetry
+poetry install
 ```
 
-**Why?** Clones the repository and installs Python dependencies (like `smbus2` for I2C simulation, AI libraries, etc.).
+**Why?** Clones the repository and installs Python dependencies (like `smbus2` for I2C simulation, AI libraries, etc.) in an isolated Poetry virtual environment.
 
 ```bash
 # Build ROS2 packages
@@ -415,6 +442,22 @@ echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ```
 
 **Why?** Makes your custom ROS2 packages available to the system. Adding to `.bashrc` means they're automatically available in new terminals.
+
+**Using Poetry with ROS2:** When running Python scripts or ROS2 nodes that need your project dependencies, prefix commands with `poetry run`:
+```bash
+# Example: Run a Python script
+poetry run python3 my_script.py
+
+# Example: Launch ROS2 nodes (Poetry will ensure dependencies are available)
+poetry run ros2 launch olaf_orchestrator app_nodes.launch.py
+```
+
+Alternatively, activate the Poetry virtual environment once per terminal session:
+```bash
+poetry shell  # Activates the virtual environment
+# Now you can run commands normally without 'poetry run' prefix
+ros2 launch olaf_orchestrator app_nodes.launch.py
+```
 
 ### Verify Installation
 

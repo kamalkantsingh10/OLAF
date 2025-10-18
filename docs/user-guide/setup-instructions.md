@@ -424,8 +424,10 @@ poetry install
 
 **Why?** Clones the repository and installs Python dependencies (like `smbus2` for I2C simulation, AI libraries, etc.) in an isolated Poetry virtual environment.
 
+**Important:** The project includes a `poetry.toml` file that configures Poetry to use `system-site-packages = true`. This allows the Poetry virtual environment to access ROS2 Python packages (like `rclpy`, `catkin_pkg`, `ament_package`) from the system while keeping your project dependencies isolated. This is essential for `colcon build` to work properly.
+
 ```bash
-# Build ROS2 packages
+# Build ROS2 packages (works inside or outside poetry shell)
 colcon build --packages-select olaf_interfaces olaf_orchestrator
 ```
 

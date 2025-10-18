@@ -1,0 +1,10 @@
+# Poetry local configuration for OLAF project
+
+[virtualenvs.options]
+# Enable system site packages to access ROS2 Python packages
+# This allows the Poetry venv to see system-installed packages like:
+# - rclpy (ROS2 Python client library)
+# - catkin_pkg (ROS2 build tool)
+# - ament_package (ROS2 build tool)
+# This is required for colcon build to work within poetry shell
+system-site-packages = true

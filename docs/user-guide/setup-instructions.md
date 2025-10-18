@@ -427,7 +427,7 @@ poetry install
 **Important:** The project includes a `poetry.toml` file that configures Poetry to use `system-site-packages = true`. This allows the Poetry virtual environment to access ROS2 Python packages (like `rclpy`, `catkin_pkg`, `ament_package`) from the system while keeping your project dependencies isolated. This is essential for `colcon build` to work properly.
 
 ```bash
-# Build ROS2 packages (works inside or outside poetry shell)
+# Build ROS2 packages (can be done in poetry shell OR regular shell)
 colcon build --packages-select olaf_interfaces olaf_orchestrator
 ```
 
@@ -435,15 +435,18 @@ colcon build --packages-select olaf_interfaces olaf_orchestrator
 - `olaf_interfaces`: Custom message types (Expression, MotorCommand, etc.)
 - `olaf_orchestrator`: Application nodes (personality coordinator, AI integration, etc.)
 
-```bash
-# Source the workspace
-source install/setup.bash
+**Note:** If you're in `poetry shell`, you can run `colcon build` directly. If you're not, that's fine too - `colcon` uses the system Python which has all the necessary ROS2 build tools.
 
-# Add to ~/.bashrc for automatic sourcing
+```bash
+# Exit poetry shell if you're in it (optional but recommended for this step)
+exit  # Only if you ran 'poetry shell' earlier
+
+# Source the workspace and add to ~/.bashrc
+source install/setup.bash
 echo "source ~/olaf/install/setup.bash" >> ~/.bashrc
 ```
 
-**Why?** Makes your custom ROS2 packages available to the system. Adding to `.bashrc` means they're automatically available in new terminals.
+**Why exit poetry shell first?** When you add the workspace to `.bashrc`, it should be accessible from any environment (regular shell or poetry shell). By doing this outside poetry shell, you ensure it's configured system-wide.
 
 **Using Poetry with ROS2:** When running Python scripts or ROS2 nodes that need your project dependencies, prefix commands with `poetry run`:
 ```bash

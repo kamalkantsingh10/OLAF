@@ -482,49 +482,64 @@ echo $ROS_DOMAIN_ID      # Should show: 42
 
 Time to see if the PC and Pi can talk to each other over ROS2.
 
+**Note:** The driver nodes haven't been implemented yet (you'll build them following Epic 01 stories). For now, we'll test network communication using ROS2's built-in tools.
+
+### Test Pi → PC Communication
+
 **On the Pi (SSH terminal):**
 
 ```bash
-cd ~/olaf
-ros2 launch olaf_orchestrator drivers_only.launch.py
+ros2 topic pub /test_from_pi std_msgs/String 'data: "Hello from Pi"' --rate 1
 ```
 
-Leave this running. The Pi is now publishing status topics for the hardware drivers.
+This publishes a message once per second. Leave it running.
 
 **On your PC (new terminal):**
 
 ```bash
-ros2 topic list
+ros2 topic echo /test_from_pi
 ```
 
-**What you should see:**
+**What you should see on your PC:**
 ```
-/olaf/head/status
-/olaf/ears_neck/status
-/olaf/body/status
-/olaf/base/status
-/parameter_events
-/rosout
+data: Hello from Pi
+---
+data: Hello from Pi
+---
 ```
 
-If you see the `/olaf/*` topics, **it's working!** Your PC can see the Pi's nodes over WiFi.
+If messages appear, **Pi → PC communication works!** Press **Ctrl+C** on both terminals to stop.
 
-**If you only see `/parameter_events` and `/rosout`:**
-- Check `ROS_DOMAIN_ID` matches on both machines (`echo $ROS_DOMAIN_ID`)
-- Verify both are on the same WiFi network
-- Check firewall settings (see troubleshooting section)
+### Test PC → Pi Communication
 
-**Test bidirectional communication:**
+**On your PC:**
 
 ```bash
-# On PC: Publish a test message
-ros2 topic pub /test std_msgs/String "data: 'hello from PC'"
-
-# On Pi (different SSH session): Echo the topic
-ros2 topic echo /test
+ros2 topic pub /test_from_pc std_msgs/String 'data: "Hello from PC"' --rate 1
 ```
 
-You should see `data: 'hello from PC'` appear on the Pi. If so, communication is fully working.
+**On the Pi (SSH terminal):**
+
+```bash
+ros2 topic echo /test_from_pc
+```
+
+**What you should see on the Pi:**
+```
+data: Hello from PC
+---
+data: Hello from PC
+---
+```
+
+If messages appear, **PC → Pi communication works!** Press **Ctrl+C** on both terminals to stop.
+
+**If you don't see messages:**
+- Check `ROS_DOMAIN_ID` matches on both machines (`echo $ROS_DOMAIN_ID` - should be 42)
+- Verify both are on the same WiFi network (`ping olaf.local` from PC)
+- Check firewall settings (see troubleshooting section)
+
+**If both directions work, your network is ready!** 🎉
 
 ---
 

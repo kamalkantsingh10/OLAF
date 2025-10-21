@@ -72,21 +72,7 @@ ROS2 Humble framework coordinates all modules through dedicated driver nodes:
 **Core Documents:**
 - [**Product Requirements Document (PRD)**](docs/prd/) - Complete feature requirements, success metrics, timeline
 - [**Technical Architecture**](docs/architecture/) - Full system design, decisions, tradeoffs, protocols
-- [**Epic List**](docs/prd/epic-list.md) - 12-epic development roadmap
-
-**Development Roadmap (12 Epics):**
-- [**Epic 01**: Foundation & I2C Communication](docs/prd/epic-01-foundation.md) - ROS2 setup, heart LCD, power system (2 weeks)
-- [**Epic 02**: Head Module - Eyes & Sensors](docs/prd/) - Dual round TFT eyes, presence detection (2-3 weeks)
-- [**Epic 03**: Ears - 2-DOF Articulation](docs/prd/) - 4× servo ears, emotional expression (1-2 weeks)
-- [**Epic 04**: Neck - 3-DOF Gimbal](docs/prd/) - Pan/tilt/roll head movement (2-3 weeks)
-- [**Epic 05**: Self-Balancing Base](docs/prd/) - Autonomous mobility, kickstand (3-4 weeks)
-- [**Epic 06**: Body Chassis & Integration](docs/prd/) - Complete assembly, cable management (2-3 weeks)
-- [**Epic 07**: Basic Personality System](docs/prd/) - Coordinated emotion expression (2-3 weeks)
-- [**Epic 08**: SLAM & Spatial Awareness](docs/prd/) - Mapping and localization (3-4 weeks)
-- [**Epic 09**: Autonomous Navigation](docs/prd/) - Path planning, obstacle avoidance (2-3 weeks)
-- [**Epic 10**: Computer Vision](docs/prd/) - Object/person/face recognition (2-3 weeks)
-- [**Epic 11**: AI Agent Framework & Voice](docs/prd/) - Conversational AI (3-4 weeks)
-- [**Epic 12**: Floor Projection & Polish](docs/prd/) - Final integration, documentation (2-3 weeks)
+- [**Epic List**](docs/prd/epic-list.md) - 13-epic development roadmap (see link for full details)
 
 ---
 
@@ -140,16 +126,17 @@ olaf/
 
 ## Current Status
 
-**Development Timeline**: 26-36 weeks (6-9 months of weekend development)
+**Development Timeline**: 28-39 weeks (7-10 months of weekend development)
 **Budget**: ~$1000 USD (configurable: $400 minimal to $1000 full-featured)
 **Build Approach**: Weekly progress updates with full transparency
 
 **Milestones:**
 - ✅ PRD and technical architecture complete
-- ✅ 12-epic roadmap defined with faster milestone cadence
+- ✅ 13-epic roadmap defined (design-first approach)
 - ✅ 4-module I2C architecture finalized
+- ✅ Epic 01: All 11 stories drafted and ready for implementation
 - 🟡 Component sourcing (in progress)
-- ⏳ Epic 01: Foundation & I2C Communication (starting)
+- ⏳ Epic 01: Foundation & I2C Communication (ready to start)
 
 ---
 
@@ -280,4 +267,4 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 *"The Linux moment for physical AI - proving embodied intelligence belongs to builders, not just consumers."*
 
-**Latest Update**: January 2026 | **Current Epic**: 01 - Foundation & I2C Communication
+**Latest Update**: October 2025 | **Current Epic**: 01 - Foundation & I2C Communication (Stories 1.1-1.11 drafted)

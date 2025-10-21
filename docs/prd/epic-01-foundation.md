@@ -1,14 +1,16 @@
 # Epic 1: Foundation & I2C Communication (Heart Display)
 
-**Epic Goal:** Establish the complete development foundation including repository structure, ROS2 environment on Raspberry Pi, I2C communication protocol, and power distribution. Deliver a minimal working personality—a heart LCD display showing emotion-driven beating animation via I2C commands from the orchestrator—proving the three-layer architecture (Orchestrator → I2C → Smart ESP32 Peripheral) works end-to-end with I2C + SPI communication validated.
+**Epic Goal:** Establish the complete development foundation including repository structure, ROS2 environment on Raspberry Pi, and I2C communication protocol. Deliver a minimal working personality—a heart LCD display showing emotion-driven beating animation via I2C commands from the orchestrator—proving the three-layer architecture (Orchestrator → I2C → Smart ESP32 Peripheral) works end-to-end with I2C + SPI communication validated. Use temporary bench power supply (full power system deferred to Epic 5: Core Torso & Power System).
 
-**Duration:** 2 weeks (Weeks 1-2)
+**Duration:** 1.5 weeks (Weeks 1-1.5)
 
 **Prerequisites:** None (first epic)
 
-**Value Delivered:** Quick win proving I2C + SPI architecture viability, establishes shared register protocol, enables all future module development, provides "Olaf's heart beats!" moment within first 2 weekends. Heart display demonstrates emotion-driven animation (60 FPS) without requiring full head assembly.
+**Value Delivered:** Quick win proving I2C + SPI architecture viability, establishes shared register protocol, enables all future module development, provides "Olaf's heart beats!" moment within first 2 weekends. Heart display demonstrates emotion-driven animation (60 FPS) without requiring full head assembly. Initial OnShape design concept validated with community feedback.
 
-**Architecture Focus:** This epic validates the core architectural decision that ROS2 runs ONLY on Pi, with ESP32 modules acting as smart I2C slaves containing full hardware drivers and animation engines. Heart LCD proves SPI display performance before investing in dual-eye head assembly in Epic 2.
+**Architecture Focus:** This epic validates the core architectural decision that ROS2 runs ONLY on Pi, with ESP32 modules acting as smart I2C slaves containing full hardware drivers and animation engines. Heart LCD proves SPI display performance before investing in dual-eye head assembly in Epic 3.
+
+**Power Note:** For Epic 1 development, use a temporary bench power supply (e.g., lab power supply set to 5V for ESP32 + displays, or USB power banks). The complete power system (36V hoverboard battery, BMS, buck converters, charging circuit, safety features) will be designed and built in Epic 5: Core Torso & Power System.
 
 ---
 
@@ -83,51 +85,7 @@
 
 ---
 
-## Story 1.2: Power System Assembly & Validation
-
-**As a** robot builder,
-**I want** a reliable 36V hoverboard power system with buck converters,
-**so that** all modules receive stable 5V and 12V power for operation.
-
-### Acceptance Criteria:
-
-1. **Battery Selection:**
-   - Hoverboard battery salvaged (36V nominal, 4-10Ah capacity)
-   - Voltage measured: 36-42V (confirms healthy cells)
-   - BMS retained for safe charging
-
-2. **Buck Converter Installation:**
-   - 36V → 12V buck converter (10A) installed for Raspberry Pi power
-   - 36V → 5V buck converter (10A) installed for ESP32s + servos
-   - Output voltages measured under no-load: 12V ±0.2V, 5V ±0.1V
-
-3. **Load Testing:**
-   - 12V rail tested with 3A load (simulates Pi): voltage stable
-   - 5V rail tested with 2A load (simulates ESP32): voltage stable
-   - Both converters loaded simultaneously: no voltage sag >5%
-
-4. **Safety:**
-   - Fuse/circuit breaker on battery main output (30-40A)
-   - Emergency power switch accessible
-   - Proper wire gauge: 18 AWG minimum for power rails
-   - Secure connectors (XT60, JST-XH, or screw terminals)
-
-5. **Physical Mounting:**
-   - Battery, converters, and connections mounted securely
-   - System can be moved without cables disconnecting
-   - No risk of shorts (insulated terminals)
-
-6. **Documentation:**
-   - Wiring diagram saved: `hardware/wiring/power-system-v1.jpg`
-   - BOM updated with battery source, converters, connectors, costs
-
-**Dependencies:** Story 1.1 (repo for documentation)
-
-**Estimated Effort:** 6-8 hours (includes salvaging hoverboard)
-
----
-
-## Story 1.3: Raspberry Pi ROS2 Setup (I2C Master)
+## Story 1.2: Raspberry Pi ROS2 Setup (I2C Master)
 
 **As a** robotics developer,
 **I want** ROS2 Humble installed on Raspberry Pi 5 with I2C enabled,
@@ -169,13 +127,15 @@
    - Setup script: `tools/setup/install_ros2_humble_pi.sh` automates ROS2 + I2C setup
    - README updated with Pi setup instructions
 
-**Dependencies:** Story 1.1 (repo), Story 1.2 (power to boot Pi)
+**Dependencies:** Story 1.1 (repo)
 
 **Estimated Effort:** 3-4 hours
 
+**Note:** For development, power the Raspberry Pi via USB-C power supply or official Pi power adapter.
+
 ---
 
-## Story 1.4: Body Module - Heart LCD Hardware Assembly
+## Story 1.3: Body Module - Heart LCD Hardware Assembly
 
 **As a** hardware builder,
 **I want** a body module with heart LCD display proving I2C + SPI communication,
@@ -220,17 +180,19 @@
 7. **Documentation:**
    - Wiring photos: `hardware/wiring/body-heart-lcd-assembly.jpg`
    - Pin mapping documented in `modules/body/README.md`
-   - BOM updated
+   - BOM updated with ESP32, GC9A01 display, jumper wires
 
-**Note:** Projector control (optocoupler) and LED strips will be added in later epics (Epic 6 for LEDs, Epic 12 for projector).
+**Note:** Projector control (optocoupler) will be added in Epic 8. Status LEDs will be integrated in Epic 5: Core Torso & Power System.
 
-**Dependencies:** Story 1.2 (5V power), Story 1.3 (I2C enabled on Pi)
+**Dependencies:** Story 1.2 (I2C enabled on Pi)
 
 **Estimated Effort:** 2-3 hours
 
+**Power Note:** Use USB power bank or bench power supply (5V) to power the ESP32 and GC9A01 display during development.
+
 ---
 
-## Story 1.5: Body Module ESP32 Firmware - Heart Animation
+## Story 1.4: Body Module ESP32 Firmware - Heart Animation
 
 **As a** firmware developer,
 **I want** ESP32 firmware rendering emotion-driven heart animation,
@@ -280,13 +242,13 @@
    - Comments explain I2C protocol
    - Code committed to `modules/body/firmware/`
 
-**Dependencies:** Story 1.4 (hardware assembled)
+**Dependencies:** Story 1.3 (hardware assembled)
 
 **Estimated Effort:** 4-6 hours
 
 ---
 
-## Story 1.6: ROS2 Body Driver Node - I2C Bridge
+## Story 1.5: ROS2 Body Driver Node - I2C Bridge
 
 **As a** software developer,
 **I want** a ROS2 node that translates ROS2 topics into I2C register writes,
@@ -327,13 +289,13 @@
    - Topics appear: `/olaf/body/emotion`, `/olaf/body/status`
    - Manual test: Publish emotion → heart changes BPM
 
-**Dependencies:** Story 1.3 (ROS2 + I2C), Story 1.5 (firmware)
+**Dependencies:** Story 1.2 (ROS2 + I2C), Story 1.4 (firmware)
 
 **Estimated Effort:** 4-6 hours
 
 ---
 
-## Story 1.7: Minimal Orchestrator - Heartbeat Coordinator
+## Story 1.6: Minimal Orchestrator - Heartbeat Coordinator
 
 **As a** software developer,
 **I want** a minimal orchestrator node that sends emotion commands via ROS2,
@@ -366,13 +328,13 @@
    - Clean, commented code
    - Committed to `orchestrator/ros2_nodes/minimal_coordinator.py`
 
-**Dependencies:** Story 1.6 (body driver)
+**Dependencies:** Story 1.5 (body driver)
 
 **Estimated Effort:** 3-4 hours
 
 ---
 
-## Story 1.8: Test Harness CLI - I2C Direct Testing
+## Story 1.7: Test Harness CLI - I2C Direct Testing
 
 **As a** developer or tester,
 **I want** a command-line tool to send I2C commands directly to body module,
@@ -411,13 +373,13 @@
 6. **Documentation:**
    - Usage guide: `tools/diagnostics/README.md`
 
-**Dependencies:** Story 1.5 (firmware), Story 1.3 (I2C enabled)
+**Dependencies:** Story 1.4 (firmware), Story 1.2 (I2C enabled)
 
 **Estimated Effort:** 2-3 hours
 
 ---
 
-## Story 1.9: Launch File - Automated Startup
+## Story 1.8: Launch File - Automated Startup
 
 **As a** system operator,
 **I want** a ROS2 launch file that starts all Epic 1 nodes,
@@ -462,13 +424,13 @@
    - Launch file documented in README
    - "Quick Start" section updated
 
-**Dependencies:** Story 1.6 (driver), Story 1.7 (coordinator)
+**Dependencies:** Story 1.5 (driver), Story 1.6 (coordinator)
 
 **Estimated Effort:** 2 hours
 
 ---
 
-## Story 1.10: 30-Minute Continuous Operation Test
+## Story 1.9: 30-Minute Continuous Operation Test
 
 **As a** quality assurance tester,
 **I want** to run the minimal system for 30 minutes without failures,
@@ -505,9 +467,119 @@
    - Results: `tests/integration/epic1_30min_test_results.md`
    - Screenshot of terminal after 30 min
 
-**Dependencies:** All Epic 1 stories (1.1-1.9)
+**Dependencies:** All Epic 1 stories (1.1-1.8)
 
 **Estimated Effort:** 1 hour test + 2-4 hours fixes if needed
+
+---
+
+## Story 1.10: Initial Design Concept & Community Feedback
+
+**As a** maker and open-source contributor,
+**I want** to create an initial visual concept in OnShape and gather Reddit community feedback,
+**so that** I can validate the aesthetic direction and incorporate community suggestions before committing to the full Epic 2 design work.
+
+### Story Context
+
+**Existing System Integration:**
+- Integrates with: Epic 2 3D Design workflow (Story 2.1 OnShape setup)
+- Technology: OnShape cloud CAD, Reddit community engagement
+- Follows pattern: Build-in-public content strategy from Epic 1 Story 1.11
+- Touch points: Creates foundation for Epic 2 CAD work, validates aesthetic before major design investment
+
+### Acceptance Criteria
+
+**Functional Requirements:**
+
+1. **OnShape Concept Sketch:**
+   - Free OnShape account created (if not already from Epic 2 prep)
+   - Simple sketch or concept model created showing Olaf's overall form:
+     - Head shape (rounded, friendly aesthetic per branding guide)
+     - Body proportions (target 50-60cm height, 35-40cm width)
+     - Basic ear placement (Chappie-inspired triangular/curved fins)
+     - Overall stance on hoverboard base
+   - Design captures retro-futurism styling (rounded edges, no sharp corners, white/light gray color scheme)
+   - OnShape link made public for community viewing
+
+2. **Visual Presentation:**
+   - Screenshots or rendered views from OnShape (minimum 3 angles: front, side, 3/4 view)
+   - Optional: Simple annotation overlays showing key features (eyes, ears, projector, heart display)
+   - Images exported at high resolution (1920x1080 minimum for clarity)
+
+3. **Reddit Post Creation:**
+   - Post drafted for relevant subreddit(s):
+     - Primary: r/robotics or r/DIY
+     - Secondary consideration: r/3Dprinting, r/raspberry_pi
+   - Post title: Engaging, specific (e.g., "Designing Olaf - Open-Source AI Companion Robot with Personality - Feedback Welcome!")
+   - Post content includes:
+     - Project overview (self-balancing AI companion, emotion-driven personality)
+     - Design goals (friendly aesthetic, retro-futurism, Chappie-inspired)
+     - OnShape public link
+     - Specific questions for feedback:
+       - "What do you think of the proportions?"
+       - "Does the aesthetic feel friendly/approachable?"
+       - "Any suggestions for the ear design?"
+       - "Concerns about balance/stability with this form factor?"
+   - Images embedded in post (Reddit supports multiple images)
+
+**Integration Requirements:**
+
+4. Feedback from Reddit informs Epic 2 design decisions (captured in notes for Story 2.2-2.6)
+5. OnShape concept serves as starting point for Story 2.1 (OnShape setup) and Story 2.2 (head housing CAD)
+6. Community engagement builds early follower base for build-in-public strategy
+
+**Quality Requirements:**
+
+7. OnShape model is view-only public (no edit access needed)
+8. Reddit post follows subreddit rules (checked before posting: self-promotion policies, image requirements)
+9. Responses to community feedback are professional and appreciative (acknowledge suggestions, explain design rationale when needed)
+10. Feedback summary documented in `docs/community-feedback/reddit-initial-design-feedback.md`
+
+### Technical Notes
+
+- **Integration Approach:**
+  - OnShape concept is exploratory/low-fidelity - doesn't need full detail, just enough to communicate visual direction
+  - Reddit post timing: After Epic 1 heart display working (have content showing progress), before committing to Epic 2 full design
+  - Feedback collection window: 3-7 days to gather responses
+
+- **Existing Pattern Reference:**
+  - Similar to Epic 1 Story 1.11 build-in-public content (LinkedIn post with photo/explanation)
+  - Extends strategy to include community input, not just one-way sharing
+
+- **Key Constraints:**
+  - Keep OnShape model simple (2-4 hours max design time) - this is concept validation, not final design
+  - Avoid over-promising in Reddit post - be clear this is early-stage, feedback will be considered but not all suggestions implemented
+  - Reddit engagement can be time-consuming - set boundary (e.g., respond to top 10-15 comments, summarize rest)
+
+### Definition of Done
+
+- [ ] OnShape concept model created and set to public
+- [ ] Minimum 3 screenshots/renders exported
+- [ ] Reddit post drafted and posted to appropriate subreddit(s)
+- [ ] Post includes OnShape link, images, and specific feedback questions
+- [ ] Community feedback monitored for 3-7 days
+- [ ] Feedback summary documented in `docs/community-feedback/reddit-initial-design-feedback.md` including:
+  - Common themes (e.g., "5 people mentioned head looks too large")
+  - Actionable suggestions (e.g., "Consider wider base for stability")
+  - Design decisions made (e.g., "Keeping current proportions because X, but will adjust ear angle based on feedback")
+- [ ] Key insights incorporated into Epic 2 planning notes
+
+### Risk and Compatibility Check
+
+**Minimal Risk Assessment:**
+- **Primary Risk:** Negative community feedback could be demotivating or suggest major design pivot
+- **Mitigation:** Frame post as "early concept, iterative process" - manage expectations that this is exploratory. Remember: not all feedback must be implemented, use judgment to filter signal from noise.
+- **Rollback:** If Reddit response is overwhelmingly negative or post doesn't gain traction, simply document feedback and proceed with Epic 2 based on original vision. Community input is valuable but not mandatory for project success.
+
+**Compatibility Verification:**
+- [ ] Reddit post doesn't conflict with existing design constraints (component dimensions from Epic 1)
+- [ ] Feedback timeline doesn't block Epic 2 start (can proceed with Story 2.1 while gathering feedback)
+- [ ] OnShape concept doesn't create unrealistic expectations (keep it simple, clearly communicate "concept" not "final")
+- [ ] Community engagement time budget is reasonable (don't let Reddit consume more than 4-6 hours total including post creation and responses)
+
+**Dependencies:** Epic 1 Story 1.11 (build-in-public content strategy established), optionally Story 1.9 (30-min test complete for credibility/progress photos)
+
+**Estimated Effort:** 4-6 hours (2-3 hours OnShape concept, 1-2 hours Reddit post creation/image prep, 1-2 hours community engagement over following days)
 
 ---
 
@@ -531,9 +603,11 @@
 
 2. **Hardware Documentation:**
    - BOM: `hardware/bom/epic1_bom.csv`
-     - Battery, buck converters, ESP32, GC9A01 display, wires
+     - ESP32-S3 or ESP32-WROOM, GC9A01 display, jumper wires, breadboard
+     - Temporary power supplies (USB power banks or bench supply)
      - Supplier links, costs
    - Wiring diagrams in `hardware/wiring/`
+   - Note: Full power system BOM will be in Epic 5 documentation
 
 3. **Setup Scripts:**
    - `tools/setup/install_ros2_humble_pi.sh` tested on fresh Pi
@@ -570,11 +644,10 @@
 ## Epic 1 Summary
 
 **Total Stories:** 11
-**Estimated Total Effort:** 40-55 hours (2 weeks for solo builder)
+**Estimated Total Effort:** 32-47 hours (1.5 weeks for solo builder)
 
 **Key Deliverables:**
 - ✅ Repository structure with shared I2C register definitions
-- ✅ Power system (36V hoverboard battery + buck converters)
 - ✅ ROS2 Humble on Raspberry Pi with I2C enabled
 - ✅ **Body Module:** Heart LCD (GC9A01, 60 FPS emotion BPM) at I2C address 0x0A
 - ✅ ROS2 body driver node translating topics → I2C registers
@@ -583,6 +656,11 @@
 - ✅ Launch file for automated system startup
 - ✅ 30-minute continuous operation validated
 - ✅ Complete documentation + build-in-public content
+- ✅ Initial OnShape design concept + Reddit community feedback
+
+**Power System Note:**
+- Epic 1 uses temporary bench power (USB power banks, lab power supply, or Pi power adapter)
+- Full power system (36V battery, BMS, buck converters, charging, safety) deferred to **Epic 5: Core Torso & Power System**
 
 **Architecture Validated:**
 - ✅ I2C-only communication (no WiFi on ESP32s)
@@ -593,11 +671,11 @@
 
 **Success Criteria Met:**
 - Three-layer architecture proven (Orchestrator → I2C Driver → Smart ESP32)
-- Power system stable and safe
 - "Quick win" achieved: Olaf's heart beats with emotion-driven animation!
-- Foundation ready for Epic 2 (complete head module with dual eyes)
+- Initial design concept validated with community feedback
+- Foundation ready for Epic 2 (Complete OnShape Design & Community Feedback)
 
-**Next Epic:** Epic 2: Head Module - Eyes & Sensors
+**Next Epic:** Epic 2: Complete OnShape Design & Community Feedback
 
 ---
 

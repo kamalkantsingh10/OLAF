@@ -2,95 +2,111 @@
 
 Based on the requirements, technical architecture, and V1 scope from the brief, here's the proposed epic breakdown for Olaf V1:
 
-## Epic Structure Overview (12 Epics for Faster Milestones)
+## Epic Structure Overview (13 Epics - Optimized Build Flow)
 
-**Epic 1: Foundation & Core I2C Communication**
-**Goal:** Establish ROS2 + I2C infrastructure, power system, and prove architecture with minimal working personality—a beating heart LCD showing emotion-driven animation. Heart display only (no eyes, no projector, no LEDs in V1).
+**Epic 1: Foundation & I2C Communication (Heart Display)**
+**Goal:** Establish ROS2 + I2C infrastructure with minimal working personality—a beating heart LCD showing emotion-driven animation. Prove I2C + SPI architecture end-to-end. Use temporary bench power supply (full power system deferred to Epic 5).
 
-**Duration:** 2 weeks | **Value:** Quick win proving I2C + SPI architecture, heart display emotion feedback
-
----
-
-**Epic 2: Head Module - Eyes & Sensors**
-**Goal:** Complete head assembly with dual round TFT eyes (GC9A01 240×240), mmWave presence sensor, microphone array, speaker/beeper. Design and 3D print head housing with integrated sensor mounts.
-
-**Duration:** 2-3 weeks | **Value:** Expressive eyes with presence detection, complete sensory input
+**Duration:** 1.5 weeks | **Value:** Quick win proving I2C + SPI architecture, heart display emotion feedback, initial design concept validation
 
 ---
 
-**Epic 3: Ears - 2-DOF Articulation**
-**Goal:** Implement articulated ears with 4× Feetech SCS0009 servos (2-DOF per ear), bus servo controller, and 3D printed ear mounts. Shares ESP32 with neck module.
+**Epic 2: Complete OnShape Design & Community Feedback**
+**Goal:** Design ALL mechanical components in OnShape (head housing, ears, neck gimbal, core torso, power enclosure, projector bay, base platform). Export STLs. Post complete design to Reddit/maker communities for feedback (3-7 day cycle). Incorporate feedback and mark design as "V1.0 Draft - Ready to Print."
 
-**Duration:** 1-2 weeks | **Value:** Independent ear movement for emotional expression
-
----
-
-**Epic 4: Neck - 3-DOF Gimbal**
-**Goal:** Build 3-DOF neck gimbal (pan ±90°, tilt ±45°, roll ±30°) with 3× Feetech STS3215 servos, kinematics engine, and 3D printed gimbal structure. Shares ESP32 with ears module.
-
-**Duration:** 2-3 weeks | **Value:** Full head articulation, coordinated ear+neck gestures
+**Duration:** 2-3 weeks | **Value:** Complete validated design before printing, community feedback incorporated early, STLs ready for all subsequent epics
 
 ---
 
-**Epic 5: Self-Balancing Base**
-**Goal:** Achieve autonomous two-wheel balancing with 200Hz PID control, ODrive motor coordination, MPU6050 IMU, and kickstand servo deployment. Design and 3D print base platform.
+**Epic 3: Head Module - Complete Build**
+**Goal:** 3D print head housing (with Epic 2 feedback incorporated). Assemble dual GC9A01 round TFT eyes (240×240), OAK-D Pro camera, mmWave presence sensor, microphone array, speaker/beeper. ESP32 firmware for expressive eye animations and sensor integration.
 
-**Duration:** 3-4 weeks | **Value:** Active mobility foundation, fall protection, SLAM-ready odometry
-
----
-
-**Epic 6: Body Chassis & Integration**
-**Goal:** Design and assemble body chassis housing Raspberry Pi, battery, buck converters, with complete cable management. 3D print modular chassis panels. Integrate all modules into unified physical structure.
-
-**Duration:** 2-3 weeks | **Value:** Complete robot assembly, professional cable routing, accessible maintenance
+**Duration:** 2-3 weeks | **Value:** Expressive eyes with presence detection, complete sensory input, validated head assembly
 
 ---
 
-**Epic 7: Basic Personality System**
-**Goal:** Implement 2D emotion model (7 types × 5 intensities) with coordinated expression across eyes, ears, neck, heart, and beeps. Personality orchestrator coordinates all expression channels.
+**Epic 4: Ears + Neck Module - Complete Build**
+**Goal:** 3D print ear mounts and neck gimbal (with Epic 2 feedback incorporated). Assemble 2-DOF articulated ears (4× Feetech SCS0009 servos) and 3-DOF neck gimbal (pan ±90°, tilt ±45°, roll ±30° with 3× Feetech STS3215 servos). Shared ESP32 bus servo controller. Coordinated kinematics engine for ear+neck gestures.
 
-**Duration:** 2-3 weeks | **Value:** Full non-verbal personality expression, emotion synchronization
+**Duration:** 2-3 weeks | **Value:** Full head articulation, independent ear movement, coordinated emotional expression
 
 ---
 
-**Epic 8: SLAM & Spatial Awareness**
-**Goal:** Enable OAK-D Pro depth sensing, ROS2 Nav2 SLAM (Google Cartographer), apartment map building, and localization. Integration with base odometry.
+**Epic 5: Core Torso & Power System - Complete Build**
+**Goal:** 3D print core torso panels and power enclosure (with Epic 2 feedback incorporated). Assemble complete torso: Raspberry Pi mounting, heart LCD display integration (from Epic 1), status indicators (RGB LEDs for power/battery/system status), component bays. Build power system: 36V hoverboard battery + BMS, buck converters (36V→5V, 36V→12V), charging circuit, power distribution harness, safety (fuses, emergency cutoff, voltage monitoring). Thermal testing and cable management.
+
+**Duration:** 2-3 weeks | **Value:** Complete power infrastructure, integrated heart display in body, professional component housing, safe charging system
+
+---
+
+**Epic 6: Self-Balancing Base - Complete Build**
+**Goal:** 3D print base platform (with Epic 2 feedback incorporated). Assemble two-wheel balancing system: hoverboard motors + wheels, ODrive motor controller, MPU6050 IMU. Implement 200Hz PID control, kickstand servo deployment for fall protection, odometry integration for SLAM readiness.
+
+**Duration:** 3-4 weeks | **Value:** Active mobility foundation, autonomous balancing, navigation-ready odometry
+
+---
+
+**Epic 7: Full Robot Integration & Cable Management**
+**Goal:** Integrate all physical modules into unified structure: Head + Ears/Neck → Torso → Base. Complete cable routing (power distribution, I2C buses, data lines). Install all I2C connections between Raspberry Pi and ESP32 modules. Structural assembly validation, stand test, balance check, full system power-on test.
+
+**Duration:** 2-3 weeks | **Value:** Complete robot assembly, professional cable routing, accessible maintenance, validated mechanical integration
+
+---
+
+**Epic 8: DLP Floor Projector Integration**
+**Goal:** 3D print projector mounting bracket (angled bay from Epic 2 design). Install DLP projector with 30-45° downward angle for floor projection. Implement projector power control via optocoupler circuit (ESP32 GPIO → optocoupler → projector power button). HDMI routing from Raspberry Pi. ESP32 firmware for I2C-based projector control. ROS2 driver node for projector power management and display output (floor graphics, gestures, information display).
+
+**Duration:** 2-3 weeks | **Value:** Information display capability, coordinated projection with personality gestures, visual communication channel
+
+---
+
+**Epic 9: Basic Personality System**
+**Goal:** Implement 2D emotion model (7 emotion types × 5 intensity levels) with coordinated expression across all channels: eyes (animation patterns), ears (position/movement), neck (gestures), heart LCD (BPM/color), status LEDs (color/breathing), beeper (tones), and floor projection (visual cues). Personality orchestrator node synchronizes all expression modules.
+
+**Duration:** 2-3 weeks | **Value:** Full non-verbal personality expression, emotion synchronization across 7 channels, cohesive character
+
+---
+
+**Epic 10: SLAM & Spatial Awareness**
+**Goal:** Enable OAK-D Pro stereo depth sensing, ROS2 Nav2 SLAM integration (Google Cartographer or RTAB-Map), apartment map building, localization. Integration with base odometry for accurate positioning.
 
 **Duration:** 3-4 weeks | **Value:** Autonomous mapping, spatial understanding, navigation foundation
 
 ---
 
-**Epic 9: Autonomous Navigation & Obstacle Avoidance**
-**Goal:** Implement Nav2 path planning, dynamic obstacle avoidance, and balancing coordination for safe room-to-room movement. Integration with SLAM maps.
+**Epic 11: Autonomous Navigation & Obstacle Avoidance**
+**Goal:** Implement Nav2 path planning, dynamic obstacle avoidance (real-time depth sensing), balancing coordination during movement. Safe room-to-room navigation on SLAM maps.
 
-**Duration:** 2-3 weeks | **Value:** Full autonomous mobility, collision-free navigation
+**Duration:** 2-3 weeks | **Value:** Full autonomous mobility, collision-free navigation, coordinated balancing
 
 ---
 
-**Epic 10: Computer Vision & Image Processing**
-**Goal:** Deploy Hailo-8L accelerated object detection, person tracking, face recognition, and gesture recognition. Visual understanding for contextual interactions.
+**Epic 12: Computer Vision & Image Processing**
+**Goal:** Deploy Hailo-8L accelerated models: object detection, person tracking, face recognition, gesture recognition. Visual understanding for contextual interactions and personality responses.
 
 **Duration:** 2-3 weeks | **Value:** Visual intelligence, person identification, gesture-based commands
 
 ---
 
-**Epic 11: AI Agent Framework & Voice**
-**Goal:** Integrate Hailo-accelerated Whisper STT (<200ms latency), cloud agent reasoning (Claude/GPT-4), tool use framework, function calling, and multi-step planning. Conversational AI control.
+**Epic 13: AI Agent Framework, Voice & Polish**
+**Goal:** Integrate Hailo-accelerated Whisper STT (<200ms latency), cloud agent reasoning (Claude/GPT-4), tool use framework, function calling, multi-step planning. Implement Quiet Mode, Power Saving Mode. System integration testing, build documentation finalization. Prepare V1 MVP for community release.
 
-**Duration:** 3-4 weeks | **Value:** Voice-controlled AI companion, embodied agent reasoning
-
----
-
-**Epic 12: Floor Projection & Polish**
-**Goal:** Add DLP projector with coordinated gestures, implement Quiet Mode, Power Saving Mode, system integration testing, finalize build documentation, and prepare V1 MVP for community release.
-
-**Duration:** 2-3 weeks | **Value:** Information display, system polish, community-ready release
+**Duration:** 3-4 weeks | **Value:** Voice-controlled AI companion, embodied agent reasoning, polished system, community-ready release
 
 ---
 
 ## Total Timeline
 
-**Estimated Duration:** 26-36 weeks (6-9 months of weekend development)
-**Milestone Cadence:** Every 1-3 weeks (12 milestones vs original 7)
-**Build-in-Public Content:** 12 major posts + monthly YouTube videos
+**Estimated Duration:** 28-39 weeks (7-10 months of weekend development)
+**Milestone Cadence:** Every 1.5-4 weeks (13 milestones)
+**Build-in-Public Content:** 13 major posts + monthly YouTube videos
+
+## Key Design Philosophy Changes
+
+✅ **Epic 2: All design upfront** - Get community feedback before printing anything expensive
+✅ **Epic 5: Power before base** - Core torso + power system established before mobility
+✅ **Epic 5: Heart LCD integration** - Heart display from Epic 1 now properly housed in torso
+✅ **Epic 7: Dedicated integration epic** - Ensures proper assembly and cable management
+✅ **Epic 8: Projector gets dedicated epic** - Optocoupler control, mounting, display coordination
+✅ **Build flow: Design → Print → Assemble** - Each component epic includes 3D printing + assembly with feedback changes applied
 

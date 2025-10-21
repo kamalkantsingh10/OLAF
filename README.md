@@ -7,6 +7,16 @@
 
 ---
 
+## Concept Design
+
+<p align="center">
+  <img src="docs/media/olaf-concept-front.webp" width="30%" alt="OLAF Front View" />
+  <img src="docs/media/olaf-concept-side.webp" width="30%" alt="OLAF Side View" />
+  <img src="docs/media/olaf-concept-angle.webp" width="30%" alt="OLAF Angled View" />
+</p>
+
+---
+
 ## What is OLAF?
 
 OLAF is a self-balancing AI companion robot designed to demonstrate that anyone with passion, a 3D printer, and access to modern tools (LLMs, SBCs, affordable electronics) can build their own JARVIS or R2D2.

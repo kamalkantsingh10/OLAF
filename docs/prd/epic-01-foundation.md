@@ -144,7 +144,7 @@
 ### Acceptance Criteria:
 
 1. **Components Acquired:**
-   - 1× ESP32-S3-WROOM-2 (N8R8) or ESP32-WROOM-32
+   - 1× ESP32-S3-WROOM-2 (N16R8) or ESP32-WROOM-32
    - 1× GC9A01 Round TFT Display (1.28", 240×240, SPI interface)
    - Jumper wires for SPI + I2C connections
    - Breadboard for prototyping

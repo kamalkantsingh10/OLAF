@@ -1,14 +1,14 @@
 # ESP32-S3 Standardization Decision
 
 **Date:** 2025-10-12
-**Decision:** Standardize all 5 OLAF modules on ESP32-S3-WROOM-2 (N8R8)
+**Decision:** Standardize all 5 OLAF modules on ESP32-S3-WROOM-2 (N16R8)
 **Status:** Approved and documented in architecture v1.1
 
 ---
 
 ## Executive Summary
 
-OLAF will standardize on **ESP32-S3-DevKitC-1-N8R8** (ESP32-S3-WROOM-2 with 32MB Flash, 8MB PSRAM) for all five hardware modules (Head, Ears, Neck, Projector, Base).
+OLAF will standardize on **ESP32-S3-DevKitC-1-N16R8** (ESP32-S3-WROOM-2 with 16MB Flash, 8MB PSRAM) for all five hardware modules (Head, Ears, Neck, Projector, Base).
 
 **Key Benefits:**
 - **45 GPIO vs 34** - Critical headroom for complex modules (Head, Base)
@@ -31,7 +31,7 @@ OLAF will standardize on **ESP32-S3-DevKitC-1-N8R8** (ESP32-S3-WROOM-2 with 32MB
 | **GPIO Pins** | 34 | 45 (41 usable*) | +32% more I/O |
 | **SRAM** | 520KB | 512KB | Similar |
 | **PSRAM** | Optional | 8MB (Octal SPI) | Enables edge AI workloads |
-| **Flash** | 4MB typical | 32MB (Octal SPI) | 8× larger OTA capacity |
+| **Flash** | 4MB typical | 16MB (Octal SPI) | 4× larger OTA capacity |
 | **Flash/PSRAM Interface** | Quad SPI | Octal SPI | 2× bandwidth |
 | **USB** | UART-to-USB (external chip) | Native USB OTG | No external chip, faster debug |
 | **AI Features** | None | Vector instructions | Edge ML acceleration |
@@ -127,17 +127,17 @@ OLAF will standardize on **ESP32-S3-DevKitC-1-N8R8** (ESP32-S3-WROOM-2 with 32MB
 
 | Supplier | Model | Price/Unit | Stock (Jan 2025) | Lead Time | Notes |
 |----------|-------|-----------|------------------|-----------|-------|
-| **DigiKey** | ESP32-S3-DEVKITC-1-N8R8 | $18-20 | In Stock | 1-3 days | Reliable, authentic Espressif |
+| **DigiKey** | ESP32-S3-DEVKITC-1-N16R8 | $18-20 | In Stock | 1-3 days | Reliable, authentic Espressif |
 | **Adafruit** | ESP32-S3-DevKitC-1 (#5364) | $19.95 | Out of Stock | TBD | Restock expected Q1 2025 |
-| **Adafruit** | ESP32-S3-DevKitC-1-N8 (#5312) | $17.50 | In Stock | 2-5 days | WROOM-1 variant (Quad SPI) |
+| **Adafruit** | ESP32-S3-DevKitC-1-N16 (#5313) | $17.50 | In Stock | 2-5 days | WROOM-2 variant (16MB Flash) |
 | **The Pi Hut (UK)** | ESP32-S3-DevKitC-1 | £5 (~$6.30) | In Stock | 3-7 days | Sale pricing, UK shipping |
-| **Amazon** | ESP32-S3-DevKitC-1-N8R8 | $15-25 | Varies | 1-2 days (Prime) | Seller reputation varies |
+| **Amazon** | ESP32-S3-DevKitC-1-N16R8 | $15-25 | Varies | 1-2 days (Prime) | Seller reputation varies |
 | **AliExpress** | Generic ESP32-S3 | $10-12 | In Stock | 2-4 weeks | Budget option, authenticity risk |
 
 ### Purchasing Plan (5 modules + 2 spares)
 
 **Primary Order (DigiKey):**
-- 5× ESP32-S3-DEVKITC-1-N8R8 @ $18 = **$90**
+- 5× ESP32-S3-DEVKITC-1-N16R8 @ $18 = **$90**
 - Shipping: $6.99
 - **Total: $96.99**
 
@@ -173,7 +173,7 @@ board_build.partitions = default_8MB.csv  ; OTA partition scheme
 
 ### Pin Mapping Notes
 
-**GPIO Restrictions (ESP32-S3-WROOM-2 with Octal SPI):**
+**GPIO Restrictions (ESP32-S3-WROOM-2 N16R8 with Octal SPI):**
 - **GPIO35, GPIO36, GPIO37** - Reserved for internal Octal SPI (Flash/PSRAM communication)
 - **Do NOT use** for external peripherals (will cause boot failures)
 
@@ -275,7 +275,7 @@ board_build.partitions = default_8MB.csv  ; OTA partition scheme
 - [x] Update architecture documentation (tech-stack.md, components.md, introduction.md)
 - [ ] Create PlatformIO template for ESP32-S3 modules
 - [ ] Document GPIO35-37 restrictions in schematic guidelines
-- [ ] Order 7× ESP32-S3-DevKitC-1-N8R8 (5 production + 2 spares)
+- [ ] Order 7× ESP32-S3-DevKitC-1-N16R8 (5 production + 2 spares)
 - [ ] Test ArduinoOTA firmware update workflow on ESP32-S3
 - [ ] Validate all OLAF libraries on ESP32-S3 hardware
 - [ ] Update BOM spreadsheet with ESP32-S3 pricing

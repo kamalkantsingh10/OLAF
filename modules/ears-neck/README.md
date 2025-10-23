@@ -9,8 +9,8 @@ The Ears + Neck module provides unified upper-body control for OLAF's expressive
 ## Hardware Specifications
 
 ### Microcontroller
-- **ESP32-S3-WROOM-2 (N8R8)**
-  - 8MB Flash, 8MB PSRAM
+- **ESP32-S3-WROOM-2 (N16R8)**
+  - 16MB Flash, 8MB PSRAM
   - Dual UART for independent servo bus control
   - I2C slave interface (0x09) for orchestrator communication
 

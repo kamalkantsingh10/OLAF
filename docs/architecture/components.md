@@ -5,7 +5,7 @@
 **Responsibility:** Primary sensor hub and emotional expression through animated OLED eyes.
 
 **Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
+- ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM)
 - 2× GC9A01 Round TFT Display (1.28", 240×240, SPI)
 - DFRobot SEN0395 mmWave sensor
 - INMP441 I2S microphone × 2
@@ -34,7 +34,7 @@ head_controller.ino
 **Responsibility:** Upper body articulation - 2-DOF ears (4× servos) and 3-DOF neck gimbal (3× servos).
 
 **Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
+- ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM)
 - 2× Bus Servo Controllers (STSC series compatible), connected via UART:
   - **Controller A (UART1):** 4× Feetech SCS0009 servos (ears only, 2-DOF × 2)
   - **Controller B (UART2):** 3× Feetech STS3215 servos (neck only: pan/tilt/roll, 30 kg·cm torque)
@@ -66,7 +66,7 @@ ears_neck_controller.ino
 **Responsibility:** Autonomous two-wheel balancing with 200Hz PID control, ODrive motor coordination, kickstand deployment.
 
 **Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM) - LX7 dual-core for real-time control
+- ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM) - LX7 dual-core for real-time control
 - MPU6050 IMU (200Hz sampling, I2C)
 - ODrive v3.6 motor controller (UART1)
 - 2× Hoverboard hub motors (350W each)
@@ -101,7 +101,7 @@ base_controller.ino
 **Responsibility:** Body-mounted indicators - heart display emotion visualization, projector power management, system status LEDs.
 
 **Hardware:**
-- ESP32-S3-WROOM-2 (N8R8: 32MB Flash, 8MB PSRAM)
+- ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM)
 - 1× GC9A01 Round TFT Display (1.28", 240×240, SPI) - Heart animation
 - 1× Relay or MOSFET module (12V projector power switching)
 - Nx WS2812B RGB LED strip (addressable, 5-10 LEDs for status indicators)

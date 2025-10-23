@@ -20,28 +20,28 @@
 // =============================================================================
 
 // MODULE_ID_HEAD (0x08)
-// Hardware: ESP32-S3-WROOM-2 (N8R8)
+// Hardware: ESP32-S3-WROOM-2 (N16R8)
 // Components: 2× GC9A01 Round TFT (eyes), DFRobot SEN0395 mmWave sensor,
 //             2× INMP441 I2S microphones, PAM8403 amplifier + speaker
 // Responsibilities: Eye animations (60 FPS), presence detection, audio I/O
 #define MODULE_ID_HEAD        0x08
 
 // MODULE_ID_EARS_NECK (0x09)
-// Hardware: ESP32-S3-WROOM-2 (N8R8)
+// Hardware: ESP32-S3-WROOM-2 (N16R8)
 // Components: Controller A (UART1): 4× Feetech SCS0009 servos (ears, 2-DOF × 2)
 //             Controller B (UART2): 3× Feetech STS3215 servos (neck pan/tilt/roll)
 // Responsibilities: Coordinated upper-body gestures, ear expressions, head tracking
 #define MODULE_ID_EARS_NECK   0x09
 
 // MODULE_ID_BODY (0x0A)
-// Hardware: ESP32-S3-WROOM-2 (N8R8)
+// Hardware: ESP32-S3-WROOM-2 (N16R8)
 // Components: 1× GC9A01 Round TFT (heart), relay module (12V projector power),
 //             WS2812B RGB LED strip (5-10 LEDs)
 // Responsibilities: Heart animation (60 FPS, 50-120 BPM), projector control, status LEDs
 #define MODULE_ID_BODY        0x0A
 
 // MODULE_ID_BASE (0x0B)
-// Hardware: ESP32-S3-WROOM-2 (N8R8)
+// Hardware: ESP32-S3-WROOM-2 (N16R8)
 // Components: MPU6050 IMU (200Hz PID), ODrive v3.6 (UART1, 2× 350W motors),
 //             1× Feetech STS3215 kickstand servo (UART2)
 // Responsibilities: Self-balancing (200Hz), fall detection, kickstand deployment

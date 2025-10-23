@@ -18,7 +18,7 @@ The unified approach treats the embedded firmware, orchestration software, and A
 - **Core technology commitments**:
   - ROS2 Humble for orchestration layer communication
   - Raspberry Pi 5 8GB + Hailo AI Kit for orchestration
-  - ESP32-S3-WROOM-2 (N8R8) microcontrollers for module layer (all 5 modules standardized)
+  - ESP32-S3-WROOM-2 (N16R8) microcontrollers for module layer (all 5 modules standardized)
   - Python 3.10+ for orchestrator
   - C/C++ (Arduino/ESP-IDF) for module firmware
   - I2C communication between Pi and ESP32-S3 modules (WiFi for cloud API only)
@@ -35,7 +35,7 @@ The unified approach treats the embedded firmware, orchestration software, and A
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-10-12 | v1.2 | Updated displays to GC9A01 round TFT (240×240 color), kickstand to STS3215 (30 kg·cm), added bus servo controllers (dedicated for ears, shared for neck+kickstand) | Winston (Architect Agent) |
-| 2025-10-12 | v1.1 | Standardized all modules on ESP32-S3-WROOM-2 (N8R8) for enhanced performance (45 GPIO, LX7 architecture, 8MB PSRAM for edge AI) | Winston (Architect Agent) |
+| 2025-10-12 | v1.1 | Standardized all modules on ESP32-S3-WROOM-2 (N16R8) for enhanced performance (45 GPIO, LX7 architecture, 8MB PSRAM, 16MB Flash for edge AI) | Winston (Architect Agent) |
 | 2025-10-11 | v1.0 | Initial architecture document | Winston (Architect Agent) |
 
 ---

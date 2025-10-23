@@ -12,7 +12,7 @@ modules:
   head:
     i2c_address: 0x08
     description: "Eyes (2× GC9A01), mmWave sensor, I2S mics, speaker"
-    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    hardware: "ESP32-S3-WROOM-2 (N16R8)"
     responsibilities:
       - "Eye animations (60 FPS rendering)"
       - "Presence detection (DFRobot SEN0395 mmWave)"
@@ -23,7 +23,7 @@ modules:
   ears_neck:
     i2c_address: 0x09
     description: "Ears 4× servos + Neck 3× servos (2 UART controllers)"
-    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    hardware: "ESP32-S3-WROOM-2 (N16R8)"
     responsibilities:
       - "Ear expressions (4× Feetech SCS0009 servos, 2-DOF × 2)"
       - "Head orientation (3× Feetech STS3215 servos: pan/tilt/roll)"
@@ -37,7 +37,7 @@ modules:
   body:
     i2c_address: 0x0A
     description: "Heart LCD (GC9A01), projector relay, WS2812B LEDs"
-    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    hardware: "ESP32-S3-WROOM-2 (N16R8)"
     responsibilities:
       - "Heart animation (60 FPS, emotion-driven BPM 50-120)"
       - "Projector power control (12V relay module)"
@@ -48,7 +48,7 @@ modules:
   base:
     i2c_address: 0x0B
     description: "Self-balancing (MPU6050, ODrive, kickstand servo)"
-    hardware: "ESP32-S3-WROOM-2 (N8R8)"
+    hardware: "ESP32-S3-WROOM-2 (N16R8)"
     responsibilities:
       - "Self-balancing control (200Hz PID loop)"
       - "Motor control (ODrive v3.6, 2× 350W hoverboard motors)"

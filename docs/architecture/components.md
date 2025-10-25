@@ -102,7 +102,7 @@ base_controller.ino
 
 **Hardware:**
 - ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM)
-- 1× GC9A01 Round TFT Display (1.28", 240×240, SPI) - Heart animation
+- 1× Round TFT LCD Display (1.53", 360×360, QSPI, ST77916 driver) - Heart animation
 - 1× Relay or MOSFET module (12V projector power switching)
 - Nx WS2812B RGB LED strip (addressable, 5-10 LEDs for status indicators)
 
@@ -111,7 +111,7 @@ base_controller.ino
 body_controller.ino
 ├── i2c_slave.cpp
 ├── heart_animation.cpp
-├── gc9a01_driver_spi.cpp    // Round TFT driver (240×240)
+├── st77916_driver_qspi.cpp  // Round TFT driver (360×360, QSPI)
 ├── projector_power.cpp      // Relay control + status monitoring
 └── led_controller.cpp       // WS2812B addressable LED patterns
 ```

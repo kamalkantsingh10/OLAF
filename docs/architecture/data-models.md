@@ -73,6 +73,38 @@
 #define STATE_EMERGENCY_STOP  0x03
 ```
 
+## Body Module Register Map (I2C 0x0A)
+
+```cpp
+// Heart Display Control (0x10-0x1F)
+#define REG_HEART_EMOTION_TYPE     0x10  // Emotion type (0x00-0x06)
+#define REG_HEART_INTENSITY        0x11  // Intensity level (1-5)
+#define REG_HEART_RATE_BPM         0x12  // Heart rate override (BPM, 0=auto)
+#define REG_HEART_COLOR_R          0x13  // Heart color RGB (0-255 each)
+#define REG_HEART_COLOR_G          0x14
+#define REG_HEART_COLOR_B          0x15
+
+// Projector Control (0x20-0x2F)
+#define REG_PROJECTOR_POWER        0x20  // 0=off, 1=on
+#define REG_PROJECTOR_STATUS       0x21  // Power state feedback
+
+// LED Control (0x30-0x3F)
+#define REG_LED_MODE               0x30  // LED pattern mode
+#define REG_LED_COLOR_R            0x31  // LED color RGB
+#define REG_LED_COLOR_G            0x32
+#define REG_LED_COLOR_B            0x33
+#define REG_LED_BRIGHTNESS         0x34  // 0-255
+
+// Emotion types (same as Head Module for consistency)
+#define EMOTION_NEUTRAL  0x00
+#define EMOTION_HAPPY    0x01
+#define EMOTION_CURIOUS  0x02
+#define EMOTION_THINKING 0x03
+#define EMOTION_CONFUSED 0x04
+#define EMOTION_SAD      0x05
+#define EMOTION_EXCITED  0x06
+```
+
 ## ROS2 Custom Messages
 
 ```python

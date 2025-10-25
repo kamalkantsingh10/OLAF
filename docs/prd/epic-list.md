@@ -4,10 +4,10 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 
 ## Epic Structure Overview (13 Epics - Optimized Build Flow)
 
-**Epic 1: Foundation & I2C Communication (Heart Display)**
-**Goal:** Establish ROS2 + I2C infrastructure with minimal working personality—a beating heart LCD showing emotion-driven animation. Prove I2C + SPI architecture end-to-end. Use temporary bench power supply (full power system deferred to Epic 5).
+**Epic 1: Foundation & I2C Communication (Eye Displays)**
+**Goal:** Establish ROS2 + I2C infrastructure with minimal working personality—dual eye LCDs showing emotion-driven expressions. Prove I2C + SPI architecture end-to-end. Validates Head Module (I2C 0x08) before physical integration in Epic 3. Use temporary bench power supply (full power system deferred to Epic 5).
 
-**Duration:** 1.5 weeks | **Value:** Quick win proving I2C + SPI architecture, heart display emotion feedback, initial design concept validation
+**Duration:** 1.5 weeks | **Value:** Quick win proving I2C + SPI architecture, expressive eye displays, Head Module validation, initial design concept validation
 
 ---
 
@@ -33,7 +33,7 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ---
 
 **Epic 5: Core Torso & Power System - Complete Build**
-**Goal:** 3D print core torso panels and power enclosure (with Epic 2 feedback incorporated). Assemble complete torso: Raspberry Pi mounting, heart LCD display integration (from Epic 1), status indicators (RGB LEDs for power/battery/system status), component bays. Build power system: 36V hoverboard battery + BMS, buck converters (36V→5V, 36V→12V), charging circuit, power distribution harness, safety (fuses, emergency cutoff, voltage monitoring). Thermal testing and cable management.
+**Goal:** 3D print core torso panels and power enclosure (with Epic 2 feedback incorporated). Assemble complete torso: Raspberry Pi mounting, **NEW heart LCD display integration** (1.53" Round TFT 360×360 ST77916 QSPI, Body Module I2C 0x0A), status indicators (RGB LEDs for power/battery/system status), component bays. Build power system: 36V hoverboard battery + BMS, buck converters (36V→5V, 36V→12V), charging circuit, power distribution harness, safety (fuses, emergency cutoff, voltage monitoring). Thermal testing and cable management.
 
 **Duration:** 2-3 weeks | **Value:** Complete power infrastructure, integrated heart display in body, professional component housing, safe charging system
 
@@ -105,7 +105,7 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 
 ✅ **Epic 2: All design upfront** - Get community feedback before printing anything expensive
 ✅ **Epic 5: Power before base** - Core torso + power system established before mobility
-✅ **Epic 5: Heart LCD integration** - Heart display from Epic 1 now properly housed in torso
+✅ **Epic 5: Heart LCD integration** - NEW 1.53" heart display (ST77916) integrated into torso (separate from Epic 1 eyes)
 ✅ **Epic 7: Dedicated integration epic** - Ensures proper assembly and cable management
 ✅ **Epic 8: Projector gets dedicated epic** - Optocoupler control, mounting, display coordination
 ✅ **Build flow: Design → Print → Assemble** - Each component epic includes 3D printing + assembly with feedback changes applied

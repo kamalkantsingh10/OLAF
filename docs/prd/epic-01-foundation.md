@@ -1,14 +1,14 @@
-# Epic 1: Foundation & I2C Communication (Heart Display)
+# Epic 1: Foundation & I2C Communication (Eye Displays)
 
-**Epic Goal:** Establish the complete development foundation including repository structure, ROS2 environment on Raspberry Pi, and I2C communication protocol. Deliver a minimal working personality—a heart LCD display showing emotion-driven beating animation via I2C commands from the orchestrator—proving the three-layer architecture (Orchestrator → I2C → Smart ESP32 Peripheral) works end-to-end with I2C + SPI communication validated. Use temporary bench power supply (full power system deferred to Epic 5: Core Torso & Power System).
+**Epic Goal:** Establish the complete development foundation including repository structure, ROS2 environment on Raspberry Pi, and I2C communication protocol. Deliver a minimal working personality—dual eye LCD displays showing emotion-driven expressions via I2C commands from the orchestrator—proving the three-layer architecture (Orchestrator → I2C → Smart ESP32 Peripheral) works end-to-end with I2C + SPI communication validated. Use temporary bench power supply (full power system deferred to Epic 5: Core Torso & Power System).
 
 **Duration:** 1.5 weeks (Weeks 1-1.5)
 
 **Prerequisites:** None (first epic)
 
-**Value Delivered:** Quick win proving I2C + SPI architecture viability, establishes shared register protocol, enables all future module development, provides "Olaf's heart beats!" moment within first 2 weekends. Heart display demonstrates emotion-driven animation (60 FPS) without requiring full head assembly. Initial OnShape design concept validated with community feedback.
+**Value Delivered:** Quick win proving I2C + SPI architecture viability, establishes shared register protocol, enables all future module development, provides "Olaf's eyes come alive!" moment within first 2 weekends. Eye displays demonstrate emotion-driven expressions (60 FPS) validating Head Module architecture before full head assembly in Epic 3. Initial OnShape design concept validated with community feedback.
 
-**Architecture Focus:** This epic validates the core architectural decision that ROS2 runs ONLY on Pi, with ESP32 modules acting as smart I2C slaves containing full hardware drivers and animation engines. Heart LCD proves SPI display performance before investing in dual-eye head assembly in Epic 3.
+**Architecture Focus:** This epic validates the core architectural decision that ROS2 runs ONLY on Pi, with ESP32 modules acting as smart I2C slaves containing full hardware drivers and animation engines. Dual eye LCDs prove Head Module (I2C 0x08) SPI display performance and expression engine before physical head assembly in Epic 3.
 
 **Power Note:** For Epic 1 development, use a temporary bench power supply (e.g., lab power supply set to 5V for ESP32 + displays, or USB power banks). The complete power system (36V hoverboard battery, BMS, buck converters, charging circuit, safety features) will be designed and built in Epic 5: Core Torso & Power System.
 
@@ -135,28 +135,37 @@
 
 ---
 
-## Story 1.3: Body Module - Heart LCD Hardware Assembly
+## Story 1.3: Head Module - Eye LCD Hardware Assembly
 
 **As a** hardware builder,
-**I want** a body module with heart LCD display proving I2C + SPI communication,
-**so that** I can validate the architecture with emotion-driven heartbeat animation.
+**I want** a head module with dual eye LCD displays proving I2C + SPI communication,
+**so that** I can validate the architecture with emotion-driven eye expressions.
 
 ### Acceptance Criteria:
 
 1. **Components Acquired:**
    - 1× ESP32-S3-WROOM-2 (N16R8) or ESP32-WROOM-32
-   - 1× GC9A01 Round TFT Display (1.28", 240×240, SPI interface)
+   - 2× GC9A01 Round TFT Display (1.28", 240×240, SPI interface)
    - Jumper wires for SPI + I2C connections
    - Breadboard for prototyping
 
-2. **SPI Heart Display Wiring (ESP32 → GC9A01):**
-   - VCC → 3.3V (ESP32)
-   - GND → GND
-   - SCL (CLK) → GPIO18 (ESP32 SPI SCK)
-   - SDA (MOSI) → GPIO23 (ESP32 SPI MOSI)
-   - RES (RST) → GPIO4 (ESP32 reset pin)
-   - DC → GPIO2 (ESP32 data/command pin)
-   - CS → GPIO5 (ESP32 chip select)
+2. **SPI Eye Display Wiring (ESP32 → 2× GC9A01):**
+   - **Left Eye Display:**
+     - VCC → 3.3V (ESP32)
+     - GND → GND
+     - SCL (CLK) → GPIO18 (ESP32 SPI SCK - shared)
+     - SDA (MOSI) → GPIO23 (ESP32 SPI MOSI - shared)
+     - RES (RST) → GPIO4 (ESP32 reset pin)
+     - DC → GPIO2 (ESP32 data/command pin)
+     - CS → GPIO5 (ESP32 chip select - Left Eye)
+   - **Right Eye Display:**
+     - VCC → 3.3V (ESP32 - shared)
+     - GND → GND (shared)
+     - SCL (CLK) → GPIO18 (ESP32 SPI SCK - shared)
+     - SDA (MOSI) → GPIO23 (ESP32 SPI MOSI - shared)
+     - RES (RST) → GPIO4 (ESP32 reset pin - shared)
+     - DC → GPIO2 (ESP32 data/command pin - shared)
+     - CS → GPIO15 (ESP32 chip select - Right Eye)
 
 3. **I2C Wiring (Pi → ESP32):**
    - Pi GPIO2 (SDA) → ESP32 GPIO21 (I2C SDA)
@@ -165,82 +174,88 @@
    - Pi 5V → ESP32 VIN (power from buck converter)
 
 4. **I2C Address Assignment:**
-   - ESP32 Body module configured as I2C slave at address **0x0A**
+   - ESP32 Head module configured as I2C slave at address **0x08**
 
 5. **Communication Tests:**
-   - SPI test: Upload GC9A01 library example, heart displays at 60 FPS
-   - I2C test: `sudo i2cdetect -y 1` shows device at address `0x0A`
+   - SPI test: Upload GC9A01 library example, both eyes display at 60 FPS
+   - I2C test: `sudo i2cdetect -y 1` shows device at address `0x08`
    - Verify SPI speed: 10-20 MHz clock (smooth animation, no tearing)
+   - Test independent chip select: Each eye can be addressed separately
 
 6. **Physical Mounting:**
    - Module secured to breadboard
-   - Heart display positioned for visibility
+   - Eye displays positioned side-by-side for visibility
    - Stable wiring, no loose connections
 
 7. **Documentation:**
-   - Wiring photos: `hardware/wiring/body-heart-lcd-assembly.jpg`
-   - Pin mapping documented in `modules/body/README.md`
-   - BOM updated with ESP32, GC9A01 display, jumper wires
+   - Wiring photos: `hardware/wiring/head-eye-lcd-assembly.jpg`
+   - Pin mapping documented in `modules/head/README.md`
+   - BOM updated with ESP32, 2× GC9A01 displays, jumper wires
 
-**Note:** Projector control (optocoupler) will be added in Epic 8. Status LEDs will be integrated in Epic 5: Core Torso & Power System.
+**Note:** This breadboard prototype validates the Head Module that will be integrated into the physical head housing in Epic 3.
 
 **Dependencies:** Story 1.2 (I2C enabled on Pi)
 
 **Estimated Effort:** 2-3 hours
 
-**Power Note:** Use USB power bank or bench power supply (5V) to power the ESP32 and GC9A01 display during development.
+**Power Note:** Use USB power bank or bench power supply (5V) to power the ESP32 and both GC9A01 displays during development.
 
 ---
 
-## Story 1.4: Body Module ESP32 Firmware - Heart Animation
+## Story 1.4: Head Module ESP32 Firmware - Eye Expressions
 
 **As a** firmware developer,
-**I want** ESP32 firmware rendering emotion-driven heart animation,
-**so that** I can validate I2C + SPI communication with a beating heart display.
+**I want** ESP32 firmware rendering emotion-driven eye expressions on dual displays,
+**so that** I can validate I2C + SPI communication with expressive eyes.
 
 ### Acceptance Criteria:
 
 1. **Development Environment:**
-   - PlatformIO project: `modules/body/firmware/`
+   - PlatformIO project: `modules/head/firmware/`
    - Libraries: `TFT_eSPI` or `Adafruit_GC9A01A`, `Wire.h`
 
 2. **I2C Slave Implementation:**
-   - ESP32 configured as I2C slave at address **0x0A**
+   - ESP32 configured as I2C slave at address **0x08**
    - I2C receive/request handlers implemented
 
-3. **I2C Register Map (Body Module 0x0A):**
-   - `0x00`: Module ID (returns 0x0A)
+3. **I2C Register Map (Head Module 0x08):**
+   - `0x00`: Module ID (returns 0x08)
    - `0x02`: Status byte (READY/BUSY/ERROR)
-   - `0x10`: Emotion type (0=neutral, 1=happy, 2=excited, 3=sad, 4=curious, 5=thinking, 6=confused)
-   - `0x11`: Emotion intensity (1-5, affects beat amplitude)
-   - `0x12`: Heart rate override (BPM, 0=auto from emotion)
-   - `0x13-0x15`: Heart color (RGB, 0-255 each)
+   - `0x10`: Expression type (0=neutral, 1=happy, 2=curious, 3=thinking, 4=confused, 5=sad, 6=excited)
+   - `0x11`: Expression intensity (1-5, affects animation intensity)
+   - `0x12`: Blink trigger (write any value to trigger blink)
 
-4. **Heart Animation Engine:**
-   - Heart sprite (240×240 display, centered)
-   - Beating animation: Scale/pulse effect synchronized to BPM
-   - **Emotion-to-BPM mapping:**
-     - Neutral: 60-70 BPM | Happy: 80-90 BPM | Excited: 100-120 BPM
-     - Sad: 50-60 BPM | Curious: 70-80 BPM | Thinking: 65-75 BPM | Confused: 75-85 BPM
-   - Intensity: 1=subtle (10% scale), 5=dramatic (50% scale)
-   - Color variations: red=default, blue=sad, yellow=happy
-   - 60 FPS smooth animation
+4. **Eye Expression Engine:**
+   - Dual display rendering (left eye GPIO5 CS, right eye GPIO15 CS)
+   - **Expression animations:**
+     - Neutral: Circular pupils, steady gaze
+     - Happy: Wide pupils, slight upward curve
+     - Curious: Large pupils, slight offset
+     - Thinking: Pupils looking up-right, occasional blink
+     - Confused: Pupils wandering, asymmetric
+     - Sad: Small pupils, downward gaze
+     - Excited: Very wide pupils, rapid micro-movements
+   - Intensity: 1=subtle changes, 5=exaggerated expressions
+   - 60 FPS smooth animation on both displays
+   - Synchronized rendering (both eyes update together)
 
 5. **Testing:**
    - Firmware compiled and uploaded
-   - Serial: "I2C Slave initialized at 0x0A"
-   - Heart beats at 70 BPM (neutral) on startup
+   - Serial: "I2C Slave initialized at 0x08 - Head Module"
+   - Both eyes display neutral expression on startup
    - Responsive to I2C commands via `i2cset`
+   - Blink command triggers synchronized blink
 
 6. **Performance:**
-   - 60 FPS maintained
+   - 60 FPS maintained on both displays
    - I2C latency <10ms
    - Memory stable over 10 minutes
+   - Both eyes remain synchronized (±1 frame tolerance)
 
 7. **Code Quality:**
-   - Files: `main.cpp`, `heart_animation.cpp`, `gc9a01_driver_spi.cpp`, `i2c_slave.cpp`
-   - Comments explain I2C protocol
-   - Code committed to `modules/body/firmware/`
+   - Files: `main.cpp`, `eye_expression.cpp`, `gc9a01_driver_spi.cpp`, `i2c_slave.cpp`
+   - Comments explain I2C protocol and dual-display rendering
+   - Code committed to `modules/head/firmware/`
 
 **Dependencies:** Story 1.3 (hardware assembled)
 
@@ -248,35 +263,35 @@
 
 ---
 
-## Story 1.5: ROS2 Body Driver Node - I2C Bridge
+## Story 1.5: ROS2 Head Driver Node - I2C Bridge
 
 **As a** software developer,
 **I want** a ROS2 node that translates ROS2 topics into I2C register writes,
-**so that** the orchestrator can control the heart display without knowing I2C details.
+**so that** the orchestrator can control the eye displays without knowing I2C details.
 
 ### Acceptance Criteria:
 
 1. **Node Structure:**
-   - Python ROS2 node: `orchestrator/ros2_nodes/hardware_drivers/body_driver.py`
-   - Node name: `/olaf/body_driver`
+   - Python ROS2 node: `orchestrator/ros2_nodes/hardware_drivers/head_driver.py`
+   - Node name: `/olaf/head_driver`
    - Uses `rclpy` and `smbus2`
 
 2. **I2C Communication:**
    - Opens I2C bus 1: `bus = SMBus(1)`
-   - Helper functions for register read/write to address 0x0A
+   - Helper functions for register read/write to address 0x08
 
 3. **ROS2 Subscriptions:**
-   - `/olaf/body/emotion` (custom msg: emotion_type, intensity)
+   - `/olaf/head/expression` (custom msg: expression_type, intensity)
    - Callback writes to registers 0x10-0x11
-   - `/olaf/body/heart_color` (std_msgs/ColorRGBA)
-   - Callback writes to registers 0x13-0x15
+   - `/olaf/head/blink` (std_msgs/Empty)
+   - Callback writes to register 0x12
 
 4. **ROS2 Publications:**
-   - `/olaf/body/status` (std_msgs/String) at 10Hz
+   - `/olaf/head/status` (std_msgs/String) at 10Hz
    - Reads status register 0x02, publishes "READY", "BUSY", or "ERROR"
 
 5. **Module Health Check:**
-   - On startup: Read register 0x00, verify response is 0x0A
+   - On startup: Read register 0x00, verify response is 0x08
    - If not responding: Log error, publish ERROR status
 
 6. **Error Handling:**
@@ -285,9 +300,9 @@
    - Persistent failure: Publish ERROR
 
 7. **Testing:**
-   - Node launches: `ros2 run olaf_drivers body_driver`
-   - Topics appear: `/olaf/body/emotion`, `/olaf/body/status`
-   - Manual test: Publish emotion → heart changes BPM
+   - Node launches: `ros2 run olaf_drivers head_driver`
+   - Topics appear: `/olaf/head/expression`, `/olaf/head/status`
+   - Manual test: Publish expression → eyes change expression
 
 **Dependencies:** Story 1.2 (ROS2 + I2C), Story 1.4 (firmware)
 
@@ -295,11 +310,11 @@
 
 ---
 
-## Story 1.6: Minimal Orchestrator - Heartbeat Coordinator
+## Story 1.6: Minimal Orchestrator - Expression Coordinator
 
 **As a** software developer,
-**I want** a minimal orchestrator node that sends emotion commands via ROS2,
-**so that** I can prove the full pipeline (Orchestrator → ROS2 → I2C → ESP32 → SPI heart display) works.
+**I want** a minimal orchestrator node that sends expression commands via ROS2,
+**so that** I can prove the full pipeline (Orchestrator → ROS2 → I2C → ESP32 → SPI eye displays) works.
 
 ### Acceptance Criteria:
 
@@ -308,21 +323,24 @@
    - Node name: `/olaf/minimal_coordinator`
 
 2. **Publisher:**
-   - Publishes to `/olaf/body/emotion`
+   - Publishes to `/olaf/head/expression`
 
-3. **Emotion Cycle:**
-   - Timer cycles through emotions every 10 seconds:
-     - Neutral → Happy → Excited → Sad → Curious → Thinking → Confused → repeat
+3. **Expression Cycle:**
+   - Timer cycles through expressions every 10 seconds:
+     - Neutral → Happy → Curious → Thinking → Confused → Sad → Excited → repeat
    - Intensity randomly varies between 2-4
+   - Trigger random blink every 3-8 seconds
 
 4. **Execution:**
    - Launch: `ros2 run olaf_orchestrator minimal_coordinator`
-   - Every 10 seconds: Logs emotion change, heart display updates
+   - Every 10 seconds: Logs expression change, eye displays update
+   - Periodic blinks occur independently
 
 5. **End-to-End Validation:**
-   - Full chain: Coordinator → Body driver → I2C → ESP32 → SPI heart
-   - Latency: Publish to heart update <100ms
-   - Reliability: 50 emotion changes without failure
+   - Full chain: Coordinator → Head driver → I2C → ESP32 → SPI eyes
+   - Latency: Publish to eye update <100ms
+   - Reliability: 50 expression changes without failure
+   - Blinks execute smoothly without interrupting expressions
 
 6. **Code Quality:**
    - Clean, commented code
@@ -348,27 +366,29 @@
    - Uses `smbus2` for direct I2C access
 
 2. **Commands:**
-   - `olaf-test body emotion <type> <intensity>` → Writes registers 0x10-0x11 to address 0x0A
-   - `olaf-test body status` → Reads register 0x02, prints status
-   - `olaf-test body id` → Reads register 0x00, prints module ID
+   - `olaf-test head expression <type> <intensity>` → Writes registers 0x10-0x11 to address 0x08
+   - `olaf-test head status` → Reads register 0x02, prints status
+   - `olaf-test head id` → Reads register 0x00, prints module ID
+   - `olaf-test head blink` → Writes to register 0x12, triggers blink
    - `olaf-test scan` → Runs `i2cdetect -y 1`, shows all I2C devices
 
 3. **Implementation:**
    ```python
-   def set_emotion(emotion_type, intensity):
+   def set_expression(expression_type, intensity):
        bus = SMBus(1)
-       bus.write_byte_data(0x0A, 0x10, emotion_type)
-       bus.write_byte_data(0x0A, 0x11, intensity)
-       print(f"Emotion set: type={emotion_type}, intensity={intensity}")
+       bus.write_byte_data(0x08, 0x10, expression_type)
+       bus.write_byte_data(0x08, 0x11, intensity)
+       print(f"Expression set: type={expression_type}, intensity={intensity}")
    ```
 
 4. **Usage:**
-   - `./tools/diagnostics/olaf-test body emotion 1 3` → Sets happy emotion, intensity 3
+   - `./tools/diagnostics/olaf-test head expression 1 3` → Sets happy expression, intensity 3
+   - `./tools/diagnostics/olaf-test head blink` → Triggers eye blink
    - `--help` shows all commands
 
 5. **Error Handling:**
    - "I2C bus not found" if I2C not enabled
-   - "No response from module 0x0A" if ESP32 not responding
+   - "No response from module 0x08" if ESP32 not responding
 
 6. **Documentation:**
    - Usage guide: `tools/diagnostics/README.md`
@@ -389,7 +409,7 @@
 
 1. **Launch File Created:**
    - File: `orchestrator/launch/minimal_system.launch.py`
-   - Starts: Body driver node + Minimal coordinator
+   - Starts: Head driver node + Minimal coordinator
 
 2. **Launch Configuration:**
    ```python
@@ -400,8 +420,8 @@
        return LaunchDescription([
            Node(
                package='olaf_drivers',
-               executable='body_driver',
-               name='body_driver'
+               executable='head_driver',
+               name='head_driver'
            ),
            Node(
                package='olaf_orchestrator',
@@ -414,7 +434,7 @@
 3. **Execution:**
    - Command: `ros2 launch orchestrator minimal_system.launch.py`
    - Both nodes start automatically
-   - Heart cycles through emotions every 10 seconds
+   - Eyes cycle through expressions every 10 seconds with periodic blinks
 
 4. **Logging:**
    - Launch output shows both nodes starting
@@ -444,8 +464,8 @@
    - Timer set for 30 minutes
 
 2. **Test Execution:**
-   - Heart cycles through emotions every 10 seconds (180 cycles total)
-   - Monitor: Terminal logs, heart animation, I2C communication
+   - Eyes cycle through expressions every 10 seconds (180 cycles total)
+   - Monitor: Terminal logs, eye expressions, I2C communication
 
 3. **Success Criteria:**
    - No crashes: All nodes run 30 minutes
@@ -592,8 +612,8 @@
 ### Acceptance Criteria:
 
 1. **Technical Documentation:**
-   - `modules/body/README.md`:
-     - Hardware connections (SPI + I2C pinout)
+   - `modules/head/README.md`:
+     - Hardware connections (dual SPI displays + I2C pinout)
      - Firmware build/upload process
      - I2C register map reference
    - `orchestrator/ros2_nodes/README.md`:
@@ -603,7 +623,7 @@
 
 2. **Hardware Documentation:**
    - BOM: `hardware/bom/epic1_bom.csv`
-     - ESP32-S3 or ESP32-WROOM, GC9A01 display, jumper wires, breadboard
+     - ESP32-S3 or ESP32-WROOM, 2× GC9A01 displays, jumper wires, breadboard
      - Temporary power supplies (USB power banks or bench supply)
      - Supplier links, costs
    - Wiring diagrams in `hardware/wiring/`
@@ -614,8 +634,8 @@
    - README "Quick Start" section complete
 
 4. **Photos/Videos:**
-   - Photos: Power system, heart display beating, full breadboard setup
-   - Optional: 15-second video of beating heart
+   - Photos: Power system, dual eye displays with expressions, full breadboard setup
+   - Optional: 15-second video of eye expressions changing
 
 5. **GitHub Milestone:**
    - Milestone "Epic 1: Foundation" created
@@ -623,16 +643,17 @@
    - Milestone marked complete
 
 6. **Build-in-Public Content:**
-   - LinkedIn post: "Olaf's Heart Beats! ❤️🤖"
-     - Photo of beating heart display
-     - Explanation: I2C + SPI architecture, 60 FPS emotion-driven animation
-     - Technical depth: Smart I2C slave pattern
+   - LinkedIn post: "Olaf's Eyes Come Alive! 👀🤖"
+     - Photo of dual eye displays showing expressions
+     - Explanation: I2C + SPI architecture, 60 FPS emotion-driven expressions on dual displays
+     - Technical depth: Smart I2C slave pattern, Head Module validation
    - Post published
 
 7. **Troubleshooting Guide:**
    - `docs/troubleshooting-epic1.md`:
-     - "ESP32 not detected on I2C" → solution
-     - "GC9A01 shows garbage" → wiring check
+     - "ESP32 not detected on I2C at 0x08" → solution
+     - "One or both GC9A01 displays show garbage" → wiring check, verify chip select pins
+     - "Eyes not synchronized" → check SPI timing, shared signal integrity
      - "ROS2 node can't open I2C" → permissions fix
 
 **Dependencies:** All Epic 1 stories complete
@@ -649,9 +670,9 @@
 **Key Deliverables:**
 - ✅ Repository structure with shared I2C register definitions
 - ✅ ROS2 Humble on Raspberry Pi with I2C enabled
-- ✅ **Body Module:** Heart LCD (GC9A01, 60 FPS emotion BPM) at I2C address 0x0A
-- ✅ ROS2 body driver node translating topics → I2C registers
-- ✅ Orchestrator sending coordinated emotion commands
+- ✅ **Head Module:** Dual Eye LCDs (2× GC9A01, 60 FPS expressions) at I2C address 0x08
+- ✅ ROS2 head driver node translating topics → I2C registers
+- ✅ Orchestrator sending coordinated expression commands
 - ✅ Test harness for direct I2C module testing
 - ✅ Launch file for automated system startup
 - ✅ 30-minute continuous operation validated
@@ -664,14 +685,16 @@
 
 **Architecture Validated:**
 - ✅ I2C-only communication (no WiFi on ESP32s)
-- ✅ SPI display for 60 FPS smooth animation
-- ✅ Smart I2C slave pattern (ESP32 has animation engine)
+- ✅ Dual SPI displays for 60 FPS smooth animation
+- ✅ Smart I2C slave pattern (ESP32 has expression engine)
 - ✅ ROS2 only on Pi (driver nodes as I2C bridges)
 - ✅ Shared register protocol (foundation for all modules)
+- ✅ Head Module (0x08) validated for Epic 3 integration
 
 **Success Criteria Met:**
 - Three-layer architecture proven (Orchestrator → I2C Driver → Smart ESP32)
-- "Quick win" achieved: Olaf's heart beats with emotion-driven animation!
+- "Quick win" achieved: Olaf's eyes come alive with emotion-driven expressions!
+- Head Module architecture validated before physical assembly in Epic 3
 - Initial design concept validated with community feedback
 - Foundation ready for Epic 2 (Complete OnShape Design & Community Feedback)
 

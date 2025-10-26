@@ -1,12 +1,17 @@
 /**
- * Story 1.3 - Task 5: Dual GC9A01 Eye Display Test (WORKING VERSION)
- * TFT_eSPI Library - ESP32-S3
+ * Story 1.3 - Task 5: Dual GC9A01 Independent Display Test
+ * ESP32-S3 with Manual CS Control
  *
- * This version: Both displays work and show test patterns
+ * Tests independent control of left and right eye displays
+ * Left eye shows "LEFT" text, right eye shows "RIGHT" text
  */
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+
+// CS pin definitions (Story 1.3)
+constexpr uint8_t CS_LEFT_EYE = 5;   // GPIO5 - Left eye chip select
+constexpr uint8_t CS_RIGHT_EYE = 15; // GPIO15 - Right eye chip select
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -15,83 +20,71 @@ void setup() {
   delay(1000);
 
   Serial.println("\n========================================");
-  Serial.println("  OLAF Story 1.3 - Dual Eye Display Test");
-  Serial.println("  TFT_eSPI + GC9A01 (240x240)");
+  Serial.println("  OLAF - Dual Eye Display Test");
+  Serial.println("  Independent CS Control");
   Serial.println("========================================\n");
 
-  // Initialize TFT
+  // Configure CS pins as outputs
+  pinMode(CS_LEFT_EYE, OUTPUT);
+  pinMode(CS_RIGHT_EYE, OUTPUT);
+
+  // Set both CS HIGH (inactive) initially
+  digitalWrite(CS_LEFT_EYE, HIGH);
+  digitalWrite(CS_RIGHT_EYE, HIGH);
+
   Serial.println("Initializing displays...");
+
+  // Initialize both displays together
+  // Both CS LOW during init
+  digitalWrite(CS_LEFT_EYE, LOW);
+  digitalWrite(CS_RIGHT_EYE, LOW);
   tft.init();
   tft.setRotation(0);
-  Serial.println("✓ TFT initialized\n");
 
-  // Test sequence
-  Serial.println("========================================");
-  Serial.println("Starting test sequence...\n");
-  delay(1000);
+  // Deactivate both after init
+  digitalWrite(CS_LEFT_EYE, HIGH);
+  digitalWrite(CS_RIGHT_EYE, HIGH);
 
-  // Test 1: Fill RED
-  Serial.println("TEST 1: Fill RED");
-  tft.fillScreen(TFT_RED);
-  delay(2000);
+  Serial.println("✓ Displays initialized\n");
+  Serial.println("Drawing LEFT on left eye...");
 
-  // Test 2: Fill GREEN
-  Serial.println("TEST 2: Fill GREEN");
-  tft.fillScreen(TFT_GREEN);
-  delay(2000);
+  // Draw on LEFT EYE
+  digitalWrite(CS_LEFT_EYE, LOW);   // Activate left eye
+  digitalWrite(CS_RIGHT_EYE, HIGH); // Ensure right eye inactive
 
-  // Test 3: Fill BLUE
-  Serial.println("TEST 3: Fill BLUE");
-  tft.fillScreen(TFT_BLUE);
-  delay(2000);
-
-  // Test 4: Draw circles
-  Serial.println("TEST 4: Draw concentric circles");
-  tft.fillScreen(TFT_BLACK);
-
-  int centerX = 120;
-  int centerY = 120;
-  uint16_t colors[] = {TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_CYAN, TFT_BLUE, TFT_MAGENTA};
-
-  for (int r = 100; r > 0; r -= 20) {
-    tft.drawCircle(centerX, centerY, r, colors[(r / 20) % 6]);
-  }
-  delay(3000);
-
-  // Test 5: Draw text
-  Serial.println("TEST 5: Draw text");
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextDatum(MC_DATUM);
+  tft.setTextDatum(MC_DATUM);  // Middle center
   tft.setTextSize(3);
-  tft.drawString("OLAF", 120, 120);
-  delay(3000);
+  tft.drawString("LEFT", 120, 120);
 
-  Serial.println("\nTest sequence complete!");
-  Serial.println("Entering animation loop...\n");
+  digitalWrite(CS_LEFT_EYE, HIGH);  // Deactivate left eye
+
+  Serial.println("✓ LEFT eye drawn");
+  delay(500);
+
+  Serial.println("Drawing RIGHT on right eye...");
+
+  // Draw on RIGHT EYE
+  digitalWrite(CS_LEFT_EYE, HIGH);  // Ensure left eye inactive
+  digitalWrite(CS_RIGHT_EYE, LOW);  // Activate right eye
+
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);  // Middle center
+  tft.setTextSize(3);
+  tft.drawString("RIGHT", 120, 120);
+
+  digitalWrite(CS_RIGHT_EYE, HIGH); // Deactivate right eye
+
+  Serial.println("✓ RIGHT eye drawn");
+  Serial.println("\n========================================");
+  Serial.println("Setup complete!");
+  Serial.println("Both eyes should show different text");
+  Serial.println("========================================\n");
 }
 
 void loop() {
-  static uint32_t frameCount = 0;
-  static uint32_t lastFPSTime = 0;
-  static int animPhase = 0;
-
-  // Color animation cycling
-  uint16_t colors[] = {TFT_RED, TFT_GREEN, TFT_BLUE, TFT_YELLOW, TFT_CYAN, TFT_MAGENTA, TFT_WHITE};
-  int colorCount = 7;
-
-  tft.fillScreen(colors[animPhase % colorCount]);
-
-  // FPS calculation
-  frameCount++;
-  uint32_t now = millis();
-  if (now - lastFPSTime >= 1000) {
-    float fps = frameCount * 1000.0 / (now - lastFPSTime);
-    Serial.printf("FPS: %.1f | Color: %d\n", fps, colors[animPhase % colorCount]);
-    frameCount = 0;
-    lastFPSTime = now;
-  }
-
-  animPhase++;
-  delay(500);  // Change color every 500ms
+  // Static display - nothing in loop
+  delay(1000);
 }

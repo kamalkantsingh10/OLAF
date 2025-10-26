@@ -1,6 +1,20 @@
 // config.h - Head Module Hardware Configuration
 // ESP32-S3-WROOM-2 (N16R8) Pin Assignments
 // Story 1.3: Head Module - Eye LCD Hardware Assembly
+//
+// ============================================================================
+// IMPORTANT: TFT_eSPI Library Configuration
+// ============================================================================
+// This file is the MASTER configuration for OLAF Head Module hardware.
+//
+// TFT_eSPI library has a SEPARATE config file that MUST match these pins:
+//   Location: .pio/libdeps/esp32-s3-devkitc-1/TFT_eSPI/User_Setups/Setup_Custom.h
+//
+// If you change display pins here, UPDATE Setup_Custom.h to match!
+//
+// Note: Setup_Custom.h lives in .pio/libdeps/ (temporary, regenerated on library updates)
+//       This file (config.h) is version-controlled and is the source of truth.
+// ============================================================================
 
 #pragma once
 

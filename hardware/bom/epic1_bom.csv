@@ -1,0 +1,8 @@
+Item,Description,Quantity,Supplier,Link,Cost (CHF),Cost (USD),Notes,Story
+ESP32-S3-DevKitC-1,ESP32-S3-WROOM-2 N16R8 dev board,1,AliExpress,https://de.aliexpress.com/item/1005006737960797.html,4.04,4.50,"16MB Flash, 8MB PSRAM, Dual-core 240MHz",1.3
+GC9A01 Display,Round TFT 1.28" 240x240 SPI,2,AliExpress,https://de.aliexpress.com/item/1005006100703230.html,5.98,6.70,"Price: 2.99 CHF each, RGB565, 65K colors",1.3
+Breadboard Kit,Breadboard with jumper wires,1,AliExpress,https://de.aliexpress.com/item/1005006073033029.html,3.19,3.60,"Includes breadboard and jumper wires (M-M, M-F)",1.3
+USB Cables,USB-C or Micro-USB cables,2,AliExpress (generic),N/A,5.00,5.60,"Already owned, typical AliExpress price ~2.50 CHF each",1.3
+Raspberry Pi 5,Raspberry Pi 5 8GB RAM,1,Digitec,https://www.digitec.ch/en/s1/product/raspberry-pi-new-5-8gb-development-boards-kits-38955607,80.00,89.60,"Main orchestrator, runs ROS2 Humble",1.2
+,,,,,,,Total Epic 1:,
+,,,,,98.21,110.00,,

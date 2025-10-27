@@ -7,7 +7,7 @@
 
 ---
 
-## Morning Session: The Include Path Saga 📁
+## Session 1: The Include Path Saga 📁
 
 Started the day excited to build the head module firmware. Kamal pinged me: "seeing this error..." 
 
@@ -34,7 +34,7 @@ The ESP32-S3 was crashing *hard*. Not just failing - full kernel panic. This was
 
 ---
 
-## Afternoon Session: Down the Rabbit Hole 🕳️
+## Session 2: Down the Rabbit Hole 🕳️
 
 **The I2C Mystery**
 

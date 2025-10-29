@@ -1,9 +1,16 @@
-# Head Module - Dual Eye Displays
+# Head Module - Eye Expression System
 
 ## Overview
-The Head Module provides OLAF's expressive eyes using two GC9A01 round TFT displays (240×240 pixels each). It communicates with the Raspberry Pi orchestrator via I2C and renders eye animations via SPI.
+The Head Module provides OLAF's expressive eyes using two GC9A01 round TFT displays (240×240 pixels each). It renders emotion-driven eye expressions with 60 FPS animation, controlled via I2C commands from the Raspberry Pi orchestrator.
 
 **I2C Address:** `0x08`
+
+**Features (Story 1.4):**
+- 7 expression types (neutral, happy, curious, thinking, confused, sad, excited)
+- 5 intensity levels (1=subtle to 5=extreme)
+- Synchronized blink animations
+- 60 FPS smooth animation on both eyes
+- Register-based I2C command protocol
 
 ## Hardware
 
@@ -145,24 +152,54 @@ Expected output (device at address 0x08):
 ...
 ```
 
-### 2. Send Text to Displays
+### 2. Test Expression Commands (Story 1.4)
 
 ```bash
-# Send "HELLO" as hex bytes
-sudo i2ctransfer -y 1 w5@0x08 0x48 0x45 0x4c 0x4c 0x4f
+# Read module ID (should return 0x08)
+sudo i2cget -y 1 0x08 0x00
 
-# Send "OLAF"
-sudo i2ctransfer -y 1 w4@0x08 0x4f 0x4c 0x41 0x46
+# Read status (should return 0x01 = READY)
+sudo i2cget -y 1 0x08 0x02
+
+# Set HAPPY expression with medium intensity
+sudo i2cset -y 1 0x08 0x10 0x01    # Expression type = 1 (happy)
+sudo i2cset -y 1 0x08 0x11 0x03    # Intensity = 3 (moderate)
+
+# Set EXCITED expression with maximum intensity
+sudo i2cset -y 1 0x08 0x10 0x06    # Expression type = 6 (excited)
+sudo i2cset -y 1 0x08 0x11 0x05    # Intensity = 5 (extreme)
+
+# Trigger blink
+sudo i2cset -y 1 0x08 0x12 0x01    # Any value triggers blink
+
+# Test all expressions
+for expr in {0..6}; do
+  echo "Testing expression $expr"
+  sudo i2cset -y 1 0x08 0x10 $expr
+  sleep 2
+done
 ```
-
-Text should appear on both eye displays.
 
 ### 3. Check Serial Monitor
 
 ESP32 should show:
 ```
-[I2C RX] Received 5 bytes: HELLO
-[Display] Showing text: HELLO
+╔════════════════════════════════════════════╗
+║      OLAF Head Module - Eye Expressions    ║
+║      Story 1.4: ESP32 Firmware             ║
+╚════════════════════════════════════════════╝
+
+[I2C] Slave initialized at 0x08 - Head Module
+[Display] ✓ Dual displays initialized
+[Expression] Engine initialized - NEUTRAL expression
+
+========== Performance Report ==========
+Frames rendered: 300
+Avg frame time: 14.2 ms (70.4 FPS)
+Min frame time: 12 ms
+Max frame time: 18 ms
+✓ Frame rate target achieved
+========================================
 ```
 
 ## Troubleshooting
@@ -228,15 +265,34 @@ digitalWrite(CS_RIGHT_EYE, HIGH);
 
 ### I2C Communication Protocol
 
-**Current Implementation (Story 1.3):**
-- Simple text display via I2C
-- Receives ASCII bytes and displays on both eyes
+**Story 1.4 Implementation - Register Map:**
 
-**Future (Story 1.4):**
-- Register-based command protocol
-- Expression commands (emotion type + intensity)
-- Animation control
-- Status reporting
+| Register | Address | Type | Description |
+|----------|---------|------|-------------|
+| Module ID | 0x00 | Read | Returns 0x08 (head module identifier) |
+| Firmware Version | 0x01 | Read | Firmware version (0x01 = v0.1) |
+| Status | 0x02 | Read | Status flags (READY=0x01, BUSY=0x02, ERROR=0x04) |
+| Error Code | 0x03 | Read | Last error code (0x00 = no error) |
+| Command | 0x04 | Write | Generic command register |
+| Expression Type | 0x10 | Write | Emotion type (0-6) |
+| Expression Intensity | 0x11 | Write | Intensity level (1-5) |
+| Blink Trigger | 0x12 | Write | Trigger blink (write any value) |
+
+**Expression Types:**
+- 0 = NEUTRAL: Calm, centered pupils
+- 1 = HAPPY: Wide pupils, upward gaze
+- 2 = CURIOUS: Large pupils, looking at something
+- 3 = THINKING: Pupils up-right (memory access)
+- 4 = CONFUSED: Wandering, asymmetric pupils
+- 5 = SAD: Small pupils, downward gaze
+- 6 = EXCITED: Very wide pupils, rapid movements
+
+**Intensity Levels:**
+- 1 = Subtle (minimal changes)
+- 2 = Light (noticeable but restrained)
+- 3 = Moderate (clear expression, balanced)
+- 4 = Strong (exaggerated, theatrical)
+- 5 = Extreme (maximum effect, cartoon-like)
 
 ### Performance
 
@@ -266,11 +322,35 @@ See: `hardware/bom/epic1_bom.csv`
 - Breadboard Kit: 3.19 CHF
 - USB Cables (×2): 5.00 CHF
 
+## Firmware Architecture (Story 1.4)
+
+**File Structure:**
+```
+modules/head/
+├── firmware/
+│   ├── config.h                 # Hardware pin configuration
+│   ├── i2c_slave.h/.cpp        # I2C slave with register map
+│   ├── gc9a01_driver_spi.h/.cpp # Dual display driver
+│   └── eye_expression.h/.cpp    # Expression animation engine
+├── src/
+│   └── main.cpp                 # Main controller loop
+├── platformio.ini               # Build configuration
+└── README.md                    # This file
+```
+
+**Component Responsibilities:**
+- **i2c_slave**: Handles I2C communication, register map, command parsing
+- **gc9a01_driver_spi**: Manages dual GC9A01 displays with CS switching
+- **eye_expression**: Renders expressions with smooth animation and blinking
+- **main.cpp**: Integrates all components, main control loop
+
 ## References
 
 - [Story 1.3: Head Module Hardware Assembly](../../docs/stories/1.3.head-module-hardware-assembly.md)
+- [Story 1.4: Head Module ESP32 Firmware](../../docs/stories/1.4.head-module-esp32-firmware.md)
 - [Architecture: Tech Stack](../../docs/architecture/tech-stack.md)
 - [Architecture: Components](../../docs/architecture/components.md)
+- [Architecture: Data Models (Register Maps)](../../docs/architecture/data-models.md)
 - [TFT_eSPI Library](https://github.com/Bodmer/TFT_eSPI)
 
 ## Change Log
@@ -278,3 +358,4 @@ See: `hardware/bom/epic1_bom.csv`
 | Date       | Version | Changes                                      | Author |
 |------------|---------|----------------------------------------------|--------|
 | 2025-10-27 | v1.0    | Initial README with pin mapping and testing  | James  |
+| 2025-10-28 | v2.0    | Updated for Story 1.4 expression engine      | James  |

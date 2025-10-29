@@ -1,0 +1,112 @@
+# OLAF Head Module - I2C Test Commands
+# Use these commands from Raspberry Pi to test expressions
+
+## Quick Test Commands
+# Format: i2cset -y 1 0x08 <register> <value>
+
+# ============================================================
+# EXPRESSION SHAPES & COLORS
+# ============================================================
+
+# NEUTRAL - Cyan rounded rectangles (Vector style)
+i2cset -y 1 0x08 0x10 0x00 && i2cset -y 1 0x08 0x11 0x03
+
+# HAPPY - Green upward arcs (smiling eyes ⌣)
+i2cset -y 1 0x08 0x10 0x01 && i2cset -y 1 0x08 0x11 0x03
+
+# CURIOUS - Cyan circles (asymmetric: left larger, right smaller)
+i2cset -y 1 0x08 0x10 0x02 && i2cset -y 1 0x08 0x11 0x03
+
+# THINKING - Cyan rounded rects (looking up-right)
+i2cset -y 1 0x08 0x10 0x03 && i2cset -y 1 0x08 0x11 0x03
+
+# CONFUSED - Orange horizontal lines (squinting ― ―)
+i2cset -y 1 0x08 0x10 0x04 && i2cset -y 1 0x08 0x11 0x03
+
+# SAD - Blue downward arcs (frowning eyes ⌢)
+i2cset -y 1 0x08 0x10 0x05 && i2cset -y 1 0x08 0x11 0x03
+
+# EXCITED - White large circles (wide-eyed ◉)
+i2cset -y 1 0x08 0x10 0x06 && i2cset -y 1 0x08 0x11 0x05
+
+# ============================================================
+# INTENSITY TESTING
+# ============================================================
+
+# Set expression first, then adjust intensity (1-5)
+i2cset -y 1 0x08 0x10 0x01  # HAPPY
+i2cset -y 1 0x08 0x11 0x01  # Intensity 1 (subtle)
+i2cset -y 1 0x08 0x11 0x03  # Intensity 3 (moderate)
+i2cset -y 1 0x08 0x11 0x05  # Intensity 5 (extreme)
+
+# ============================================================
+# BLINK TESTING
+# ============================================================
+
+# Observe automatic blinking (happens automatically based on expression)
+# Different expressions blink at different rates:
+#   - EXCITED: Very frequent (1-4 seconds)
+#   - NEUTRAL: Normal (2.5-7.5 seconds)
+#   - THINKING: Irregular, can stare for 15+ seconds
+#   - SAD: Slow (4-12 seconds)
+
+# Watch blink duration variations:
+#   - EXCITED/CURIOUS: Quick blinks (180-200ms)
+#   - THINKING/SAD: Slower blinks (230-250ms)
+#   - Others: Normal (200-230ms)
+
+# ============================================================
+# COLOR REFERENCE
+# ============================================================
+
+# Expression Type    | Color  | Shape
+# -------------------|--------|------------------------
+# 0 - NEUTRAL        | Cyan   | Rounded rectangles
+# 1 - HAPPY          | Green  | Upward arcs (smile)
+# 2 - CURIOUS        | Cyan   | Circles (asymmetric)
+# 3 - THINKING       | Cyan   | Rounded rects (offset)
+# 4 - CONFUSED       | Orange | Horizontal lines
+# 5 - SAD            | Blue   | Downward arcs (frown)
+# 6 - EXCITED        | White  | Large circles
+
+# ============================================================
+# REGISTER MAP
+# ============================================================
+
+# Read-only registers:
+# 0x00 - MODULE_ID (should return 0x08)
+# 0x01 - FIRMWARE_VERSION (returns 0x10 = v1.0)
+# 0x02 - STATUS (0x01=READY, 0x02=BUSY, 0x04=ERROR)
+# 0x03 - ERROR_CODE (0x00=no error)
+
+# Write registers:
+# 0x10 - EXPRESSION_TYPE (0-6)
+# 0x11 - INTENSITY (1-5)
+# 0x12 - BLINK_TRIGGER (any value, but auto-blink is enabled)
+
+# ============================================================
+# EXAMPLE TEST SEQUENCES
+# ============================================================
+
+# Test all colors
+for expr in {0..6}; do i2cset -y 1 0x08 0x10 $expr && i2cset -y 1 0x08 0x11 0x03 && sleep 3; done
+
+# Test intensity range for HAPPY
+i2cset -y 1 0x08 0x10 0x01
+for intensity in {1..5}; do i2cset -y 1 0x08 0x11 $intensity && sleep 2; done
+
+# Test shape variety: HAPPY (arc) → CURIOUS (circle) → CONFUSED (line)
+i2cset -y 1 0x08 0x10 0x01 && i2cset -y 1 0x08 0x11 0x03 && sleep 3
+i2cset -y 1 0x08 0x10 0x02 && i2cset -y 1 0x08 0x11 0x03 && sleep 3
+i2cset -y 1 0x08 0x10 0x04 && i2cset -y 1 0x08 0x11 0x03 && sleep 3
+
+# Emotional range: HAPPY → NEUTRAL → SAD
+i2cset -y 1 0x08 0x10 0x01 && i2cset -y 1 0x08 0x11 0x04 && sleep 4
+i2cset -y 1 0x08 0x10 0x00 && i2cset -y 1 0x08 0x11 0x03 && sleep 4
+i2cset -y 1 0x08 0x10 0x05 && i2cset -y 1 0x08 0x11 0x04 && sleep 4
+
+# Energy levels: EXCITED → CURIOUS → THINKING → SAD
+i2cset -y 1 0x08 0x10 0x06 && i2cset -y 1 0x08 0x11 0x05 && sleep 4
+i2cset -y 1 0x08 0x10 0x02 && i2cset -y 1 0x08 0x11 0x04 && sleep 4
+i2cset -y 1 0x08 0x10 0x03 && i2cset -y 1 0x08 0x11 0x03 && sleep 4
+i2cset -y 1 0x08 0x10 0x05 && i2cset -y 1 0x08 0x11 0x03 && sleep 4

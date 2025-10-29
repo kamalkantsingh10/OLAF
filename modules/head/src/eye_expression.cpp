@@ -109,6 +109,10 @@ void EyeExpressionEngine::setExpression(uint8_t expression_type, uint8_t intensi
     return;
   }
 
+  // If changing expression (not just intensity), trigger a transition blink
+  // This creates natural "close with old expression, open with new" effect
+  bool expression_changed = (expression_type != current_expression_);
+
   // Set new target expression
   target_expression_ = expression_type;
   target_intensity_ = intensity;
@@ -120,6 +124,12 @@ void EyeExpressionEngine::setExpression(uint8_t expression_type, uint8_t intensi
   const char* expr_names[] = {"NEUTRAL", "HAPPY", "CURIOUS", "THINKING", "CONFUSED", "SAD", "EXCITED"};
   Serial.printf("[Expression] Transitioning to %s (intensity %d)\n",
                 expr_names[expression_type], intensity);
+
+  // Trigger quick blink during expression change for natural transition
+  if (expression_changed && !blink_state_.active) {
+    triggerBlink();
+    Serial.println("[Expression] -> Transition blink triggered");
+  }
 }
 
 void EyeExpressionEngine::triggerBlink() {
@@ -217,9 +227,33 @@ uint32_t EyeExpressionEngine::update() {
   }
 
   // Update blink animation
+  static float last_blink_amount = 0.0;
+  float current_blink_amount = 0.0;
+
   if (blink_state_.active) {
+    // Calculate current blink amount to check if frame changed
+    uint32_t elapsed_check = millis() - blink_state_.start_millis;
+    float progress_check = (float)elapsed_check / blink_state_.duration_ms;
+
+    if (progress_check < 0.25) {
+      current_blink_amount = 0.4;
+    } else if (progress_check < 0.5) {
+      current_blink_amount = 1.0;
+    } else if (progress_check < 0.75) {
+      current_blink_amount = 0.4;
+    } else {
+      current_blink_amount = 0.0;
+    }
+
+    // Only redraw if blink frame changed
+    if (current_blink_amount != last_blink_amount) {
+      needs_redraw = true;
+    }
+    last_blink_amount = current_blink_amount;
+
     updateBlinkAnimation();
-    needs_redraw = true;  // Redraw during blink
+  } else {
+    last_blink_amount = 0.0;
   }
 
   // Only render if something changed (Vector-style: mostly static)
@@ -376,24 +410,27 @@ void EyeExpressionEngine::renderPupils() {
   }
 
   // Calculate blink overlay amount (0.0 = open, 1.0 = closed)
-  // Chopsticks1 style: Compress to thin horizontal lines during blink
+  // Use discrete frames like chopsticks1 to reduce flicker
   float blink_amount = 0.0;
   if (blink_state_.active) {
     uint32_t elapsed = millis() - blink_state_.start_millis;
     float progress = (float)elapsed / blink_state_.duration_ms;
 
-    // Blink curve: 0 -> 1 -> 0 (smooth ease in/out)
-    if (progress < 0.5) {
-      // Closing phase (0 -> 1)
-      blink_amount = progress * 2.0;
+    // Use discrete blink frames instead of continuous animation (reduces flicker)
+    // 5 frames: OPEN(0.0) -> HALF(0.4) -> CLOSED(1.0) -> HALF(0.4) -> OPEN(0.0)
+    if (progress < 0.25) {
+      // Frame 1: Closing to half
+      blink_amount = 0.4;
+    } else if (progress < 0.5) {
+      // Frame 2: Fully closed
+      blink_amount = 1.0;
+    } else if (progress < 0.75) {
+      // Frame 3: Opening from closed to half
+      blink_amount = 0.4;
     } else {
-      // Opening phase (1 -> 0)
-      blink_amount = (1.0 - progress) * 2.0;
+      // Frame 4: Fully open
+      blink_amount = 0.0;
     }
-
-    // Clamp
-    if (blink_amount > 1.0) blink_amount = 1.0;
-    if (blink_amount < 0.0) blink_amount = 0.0;
   }
 
   // Calculate eye positions (static, no micro-movements for Vector style)
@@ -584,14 +621,18 @@ void EyeExpressionEngine::drawEyeShape(int16_t x, int16_t y, uint16_t radius,
   int16_t clear_size = (radius * 2) + 8;
   tft.fillRect(x - (clear_size / 2), y - (clear_size / 2), clear_size, clear_size, color_background_);
 
-  // When fully blinking (blink_amount > 0.9), compress to thin horizontal line
-  // This is the chopsticks1 style - eyes compress to 1/8 height
-  if (blink_amount > 0.9) {
-    // Draw thin horizontal line (closed eye)
-    int16_t line_width = radius * 2;
-    int16_t line_height = 4;  // Very thin line
-    tft.fillRoundRect(x - (line_width / 2), y - (line_height / 2),
-                      line_width, line_height, 2, color);
+  // When fully blinking (blink_amount > 0.8), draw closed eye shape
+  // Use a very thin curved line (different from CONFUSED which is thicker straight line)
+  if (blink_amount > 0.8) {
+    // Draw very thin slightly curved line (closed eyelid)
+    int16_t line_width = radius * 1.8;
+    int16_t line_height = 2;  // Very thin (thinner than confused)
+
+    // Draw 3 thin lines with slight curve for natural closed eyelid
+    for (int16_t i = 0; i < 3; i++) {
+      int16_t curve_offset = (i == 1) ? 1 : 0;  // Slight curve in middle
+      tft.drawFastHLine(x - (line_width / 2), y + i - 1 + curve_offset, line_width, color);
+    }
     return;
   }
 

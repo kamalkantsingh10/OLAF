@@ -186,10 +186,28 @@ uint32_t EyeExpressionEngine::update() {
       // Calculate new blink interval for new expression
       next_blink_interval_ms_ = calculateNextBlinkInterval();
       last_blink_millis_ = now;
+      needs_redraw = true;  // Redraw once at completion
     } else {
-      interpolateParams(transition_progress_);
+      // During transition: only snap to new expression when blink is closed
+      // This prevents flicker from continuous redrawing
+      if (blink_state_.active) {
+        uint32_t elapsed_blink = millis() - blink_state_.start_millis;
+        float blink_progress = (float)elapsed_blink / blink_state_.duration_ms;
+
+        // At midpoint of blink (eyes closed), snap to new expression
+        if (blink_progress >= 0.4 && blink_progress < 0.6) {
+          current_expression_ = target_expression_;
+          current_intensity_ = target_intensity_;
+          current_params_ = target_params_;
+          transition_progress_ = 1.0;
+          Serial.println("[Expression] Snapped to new expression (eyes closed)");
+        }
+      } else {
+        // If no blink active, do gradual interpolation
+        interpolateParams(transition_progress_);
+        needs_redraw = true;
+      }
     }
-    needs_redraw = true;  // Redraw during transition
   }
 
   // Check for automatic blink (only when not already blinking)

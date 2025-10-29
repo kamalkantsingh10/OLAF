@@ -71,7 +71,7 @@ echo ""
 
 i2cset -y 1 0x08 0x10 0x01  # HAPPY
 
-for intensity in {1..5}; do
+for intensity in 1 2 3 4 5; do
     echo "   Intensity: $intensity"
     i2cset -y 1 0x08 0x11 $intensity
     sleep 3
@@ -84,7 +84,7 @@ echo ""
 
 i2cset -y 1 0x08 0x10 0x06  # EXCITED
 
-for intensity in {1..5}; do
+for intensity in 1 2 3 4 5; do
     echo "   Intensity: $intensity"
     i2cset -y 1 0x08 0x11 $intensity
     sleep 3

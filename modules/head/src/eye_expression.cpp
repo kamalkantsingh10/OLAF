@@ -420,11 +420,16 @@ ExpressionParams EyeExpressionEngine::calculateExpressionParams(uint8_t expressi
 void EyeExpressionEngine::renderPupils() {
   // Chopsticks1-inspired rendering with different shapes per expression
 
-  // Only clear screen if expression changed (not during blink to avoid flicker)
+  // Track last rendered expression to know when to clear
+  static uint8_t last_rendered_expression = 0xFF;
   static bool first_render = true;
-  if (first_render || transition_progress_ < 1.0) {
+
+  // Clear screen when expression actually changes or first render
+  bool expression_changed = (current_expression_ != last_rendered_expression);
+  if (first_render || expression_changed) {
     driver_->clearBothEyes();
     first_render = false;
+    last_rendered_expression = current_expression_;
   }
 
   // Calculate blink overlay amount (0.0 = open, 1.0 = closed)
@@ -635,8 +640,8 @@ void EyeExpressionEngine::drawEyeShape(int16_t x, int16_t y, uint16_t radius,
                                         EyeShape shape, uint16_t color, float blink_amount) {
   TFT_eSPI& tft = driver_->getTFT();
 
-  // Clear area around eye first (prevent ghosting)
-  int16_t clear_size = (radius * 2) + 8;
+  // Clear larger area around eye to remove stray pixels from previous expression
+  int16_t clear_size = (radius * 2) + 20;  // Increased margin for better cleanup
   tft.fillRect(x - (clear_size / 2), y - (clear_size / 2), clear_size, clear_size, color_background_);
 
   // When fully blinking (blink_amount > 0.8), draw closed eye shape

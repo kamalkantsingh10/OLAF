@@ -33,54 +33,65 @@ Key architectural decisions include: (1) I2C-only module communication eliminate
 **Monorepo Tool:** Git (no specialized monorepo tool needed for this scale)
 
 **Package Organization:**
-- Firmware: Arduino/PlatformIO projects per module (modules/)
-- Orchestrator: Python package with ROS2 nodes (orchestrator/)
+- AI Agents: Conversational AI, LLM integration (agents/) - *Design in progress*
+- ROS2 Workspace: Orchestration nodes, drivers, interfaces (ros2/)
+- Firmware: Arduino/PlatformIO projects per module (firmware/)
 - Hardware: 3D models, wiring, BOM (hardware/)
 - Documentation: PRD, architecture, guides (docs/)
 
 ```
 olaf/
 ├── .github/                    # CI/CD workflows (future)
+├── agents/                     # AI agentic layer (future)
+│   └── README.md              # Architecture design in progress
 ├── docs/                       # Documentation
-│   ├── prd.md
-│   ├── architecture.md         # This document
-│   ├── brief.md
-│   └── epics/
-├── hardware/                   # Physical design files
-│   ├── 3d-models/             # STL files for 3D printing
-│   ├── wiring/                # Fritzing diagrams, schematics
-│   └── bom/                   # Bills of materials
-├── modules/                    # ESP32 firmware (C/C++)
+│   ├── prd/                   # Product requirements
+│   ├── architecture/          # Technical architecture
+│   └── brief.md
+├── firmware/                   # ESP32 firmware (C/C++)
 │   ├── head/
-│   │   ├── firmware/
-│   │   │   ├── head_controller.ino
+│   │   ├── src/
+│   │   │   ├── main.cpp
 │   │   │   ├── i2c_slave.cpp
-│   │   │   ├── oled_driver_spi.cpp
-│   │   │   ├── animation_engine.cpp
-│   │   │   └── animations/
+│   │   │   ├── gc9a01_driver_spi.cpp
+│   │   │   └── eye_expression.cpp
 │   │   ├── platformio.ini
 │   │   └── README.md
-│   ├── ears/
-│   ├── neck/
-│   ├── projector/
+│   ├── ears-neck/             # Consolidated upper-body module
+│   ├── body/
 │   └── base/
-│       └── firmware/
-│           ├── base_controller.ino
-│           ├── balancing_controller.cpp
-│           ├── odrive_uart.cpp
-│           └── kickstand_control.cpp
-├── orchestrator/              # Raspberry Pi software (Python)
-│   ├── ros2_nodes/
-│   │   ├── hardware_drivers/
-│   │   ├── personality/
-│   │   ├── ai_integration/
-│   │   └── navigation/
-│   ├── launch/
-│   ├── config/
-│   ├── ota_server/
-│   └── requirements.txt
+│       ├── src/
+│       │   ├── main.cpp
+│       │   ├── balancing_controller.cpp
+│       │   ├── odrive_uart.cpp
+│       │   └── kickstand_control.cpp
+│       └── platformio.ini
+├── hardware/                   # Physical design files
+│   ├── 3d-models/             # STL files for 3D printing
+│   ├── wiring-diagrams/       # Fritzing diagrams, I2C topology
+│   └── bom/                   # Bills of materials
+├── ros2/                       # ROS2 workspace
+│   ├── src/
+│   │   ├── orchestrator/      # Main orchestration package
+│   │   │   ├── ros2_nodes/
+│   │   │   │   ├── hardware_drivers/
+│   │   │   │   ├── personality/
+│   │   │   │   ├── ai_integration/
+│   │   │   │   └── navigation/
+│   │   │   ├── launch/
+│   │   │   ├── config/
+│   │   │   ├── package.xml
+│   │   │   └── setup.py
+│   │   └── interfaces/        # Custom ROS2 messages
+│   │       ├── msg/
+│   │       ├── CMakeLists.txt
+│   │       └── package.xml
+│   ├── build/                 # Build artifacts (gitignored)
+│   ├── install/               # Install space (gitignored)
+│   └── log/                   # Logs (gitignored)
 ├── tests/
 ├── tools/
+├── Makefile                   # Build convenience wrapper
 ├── .gitignore
 ├── README.md
 └── LICENSE

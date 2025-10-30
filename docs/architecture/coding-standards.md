@@ -473,7 +473,7 @@ void setup() {
 - **Comments:** Explain purpose and valid ranges
 
 ```yaml
-# modules/head/config.yaml
+# firmware/head/config.yaml
 module:
   name: head
   i2c_address: 0x08

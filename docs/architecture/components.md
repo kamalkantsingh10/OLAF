@@ -139,7 +139,7 @@ body_controller.ino
 
 **Software Architecture:**
 ```
-orchestrator/
+ros2/src/orchestrator/
 ├── ros2_nodes/
 │   ├── hardware_drivers/       # 4× I2C bridge nodes (Head, Ears+Neck, Body, Base)
 │   ├── personality/
@@ -149,7 +149,8 @@ orchestrator/
 ├── launch/
 │   └── olaf_full.launch.py
 ├── config/
-└── ota_server/
+├── package.xml
+└── setup.py
 ```
 
 **I2C Module Summary:**

@@ -38,7 +38,7 @@ OLAF supports a **hybrid development architecture** that allows developers to wr
 │  │                                                     │ │
 │  └────────────────────────────────────────────────────┘ │
 │                                                          │
-│  Launch: ros2 launch olaf_orchestrator app_nodes.launch.py
+│  Launch: ros2 launch orchestrator app_nodes.launch.py
 └──────────────────────────────────────────────────────────┘
                             │
                             │ WiFi Network
@@ -74,7 +74,7 @@ OLAF supports a **hybrid development architecture** that allows developers to wr
 │  │                                                     │ │
 │  └────────────────────────────────────────────────────┘ │
 │                                                          │
-│  Launch: ros2 launch olaf_orchestrator drivers_only.launch.py
+│  Launch: ros2 launch orchestrator drivers_only.launch.py
 └──────────────────────────────────────────────────────────┘
                             │
                             │ I2C Bus @ 400kHz-1MHz
@@ -120,7 +120,7 @@ OLAF supports a **hybrid development architecture** that allows developers to wr
 │  │                                                     │ │
 │  └────────────────────────────────────────────────────┘ │
 │                                                          │
-│  Launch: ros2 launch olaf_orchestrator olaf_full.launch.py
+│  Launch: ros2 launch orchestrator olaf_full.launch.py
 └──────────────────────────────────────────────────────────┘
                             │
                             │ I2C Bus (same as before)
@@ -249,7 +249,7 @@ ros2 node list
 # /olaf/base_driver
 
 # On PC: Start app nodes
-ros2 launch olaf_orchestrator app_nodes.launch.py
+ros2 launch orchestrator app_nodes.launch.py
 
 # On Pi: Should now see PC's nodes too
 ros2 node list
@@ -325,23 +325,23 @@ pip3 install -r ros2/src/orchestrator/requirements.txt
 # SSH to Pi (leave this running all day)
 ssh pi@raspberrypi.local
 cd ~/olaf
-ros2 launch olaf_orchestrator drivers_only.launch.py
+ros2 launch orchestrator drivers_only.launch.py
 ```
 
 **On PC: Develop and test**
 ```bash
 # Terminal 1: Edit code
 cd ~/olaf
-vim orchestrator/ros2_nodes/personality/personality_coordinator_node.py
+vim ros2/src/orchestrator/ros2_nodes/personality/personality_coordinator_node.py
 
 # Terminal 2: Run app nodes
-ros2 launch olaf_orchestrator app_nodes.launch.py
+ros2 launch orchestrator app_nodes.launch.py
 
 # Terminal 3: Monitor topics
 ros2 topic echo /olaf/head/expression
 
 # Terminal 4: Test commands
-ros2 topic pub /olaf/head/expression olaf_interfaces/Expression \
+ros2 topic pub /olaf/head/expression interfaces/Expression \
   "{emotion_type: 1, intensity: 3, duration_ms: 2000}"
 ```
 
@@ -351,7 +351,7 @@ ros2 topic pub /olaf/head/expression olaf_interfaces/Expression \
 vim personality_coordinator_node.py
 
 # Restart node (Ctrl+C, then relaunch)
-ros2 launch olaf_orchestrator app_nodes.launch.py
+ros2 launch orchestrator app_nodes.launch.py
 
 # Test immediately - Pi drivers still running
 ```
@@ -373,7 +373,7 @@ cd ~/olaf
 git pull origin main
 
 # Test full system locally
-ros2 launch olaf_orchestrator olaf_full.launch.py
+ros2 launch orchestrator olaf_full.launch.py
 ```
 
 ---
@@ -395,7 +395,7 @@ ros2 launch olaf_orchestrator olaf_full.launch.py
 **Usage:**
 ```bash
 # On Pi
-ros2 launch olaf_orchestrator drivers_only.launch.py
+ros2 launch orchestrator drivers_only.launch.py
 ```
 
 **When to use:**
@@ -419,10 +419,10 @@ ros2 launch olaf_orchestrator drivers_only.launch.py
 **Usage:**
 ```bash
 # On PC (during development)
-ros2 launch olaf_orchestrator app_nodes.launch.py
+ros2 launch orchestrator app_nodes.launch.py
 
 # OR on Pi (if testing full system)
-ros2 launch olaf_orchestrator app_nodes.launch.py
+ros2 launch orchestrator app_nodes.launch.py
 ```
 
 **When to use:**
@@ -442,7 +442,7 @@ ros2 launch olaf_orchestrator app_nodes.launch.py
 **Usage:**
 ```bash
 # On Pi
-ros2 launch olaf_orchestrator olaf_full.launch.py
+ros2 launch orchestrator olaf_full.launch.py
 ```
 
 **When to use:**
@@ -465,14 +465,14 @@ ros2 launch olaf_orchestrator olaf_full.launch.py
 
 **On PC (development):**
 ```bash
-ros2 run olaf_orchestrator personality_coordinator_node
+ros2 run orchestrator personality_coordinator_node
 # Publishes to /olaf/head/expression
 # Pi driver node (over WiFi) receives and drives I2C
 ```
 
 **On Pi (production):**
 ```bash
-ros2 run olaf_orchestrator personality_coordinator_node
+ros2 run orchestrator personality_coordinator_node
 # Same code!
 # Publishes to /olaf/head/expression
 # Pi driver node (same machine) receives and drives I2C
@@ -607,7 +607,7 @@ ros2 node list
 ros2 topic echo /olaf/head/expression
 
 # On PC: Publish
-ros2 topic pub /olaf/head/expression olaf_interfaces/Expression \
+ros2 topic pub /olaf/head/expression interfaces/Expression \
   "{emotion_type: 1, intensity: 3, duration_ms: 2000}"
 
 # Should see message on Pi terminal
@@ -624,7 +624,7 @@ ros2 topic pub /olaf/head/expression olaf_interfaces/Expression \
 
 When moving from hybrid to production (all on Pi):
 
-- [ ] Test full system on Pi: `ros2 launch olaf_orchestrator olaf_full.launch.py`
+- [ ] Test full system on Pi: `ros2 launch orchestrator olaf_full.launch.py`
 - [ ] Verify all nodes start: `ros2 node list`
 - [ ] Test all ROS2 topics: `ros2 topic list`
 - [ ] Measure latency: `ros2 topic echo --no-arr /olaf/head/expression`

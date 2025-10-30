@@ -108,13 +108,13 @@
 ## ROS2 Custom Messages
 
 ```python
-# olaf_msgs/msg/Expression.msg
+# interfaces/msg/Expression.msg
 string emotion              # 'happy', 'curious', etc.
 uint8 intensity             # 1-5
 uint8 duration_ms
 bool synchronize
 
-# olaf_msgs/msg/BalanceStatus.msg
+# interfaces/msg/BalanceStatus.msg
 Header header
 string state
 float32 pitch_deg
@@ -123,7 +123,7 @@ bool kickstand_deployed
 float32 motor_current_left_a
 float32 motor_current_right_a
 
-# olaf_msgs/msg/ModuleStatus.msg
+# interfaces/msg/ModuleStatus.msg
 Header header
 string module_name
 uint8 i2c_address

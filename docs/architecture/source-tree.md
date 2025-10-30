@@ -19,14 +19,16 @@ olaf/
 ├── .bmad-core/              # BMAD agent framework (development workflow automation)
 ├── .claude/                 # Claude Code configuration
 ├── .content/                # Content planning (LinkedIn posts, YouTube scripts)
+├── agents/                  # AI agentic layer (conversational AI, LLM integration)
 ├── docs/                    # All project documentation
+├── firmware/                # ESP32 firmware (C/C++) for each hardware module
 ├── hardware/                # Physical design files (3D models, wiring, BOMs)
-├── modules/                 # ESP32 firmware (C/C++) for each hardware module
-├── orchestrator/            # Raspberry Pi software (Python/ROS2)
+├── ros2/                    # ROS2 workspace (Raspberry Pi orchestration)
 ├── tests/                   # Test suites (unit, integration, hardware validation)
 ├── tools/                   # Utilities (setup, calibration, diagnostics)
 ├── .gitignore              # Git ignore patterns
 ├── LICENSE                 # MIT open-source license
+├── Makefile                # Build system convenience wrapper
 └── README.md               # Project overview and getting started guide
 ```
 
@@ -107,12 +109,26 @@ hardware/
 
 ---
 
-### `/modules/` - ESP32 Firmware (C/C++)
+### `/agents/` - AI Agentic Layer
+
+**Purpose:** AI reasoning, conversational intelligence, and high-level decision making. Separated from ROS2 orchestration for flexibility.
+
+**Status:** Architecture in design phase. See `agents/README.md` for planned capabilities.
+
+**Key Concepts:**
+- **Separation of Concerns:** AI reasoning decoupled from hardware coordination
+- **Standalone Development:** Test AI behavior without hardware
+- **Not ROS2 Packages:** Pure Python services that use `rclpy` for communication
+- **Future Capabilities:** Claude/GPT integration, Whisper STT, personality generation
+
+---
+
+### `/firmware/` - ESP32 Firmware (C/C++)
 
 **Purpose:** Embedded firmware for each hardware module. Each module is an independent smart peripheral with its own ESP32 controller.
 
 ```
-modules/
+firmware/
 ├── README.md              # Module development overview
 ├── head/                  # Head Module (I2C 0x08)
 │   ├── firmware/
@@ -171,8 +187,8 @@ modules/
 
 **Development Workflow:**
 1. Edit firmware in `firmware/` directory
-2. Build with PlatformIO: `pio run -d modules/head`
-3. Upload: `pio run -d modules/head -t upload`
+2. Build with PlatformIO: `pio run -d firmware/head`
+3. Upload: `pio run -d firmware/head -t upload` (or `make firmware-head`)
 4. Test standalone: `olaf-test head --emotion happy --intensity 3`
 5. Integration test with orchestrator
 
@@ -180,44 +196,50 @@ modules/
 
 ---
 
-### `/orchestrator/` - Raspberry Pi Software (Python/ROS2)
+### `/ros2/` - ROS2 Workspace (Raspberry Pi Orchestration)
 
-**Purpose:** High-level coordination, ROS2 nodes, AI integration, navigation, personality orchestration.
+**Purpose:** ROS2 workspace containing all orchestration nodes, hardware drivers, and custom message definitions.
 
 ```
-orchestrator/
-├── ros2_nodes/            # ROS2 node implementations
-│   ├── hardware_drivers/  # I2C driver nodes (one per module)
-│   │   ├── head_driver_node.py
-│   │   ├── ears_neck_driver_node.py
-│   │   ├── body_driver_node.py
-│   │   └── base_driver_node.py
-│   ├── personality/       # Personality coordination
-│   │   ├── personality_coordinator_node.py
-│   │   └── emotion_mapper.py
-│   ├── ai_integration/    # Cloud AI and local Hailo inference
-│   │   ├── ai_agent_node.py
-│   │   ├── whisper_stt_node.py  # Hailo-accelerated STT
-│   │   └── claude_client.py
-│   └── navigation/        # SLAM and path planning
-│       ├── cartographer_node.py
-│       └── nav2_integration.py
-├── launch/                # ROS2 launch files
-│   ├── olaf_full.launch.py     # Launch all nodes
-│   ├── minimal.launch.py       # Personality-only (no navigation)
-│   └── test_module.launch.py  # Single module testing
-├── config/                # Configuration files
-│   ├── ros2_params.yaml   # ROS2 node parameters
-│   ├── module_i2c_addresses.yaml
-│   └── api-keys.template.env  # Template for .env (actual .env is gitignored)
-├── ota_server/            # Over-The-Air firmware update server
-│   ├── ota_server.py      # Flask HTTP server
-│   └── firmware_binaries/ # Compiled .bin files for ESP32 OTA
-├── state_management/      # Conversation context, system state
-│   ├── conversation_db.py # SQLite interface
-│   └── state_machine.py
-├── requirements.txt       # Python dependencies
-└── README.md              # Orchestrator setup and usage
+ros2/
+├── src/                   # ROS2 source packages
+│   ├── orchestrator/      # Main orchestration package
+│   │   ├── ros2_nodes/    # ROS2 node implementations
+│   │   │   ├── hardware_drivers/  # I2C driver nodes (one per module)
+│   │   │   │   ├── head_driver.py
+│   │   │   │   ├── ears_neck_driver.py
+│   │   │   │   ├── body_driver.py
+│   │   │   │   └── base_driver.py
+│   │   │   ├── personality/       # Personality coordination
+│   │   │   │   ├── personality_coordinator_node.py
+│   │   │   │   └── emotion_mapper.py
+│   │   │   ├── ai_integration/    # Cloud AI and local Hailo inference
+│   │   │   │   ├── ai_agent_node.py
+│   │   │   │   ├── whisper_stt_node.py
+│   │   │   │   └── claude_client.py
+│   │   │   └── navigation/        # SLAM and path planning
+│   │   │       ├── cartographer_node.py
+│   │   │       └── nav2_integration.py
+│   │   ├── launch/        # ROS2 launch files
+│   │   │   ├── olaf_full.launch.py
+│   │   │   ├── drivers_only.launch.py
+│   │   │   └── app_nodes.launch.py
+│   │   ├── config/        # Configuration files
+│   │   │   ├── ros2_params.yaml
+│   │   │   └── api-keys.template.env
+│   │   ├── package.xml    # ROS2 package manifest
+│   │   └── setup.py       # Python package setup
+│   └── interfaces/        # Custom ROS2 message definitions
+│       ├── msg/           # Message definitions
+│       │   ├── Expression.msg
+│       │   ├── Gesture.msg
+│       │   ├── HeartRate.msg
+│       │   └── ModuleStatus.msg
+│       ├── CMakeLists.txt
+│       └── package.xml
+├── build/                 # ROS2 build artifacts (gitignored)
+├── install/               # ROS2 install space (gitignored)
+└── log/                   # ROS2 logs (gitignored)
 ```
 
 **Key Concepts:**
@@ -229,13 +251,12 @@ orchestrator/
 
 **Development Workflow:**
 1. Edit Python code in respective directories
-2. Source ROS2 workspace: `source /opt/ros/humble/setup.bash`
-3. Build: `colcon build --packages-select olaf_orchestrator`
-4. Launch: `ros2 launch olaf_orchestrator olaf_full.launch.py`
-5. Monitor: `rqt` (ROS2 visualization tools)
+2. Build: `make ros-build` (or `cd ros2 && colcon build --symlink-install`)
+3. Launch: `make ros-launch` (or `cd ros2 && source install/setup.bash && ros2 launch orchestrator olaf_full.launch.py`)
+4. Monitor: `rqt` (ROS2 visualization tools)
 
 **Environment Setup:**
-- Copy `config/api-keys.template.env` → `.env`
+- Copy `ros2/src/orchestrator/config/api-keys.template.env` → `.env`
 - Fill in `ANTHROPIC_API_KEY`, `ROS_DOMAIN_ID`
 - Never commit `.env` (already in `.gitignore`)
 
@@ -248,14 +269,17 @@ orchestrator/
 ```
 tests/
 ├── unit/                  # Unit tests (no hardware required)
-│   ├── orchestrator/
-│   │   ├── personality/
-│   │   │   └── test_emotion_mapper.py
-│   │   ├── ai_integration/
-│   │   │   └── test_claude_client.py
-│   │   └── navigation/
-│   │       └── test_path_planning.py
-│   └── modules/           # ESP32 firmware unit tests
+│   ├── ros2/              # ROS2 node unit tests
+│   │   ├── orchestrator/
+│   │   │   ├── personality/
+│   │   │   │   └── test_emotion_mapper.py
+│   │   │   ├── ai_integration/
+│   │   │   │   └── test_claude_client.py
+│   │   │   └── navigation/
+│   │   │       └── test_path_planning.py
+│   │   └── interfaces/
+│   ├── agents/            # AI agent unit tests
+│   └── firmware/          # ESP32 firmware unit tests
 │       ├── head/
 │       └── base/
 ├── integration/           # Cross-component integration tests
@@ -279,11 +303,15 @@ tests/
 
 **Running Tests:**
 ```bash
+# ROS2 tests
+make ros-test
+
 # Python unit tests
-pytest tests/unit/orchestrator/
+pytest tests/unit/ros2/
+pytest tests/unit/agents/
 
 # ESP32 firmware tests (PlatformIO)
-pio test -d modules/head
+pio test -d firmware/head
 
 # Integration tests (requires hardware)
 pytest tests/integration/
@@ -380,24 +408,26 @@ tools/
 | File | Purpose | Notes |
 |------|---------|-------|
 | `README.md` | Project overview, quick start guide | Start here for newcomers |
+| `Makefile` | Build system convenience wrapper | Simplifies common tasks |
 | `LICENSE` | MIT open-source license | Permissive open-source |
 | `.gitignore` | Git ignore patterns | Excludes `.env`, `*.bin`, build artifacts |
 
-### Orchestrator Configuration
+### ROS2 Configuration
 
 | File | Purpose | Location |
 |------|---------|----------|
-| `requirements.txt` | Python dependencies | `orchestrator/` |
-| `ros2_params.yaml` | ROS2 node parameters | `orchestrator/config/` |
-| `api-keys.template.env` | Environment variable template | `orchestrator/config/` |
-| `.env` | Actual API keys (gitignored) | `orchestrator/config/` |
+| `package.xml` | ROS2 package manifests | `ros2/src/orchestrator/`, `ros2/src/interfaces/` |
+| `setup.py` | Python package setup | `ros2/src/orchestrator/` |
+| `ros2_params.yaml` | ROS2 node parameters | `ros2/src/orchestrator/config/` |
+| `api-keys.template.env` | Environment variable template | `ros2/src/orchestrator/config/` |
+| `.env` | Actual API keys (gitignored) | `ros2/src/orchestrator/config/` |
 
-### Module Configuration
+### Firmware Configuration
 
 | File | Purpose | Per Module |
 |------|---------|------------|
-| `platformio.ini` | PlatformIO build config | Each `modules/<module>/` |
-| `config.h` | Pin assignments, I2C address | Each `modules/<module>/firmware/` |
+| `platformio.ini` | PlatformIO build config | Each `firmware/<module>/` |
+| `config.h` | Pin assignments, I2C address | Each `firmware/<module>/src/` |
 
 ---
 
@@ -436,15 +466,16 @@ Quick reference for frequently accessed locations:
 - Requirements: `docs/prd/requirements.md`
 
 ### Development
-- ROS2 nodes: `orchestrator/ros2_nodes/`
-- ESP32 firmware: `modules/<module>/firmware/`
-- Launch files: `orchestrator/launch/`
+- ROS2 nodes: `ros2/src/orchestrator/ros2_nodes/`
+- ESP32 firmware: `firmware/<module>/src/`
+- Launch files: `ros2/src/orchestrator/launch/`
 - Tests: `tests/unit/`, `tests/integration/`
+- AI agents: `agents/` (architecture TBD)
 
 ### Configuration
-- ROS2 parameters: `orchestrator/config/ros2_params.yaml`
-- API keys template: `orchestrator/config/api-keys.template.env`
-- Module I2C addresses: `orchestrator/config/module_i2c_addresses.yaml`
+- ROS2 parameters: `ros2/src/orchestrator/config/ros2_params.yaml`
+- API keys template: `ros2/src/orchestrator/config/api-keys.template.env`
+- Build commands: `Makefile` (root)
 
 ### Hardware
 - 3D models: `hardware/3d-models/<module>/`
@@ -505,42 +536,44 @@ Quick reference for frequently accessed locations:
 **Working on Head Module:**
 ```bash
 # Navigate to module
-cd modules/head/firmware/
+cd firmware/head/src/
 
 # Edit code
-vim head_controller.ino
+vim main.cpp
 
-# Build and upload
-pio run -t upload
+# Build and upload (from root)
+make firmware-head
+# or
+cd firmware/head && pio run -t upload
 
 # Test standalone
 olaf-test head --emotion happy --intensity 3
 
 # Run unit tests
-pio test
+cd firmware/head && pio test
 
 # Update documentation
-vim ../README.md
+vim README.md
 ```
 
 ### Orchestrator Developer
 
 **Working on Personality Coordination:**
 ```bash
-# Navigate to orchestrator
-cd orchestrator/
-
 # Edit node
-vim ros2_nodes/personality/personality_coordinator_node.py
+vim ros2/src/orchestrator/ros2_nodes/personality/personality_coordinator_node.py
 
 # Run tests
-pytest ../tests/unit/orchestrator/personality/
+pytest tests/unit/ros2/orchestrator/personality/
 
 # Build ROS2 package
-colcon build --packages-select olaf_orchestrator
+make ros-build
+# or
+cd ros2 && colcon build --packages-select orchestrator
 
 # Launch for testing
-ros2 launch olaf_orchestrator minimal.launch.py
+cd ros2 && source install/setup.bash && \
+  ros2 launch orchestrator olaf_full.launch.py
 ```
 
 ### Hardware Designer

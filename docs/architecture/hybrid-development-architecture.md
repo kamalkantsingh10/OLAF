@@ -313,7 +313,7 @@ echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
 source ~/.bashrc
 
 # Install dependencies
-pip3 install -r orchestrator/requirements.txt
+pip3 install -r ros2/src/orchestrator/requirements.txt
 ```
 
 ---
@@ -647,9 +647,9 @@ When moving from hybrid to production (all on Pi):
 4. **Zero code changes** - ROS2 handles network transparency
 
 **Key files:**
-- `orchestrator/launch/drivers_only.launch.py` - Pi hardware drivers
-- `orchestrator/launch/app_nodes.launch.py` - PC application nodes
-- `orchestrator/launch/olaf_full.launch.py` - Production (all on Pi)
+- `ros2/src/orchestrator/launch/drivers_only.launch.py` - Pi hardware drivers
+- `ros2/src/orchestrator/launch/app_nodes.launch.py` - PC application nodes
+- `ros2/src/orchestrator/launch/olaf_full.launch.py` - Production (all on Pi)
 
 **Network requirement:** ROS_DOMAIN_ID must match (default: 42)
 

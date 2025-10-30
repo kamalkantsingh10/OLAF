@@ -215,7 +215,7 @@ uint16 duration_ms  # Expression duration in milliseconds
 **Framework:** pytest 7.4+
 
 **Test Organization:**
-- **Location:** `tests/unit/orchestrator/<module>/`
+- **Location:** `tests/unit/ros2/orchestrator/<module>/`
 - **Naming:** `test_<module>.py` (e.g., `test_personality_coordinator.py`)
 - **Structure:** One test class per production class
 
@@ -231,7 +231,7 @@ uint16 duration_ms  # Expression duration in milliseconds
 - Place shared fixtures in `tests/conftest.py`
 
 ```python
-# tests/unit/orchestrator/personality/test_emotion_mapper.py
+# tests/unit/ros2/orchestrator/personality/test_emotion_mapper.py
 import pytest
 from olaf.personality.emotion import EmotionMapper, EmotionType, IntensityLevel
 
@@ -447,7 +447,7 @@ void setup() {
 **Framework:** Arduino Unit Test (PlatformIO integration)
 
 **Test Organization:**
-- **Location:** `modules/<module>/test/`
+- **Location:** `firmware/<module>/test/`
 - **Naming:** `test_<component>.cpp` (e.g., `test_animation_engine.cpp`)
 
 **Hardware-in-the-Loop:**
@@ -638,7 +638,7 @@ See [wiring diagram](../../hardware/wiring/head-module.png) and [BOM](../../hard
 ### Python Optimization
 
 **Profiling:**
-- Use `cProfile` for CPU profiling: `python -m cProfile -o profile.stats orchestrator/main.py`
+- Use `cProfile` for CPU profiling: `python -m cProfile -o profile.stats ros2/src/orchestrator/main.py`
 - Visualize with `snakeviz`: `snakeviz profile.stats`
 
 **ROS2 Performance:**

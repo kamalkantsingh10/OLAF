@@ -105,32 +105,63 @@ ROS2 Humble framework coordinates all modules through dedicated driver nodes:
 
 ---
 
-## Repository Structure
+## How is the Project Organized?
+
+OLAF uses a **three-layer architecture** that separates AI reasoning, hardware coordination, and real-time control:
 
 ```
-olaf/
-├── docs/                       # PRD, architecture, epics, build guides
-│   ├── prd/                    # Sharded PRD (12 epics)
-│   └── architecture/           # Sharded architecture docs
-├── modules/                    # ESP32-S3 firmware (4 hardware modules)
-│   ├── head/                   # Round TFT eyes, presence sensor, audio
-│   ├── ears_neck/              # Articulated ears + neck (shared ESP32)
-│   ├── body/                   # Heart LCD, LEDs, projector control
-│   └── base/                   # Self-balancing + odometry + kickstand
-├── orchestrator/               # Raspberry Pi ROS2 nodes
-│   ├── ros2_nodes/
-│   │   ├── hardware_drivers/   # I2C bridge to 4× ESP32 modules
-│   │   ├── personality/        # Expression coordination
-│   │   ├── ai_integration/     # Whisper + Claude
-│   │   └── navigation/         # SLAM + Nav2
-│   └── ota_server/             # Wireless firmware updates
-├── hardware/                   # 3D models, wiring, BOM
-│   ├── 3d-models/              # STL files for 3D printing
-│   ├── wiring/                 # Fritzing diagrams, schematics
-│   └── bom/                    # Bills of materials
-├── shared/                     # Common headers (I2C registers, protocols)
-└── tools/                      # Diagnostics, testing utilities
+OLAF/
+├── agents/              # 🧠 AI Agentic Layer (future)
+│                        #    Conversational AI, personality generation, LLM integration
+│                        #    Separated for standalone development and testing
+│
+├── ros2/                # 🤖 ROS2 Orchestration Layer
+│   ├── src/
+│   │   ├── orchestrator/      # Hardware drivers, personality coordination, navigation
+│   │   └── interfaces/        # Custom ROS2 message definitions
+│   └── build/install/log/     # ROS2 build artifacts
+│
+├── firmware/            # ⚡ ESP32 Embedded Layer
+│   ├── head/            # Eyes (2× GC9A01 TFT), presence sensor, audio
+│   ├── ears-neck/       # Ear servos (4×) + neck servos (3×), shared ESP32
+│   ├── body/            # Heart LCD, RGB LEDs, projector control
+│   └── base/            # Self-balancing PID, ODrive motor, kickstand servo
+│
+├── hardware/            # 🔧 Physical Design Layer
+│   ├── 3d-models/       # STL files for 3D printing
+│   ├── bom/             # Bills of materials with supplier links
+│   └── wiring-diagrams/ # Fritzing diagrams, I2C topology
+│
+├── docs/                # 📚 Documentation
+│   ├── prd/             # Product requirements (13 epics)
+│   └── architecture/    # Technical architecture and design decisions
+│
+├── tools/               # 🛠️ Development Utilities
+│   ├── calibration/     # Servo/sensor/IMU calibration scripts
+│   └── diagnostics/     # I2C testing, health checks
+│
+├── tests/               # 🧪 Testing
+│   ├── unit/            # Unit tests (agents, ROS2, firmware)
+│   ├── integration/     # Cross-layer integration tests
+│   └── hardware/        # Hardware-in-the-loop validation
+│
+└── Makefile             # Build convenience commands (make ros-build, etc.)
 ```
+
+### Architecture Philosophy
+
+**Separation of Concerns (MECE Principle):**
+- **`agents/`** → "What to do" (AI reasoning, decision-making) - *Design in progress*
+- **`ros2/`** → "How to coordinate" (ROS2 nodes, hardware drivers, SLAM)
+- **`firmware/`** → "Real-time execution" (ESP32 embedded control, 60 FPS displays, 200Hz PID)
+
+**Why This Structure?**
+- ✅ **Onboarding Clarity:** Obvious where to customize for your use case
+- ✅ **Standalone Testing:** Test AI without hardware, test firmware without ROS2
+- ✅ **Tutorial-Friendly:** Self-documenting directories make guides easier to follow
+- ✅ **Community Contributions:** Clear boundaries reduce friction for PRs
+
+📖 **[Full Structure Details](docs/architecture/source-tree.md)** - Comprehensive guide with file paths and workflows
 
 ---
 
@@ -229,7 +260,25 @@ This isn't just about building a robot - it's about proving that **individual bu
 
 📖 **[Setup Instructions](docs/user-guide/setup-instructions.md)** - Complete guide to hybrid PC+Pi development workflow
 
-**Quick overview:**
+**Quick Start (from project root):**
+```bash
+# Build ROS2 packages
+make ros-build
+
+# Launch full system
+make ros-launch
+
+# Build and upload firmware to head module
+make firmware-head
+
+# Run tests
+make test
+
+# See all commands
+make help
+```
+
+**Development Workflow:**
 - Develop on your PC (runs application nodes)
 - Raspberry Pi handles hardware (runs driver nodes for I2C communication)
 - They talk over WiFi via ROS2

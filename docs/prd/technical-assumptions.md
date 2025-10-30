@@ -17,14 +17,14 @@ olaf/
 │   ├── 3d-models/         # STL files organized by module
 │   ├── wiring/            # Fritzing diagrams, connection tables
 │   └── bom/               # Bills of materials with supplier links
-├── modules/                # Module-specific firmware and configs
+├── firmware/                # Module-specific firmware and configs
 │   ├── head/              # ESP32 firmware: OAK-D Pro, eyes, mic, mmWave
 │   ├── ears/              # ESP32 firmware: 2-DOF servo control (Feetech SCS0009)
 │   ├── neck/              # ESP32 firmware: 3-DOF servo control (STS3215)
 │   ├── projector/         # ESP32 firmware: DLP control
 │   ├── body/              # ESP32 firmware: LED indicators, status
 │   └── base/              # ESP32 firmware: ODrive motor control interface
-├── orchestrator/           # Raspberry Pi Python application
+├── ros2/src/orchestrator/           # Raspberry Pi Python application
 │   ├── personality/       # Expression coordination engine
 │   ├── ai_integration/    # Cloud AI (Claude API) interface
 │   ├── navigation/        # SLAM, path planning (ROS2)

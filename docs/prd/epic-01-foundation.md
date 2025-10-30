@@ -34,7 +34,7 @@
    │   ├── 3d-models/
    │   ├── wiring/
    │   └── bom/
-   ├── modules/                    # ESP32 firmware (C++)
+   ├── firmware/                    # ESP32 firmware (C++)
    │   ├── head/
    │   ├── ears_neck/
    │   ├── body/
@@ -189,7 +189,7 @@
 
 7. **Documentation:**
    - Wiring photos: `hardware/wiring/head-eye-lcd-assembly.jpg`
-   - Pin mapping documented in `modules/head/README.md`
+   - Pin mapping documented in `firmware/head/README.md`
    - BOM updated with ESP32, 2× GC9A01 displays, jumper wires
 
 **Note:** This breadboard prototype validates the Head Module that will be integrated into the physical head housing in Epic 3.
@@ -211,7 +211,7 @@
 ### Acceptance Criteria:
 
 1. **Development Environment:**
-   - PlatformIO project: `modules/head/firmware/`
+   - PlatformIO project: `firmware/head/firmware/`
    - Libraries: `TFT_eSPI` or `Adafruit_GC9A01A`, `Wire.h`
 
 2. **I2C Slave Implementation:**
@@ -255,7 +255,7 @@
 7. **Code Quality:**
    - Files: `main.cpp`, `eye_expression.cpp`, `gc9a01_driver_spi.cpp`, `i2c_slave.cpp`
    - Comments explain I2C protocol and dual-display rendering
-   - Code committed to `modules/head/firmware/`
+   - Code committed to `firmware/head/firmware/`
 
 **Dependencies:** Story 1.3 (hardware assembled)
 
@@ -272,7 +272,7 @@
 ### Acceptance Criteria:
 
 1. **Node Structure:**
-   - Python ROS2 node: `orchestrator/ros2_nodes/hardware_drivers/head_driver.py`
+   - Python ROS2 node: `ros2/src/orchestrator/ros2_nodes/hardware_drivers/head_driver.py`
    - Node name: `/olaf/head_driver`
    - Uses `rclpy` and `smbus2`
 
@@ -300,7 +300,7 @@
    - Persistent failure: Publish ERROR
 
 7. **Testing:**
-   - Node launches: `ros2 run olaf_drivers head_driver`
+   - Node launches: `ros2 run orchestrator head_driver`
    - Topics appear: `/olaf/head/expression`, `/olaf/head/status`
    - Manual test: Publish expression → eyes change expression
 
@@ -319,7 +319,7 @@
 ### Acceptance Criteria:
 
 1. **Orchestrator Node:**
-   - Python ROS2 node: `orchestrator/ros2_nodes/minimal_coordinator.py`
+   - Python ROS2 node: `ros2/src/orchestrator/ros2_nodes/minimal_coordinator.py`
    - Node name: `/olaf/minimal_coordinator`
 
 2. **Publisher:**
@@ -332,7 +332,7 @@
    - Trigger random blink every 3-8 seconds
 
 4. **Execution:**
-   - Launch: `ros2 run olaf_orchestrator minimal_coordinator`
+   - Launch: `ros2 run orchestrator minimal_coordinator`
    - Every 10 seconds: Logs expression change, eye displays update
    - Periodic blinks occur independently
 
@@ -344,7 +344,7 @@
 
 6. **Code Quality:**
    - Clean, commented code
-   - Committed to `orchestrator/ros2_nodes/minimal_coordinator.py`
+   - Committed to `ros2/src/orchestrator/ros2_nodes/minimal_coordinator.py`
 
 **Dependencies:** Story 1.5 (body driver)
 
@@ -408,7 +408,7 @@
 ### Acceptance Criteria:
 
 1. **Launch File Created:**
-   - File: `orchestrator/launch/minimal_system.launch.py`
+   - File: `ros2/src/orchestrator/launch/minimal_system.launch.py`
    - Starts: Head driver node + Minimal coordinator
 
 2. **Launch Configuration:**
@@ -419,12 +419,12 @@
    def generate_launch_description():
        return LaunchDescription([
            Node(
-               package='olaf_drivers',
+               package='orchestrator',
                executable='head_driver',
                name='head_driver'
            ),
            Node(
-               package='olaf_orchestrator',
+               package='orchestrator',
                executable='minimal_coordinator',
                name='minimal_coordinator'
            ),
@@ -612,11 +612,11 @@
 ### Acceptance Criteria:
 
 1. **Technical Documentation:**
-   - `modules/head/README.md`:
+   - `firmware/head/README.md`:
      - Hardware connections (dual SPI displays + I2C pinout)
      - Firmware build/upload process
      - I2C register map reference
-   - `orchestrator/ros2_nodes/README.md`:
+   - `ros2/src/orchestrator/ros2_nodes/README.md`:
      - How to run driver nodes
      - Topic reference
      - I2C communication flow

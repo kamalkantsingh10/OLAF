@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>olaf_orchestrator</name>
+  <name>orchestrator</name>
   <version>0.1.0</version>
   <description>OLAF Orchestrator - ROS2 nodes for personality coordination, AI integration, and navigation</description>
   <maintainer email="your-email@example.com">OLAF Team</maintainer>
@@ -18,7 +18,7 @@
   <depend>sensor_msgs</depend>
 
   <!-- Custom interface dependencies -->
-  <depend>olaf_interfaces</depend>
+  <depend>interfaces</depend>
 
   <!-- Testing dependencies -->
   <test_depend>ament_lint_auto</test_depend>

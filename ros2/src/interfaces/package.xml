@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>olaf_interfaces</name>
+  <name>interfaces</name>
   <version>0.1.0</version>
   <description>Custom ROS2 message, service, and action definitions for OLAF robot</description>
   <maintainer email="your-email@example.com">OLAF Team</maintainer>

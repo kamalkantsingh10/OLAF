@@ -10,8 +10,8 @@ Use this launch file for:
   - Final integration before deployment
 
 For development (PC+Pi hybrid):
-  - Pi runs: ros2 launch olaf_orchestrator drivers_only.launch.py
-  - PC runs: ros2 launch olaf_orchestrator app_nodes.launch.py
+  - Pi runs: ros2 launch orchestrator drivers_only.launch.py
+  - PC runs: ros2 launch orchestrator app_nodes.launch.py
 
 Requirements:
   - All Story 1.3 setup complete (ROS2, I2C, smbus2)
@@ -33,7 +33,7 @@ def generate_launch_description():
     """Generate launch description for full OLAF system."""
 
     # Get package directory
-    pkg_dir = get_package_share_directory('olaf_orchestrator')
+    pkg_dir = get_package_share_directory('orchestrator')
 
     # Declare launch arguments
     log_level_arg = DeclareLaunchArgument(
@@ -65,7 +65,7 @@ def generate_launch_description():
 
     # Application nodes
     personality_coordinator_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='personality_coordinator_node',
         name='personality_coordinator',
         namespace='olaf',

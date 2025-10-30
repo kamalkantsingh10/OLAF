@@ -5,11 +5,11 @@ This launch file starts ONLY the hardware driver nodes that require direct I2C a
 These nodes MUST run on the Raspberry Pi as they need /dev/i2c-1 hardware access.
 
 Use this launch file during PC+Pi hybrid development:
-  - Pi runs: ros2 launch olaf_orchestrator drivers_only.launch.py
-  - PC runs: ros2 launch olaf_orchestrator app_nodes.launch.py
+  - Pi runs: ros2 launch orchestrator drivers_only.launch.py
+  - PC runs: ros2 launch orchestrator app_nodes.launch.py
 
 For production (all nodes on Pi):
-  - Pi runs: ros2 launch olaf_orchestrator olaf_full.launch.py
+  - Pi runs: ros2 launch orchestrator olaf_full.launch.py
 
 Requirements:
   - I2C enabled on Pi (sudo raspi-config -> Interface Options -> I2C)
@@ -46,7 +46,7 @@ def generate_launch_description():
 
     # Hardware driver nodes
     head_driver_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='head_driver_node',
         name='head_driver',
         namespace='olaf',
@@ -60,7 +60,7 @@ def generate_launch_description():
     )
 
     ears_neck_driver_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='ears_neck_driver_node',
         name='ears_neck_driver',
         namespace='olaf',
@@ -74,7 +74,7 @@ def generate_launch_description():
     )
 
     body_driver_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='body_driver_node',
         name='body_driver',
         namespace='olaf',
@@ -88,7 +88,7 @@ def generate_launch_description():
     )
 
     base_driver_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='base_driver_node',
         name='base_driver',
         namespace='olaf',

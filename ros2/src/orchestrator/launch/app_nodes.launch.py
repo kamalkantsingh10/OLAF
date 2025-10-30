@@ -5,11 +5,11 @@ This launch file starts application-level nodes that do NOT require hardware acc
 These nodes can run on your development PC during hybrid PC+Pi development.
 
 Use this launch file during PC+Pi hybrid development:
-  - Pi runs: ros2 launch olaf_orchestrator drivers_only.launch.py
-  - PC runs: ros2 launch olaf_orchestrator app_nodes.launch.py (THIS FILE)
+  - Pi runs: ros2 launch orchestrator drivers_only.launch.py
+  - PC runs: ros2 launch orchestrator app_nodes.launch.py (THIS FILE)
 
 For production (all nodes on Pi):
-  - Pi runs: ros2 launch olaf_orchestrator olaf_full.launch.py
+  - Pi runs: ros2 launch orchestrator olaf_full.launch.py
 
 Requirements:
   - ROS2 Humble installed on PC
@@ -58,7 +58,7 @@ def generate_launch_description():
 
     # Core application nodes (always run)
     personality_coordinator_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='personality_coordinator_node',
         name='personality_coordinator',
         namespace='olaf',
@@ -73,7 +73,7 @@ def generate_launch_description():
 
     # AI nodes (optional - requires API keys)
     ai_agent_node = Node(
-        package='olaf_orchestrator',
+        package='orchestrator',
         executable='ai_agent_node',
         name='ai_agent',
         namespace='olaf',

@@ -19,7 +19,7 @@ ENV/
 *.egg
 *.egg-info/
 dist/
-build/
+/build/                 # Ignore build/ at root only (ROS2 builds go in ros2/build/)
 
 # Poetry
 poetry.lock
@@ -27,9 +27,9 @@ poetry.lock
 *.poetry/
 
 # ROS2
-build/
-install/
-log/
+ros2/build/
+ros2/install/
+ros2/log/
 *.bag
 
 # PlatformIO

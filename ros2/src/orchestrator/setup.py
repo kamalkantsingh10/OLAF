@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 from glob import glob
 
-package_name = 'olaf_orchestrator'
+package_name = 'orchestrator'
 
 setup(
     name=package_name,
@@ -27,22 +27,23 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # Hardware driver nodes
-            'head_driver_node = ros2_nodes.hardware_drivers.head_driver_node:main',
-            'ears_neck_driver_node = ros2_nodes.hardware_drivers.ears_neck_driver_node:main',
-            'body_driver_node = ros2_nodes.hardware_drivers.body_driver_node:main',
-            'base_driver_node = ros2_nodes.hardware_drivers.base_driver_node:main',
+            # Hardware driver nodes (only head_driver exists currently)
+            'head_driver = ros2_nodes.hardware_drivers.head_driver:main',
+            # TODO: Add other nodes as they're implemented
+            # 'ears_neck_driver = ros2_nodes.hardware_drivers.ears_neck_driver:main',
+            # 'body_driver = ros2_nodes.hardware_drivers.body_driver:main',
+            # 'base_driver = ros2_nodes.hardware_drivers.base_driver:main',
 
-            # Personality nodes
-            'personality_coordinator_node = ros2_nodes.personality.personality_coordinator_node:main',
+            # TODO: Personality nodes
+            # 'personality_coordinator = ros2_nodes.personality.personality_coordinator:main',
 
-            # AI integration nodes
-            'ai_agent_node = ros2_nodes.ai_integration.ai_agent_node:main',
-            'whisper_stt_node = ros2_nodes.ai_integration.whisper_stt_node:main',
+            # TODO: AI integration nodes
+            # 'ai_agent = ros2_nodes.ai_integration.ai_agent:main',
+            # 'whisper_stt = ros2_nodes.ai_integration.whisper_stt:main',
 
-            # Navigation nodes
-            'cartographer_node = ros2_nodes.navigation.cartographer_node:main',
-            'nav2_integration = ros2_nodes.navigation.nav2_integration:main',
+            # TODO: Navigation nodes
+            # 'cartographer = ros2_nodes.navigation.cartographer:main',
+            # 'nav2_integration = ros2_nodes.navigation.nav2_integration:main',
         ],
     },
 )

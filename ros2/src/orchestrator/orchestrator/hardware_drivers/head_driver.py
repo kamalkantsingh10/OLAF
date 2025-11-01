@@ -8,7 +8,7 @@ enabling the orchestrator to control eye displays without knowing I2C details.
 The Head module (ESP32 at I2C address 0x08) controls:
 - 2× GC9A01 round TFT displays (eyes)
 - Eye expression rendering at 60 FPS
-- Synchronized blink animations
+- Autonomous blink animations (handled by firmware)
 - Expression intensity levels (1-5)
 
 Architecture:
@@ -22,7 +22,7 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String, Empty
+from std_msgs.msg import String
 
 try:
     from smbus2 import SMBus
@@ -57,7 +57,7 @@ REG_COMMAND = 0x04             # Write: General command trigger register
 # Head module specific registers
 REG_EXPRESSION_TYPE = 0x10     # Write: Expression type (0-6, see emotion_map below)
 REG_EXPRESSION_INTENSITY = 0x11  # Write: Intensity level (1-5, where 1=subtle, 5=extreme)
-REG_BLINK_TRIGGER = 0x12       # Write: Any value triggers synchronized blink animation
+# Note: Blink animations are handled autonomously by ESP32 firmware animation engine
 
 
 # ==============================================================================
@@ -91,16 +91,19 @@ STATUS_UPDATE_HZ = 10.0
 class HeadDriverNode(Node):
     """ROS2 node that bridges ROS2 topics to I2C register writes for Head module.
 
-    This node subscribes to expression and blink topics, translates them to I2C
+    This node subscribes to expression commands, translates them to I2C
     register writes, and publishes module status at 10Hz.
 
     Responsibilities:
     1. Initialize I2C communication with Head module
     2. Perform health check on startup (verify module ID)
-    3. Subscribe to expression and blink commands
+    3. Subscribe to expression commands
     4. Translate ROS2 messages to I2C register writes
     5. Publish module status periodically
     6. Handle I2C errors with retry logic and graceful degradation
+
+    Note: Blink animations are handled autonomously by the ESP32 firmware's
+    animation engine, so no ROS2 blink topic is needed.
 
     Attributes:
         _i2c_bus: SMBus instance for I2C communication.
@@ -212,11 +215,13 @@ class HeadDriverNode(Node):
         """Create ROS2 topic subscriptions for incoming commands.
 
         Subscribes to:
-        1. /olaf/head/expression - Expression change commands (emotion + intensity)
-        2. /olaf/head/blink - Blink trigger commands (synchronized blink animation)
+        - /olaf/head/expression - Expression change commands (emotion + intensity)
 
-        These topics allow higher-level nodes (personality coordinator, AI agent)
+        This topic allows higher-level nodes (personality coordinator, AI agent)
         to control eye expressions without knowing I2C details.
+
+        Note: Blink animations are autonomous (handled by ESP32 firmware), so
+        no blink subscription is needed.
         """
         # Subscribe to expression commands
         # Format: "emotion_name,intensity" (e.g., "happy,4" or just "happy")
@@ -227,16 +232,7 @@ class HeadDriverNode(Node):
             10  # Queue size
         )
 
-        # Subscribe to blink trigger commands
-        # Format: Empty message (just triggers blink, no parameters)
-        self.create_subscription(
-            Empty,
-            '/olaf/head/blink',
-            self._blink_callback,
-            10  # Queue size
-        )
-
-        self.get_logger().info('Subscriptions created: /olaf/head/expression, /olaf/head/blink')
+        self.get_logger().info('Subscription created: /olaf/head/expression')
 
     def _setup_publications(self) -> None:
         """Create ROS2 topic publications and timers for status updates.
@@ -441,28 +437,6 @@ class HeadDriverNode(Node):
 
         except Exception as e:
             self.get_logger().error(f'Error processing expression message: {e}')
-
-    def _blink_callback(self, msg: Empty) -> None:
-        """Handle blink trigger messages.
-
-        Triggers a synchronized blink animation on both eye displays.
-        The ESP32 firmware handles the blink timing and animation (typically 150-200ms).
-
-        Args:
-            msg: Empty message (blink has no parameters).
-
-        I2C Operations:
-        - Writes any value (we use 0x01) to register 0x12 (REG_BLINK_TRIGGER)
-        - ESP32 firmware detects write and initiates blink sequence
-        - Blink is non-blocking: firmware returns immediately, animation runs in background
-        """
-        # Trigger blink by writing to blink register (value doesn't matter)
-        success = self._write_register(REG_BLINK_TRIGGER, 0x01)
-
-        if success:
-            self.get_logger().info('Blink triggered')
-        else:
-            self.get_logger().error('Failed to trigger blink - I2C communication error')
 
     def _status_callback(self) -> None:
         """Periodic callback to read and publish module status.

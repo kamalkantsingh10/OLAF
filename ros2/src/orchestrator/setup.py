@@ -7,7 +7,7 @@ package_name = 'orchestrator'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=find_packages(exclude=['test']),
+    packages=['ros2_nodes', 'ros2_nodes.hardware_drivers'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

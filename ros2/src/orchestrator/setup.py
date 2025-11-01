@@ -7,7 +7,7 @@ package_name = 'orchestrator'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=['ros2_nodes', 'ros2_nodes.hardware_drivers'],
+    packages=['orchestrator', 'orchestrator.hardware_drivers'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -28,22 +28,22 @@ setup(
     entry_points={
         'console_scripts': [
             # Hardware driver nodes (only head_driver exists currently)
-            'head_driver = ros2_nodes.hardware_drivers.head_driver:main',
+            'head_driver = orchestrator.hardware_drivers.head_driver:main',
             # TODO: Add other nodes as they're implemented
-            # 'ears_neck_driver = ros2_nodes.hardware_drivers.ears_neck_driver:main',
-            # 'body_driver = ros2_nodes.hardware_drivers.body_driver:main',
-            # 'base_driver = ros2_nodes.hardware_drivers.base_driver:main',
+            # 'ears_neck_driver = orchestrator.hardware_drivers.ears_neck_driver:main',
+            # 'body_driver = orchestrator.hardware_drivers.body_driver:main',
+            # 'base_driver = orchestrator.hardware_drivers.base_driver:main',
 
             # TODO: Personality nodes
-            # 'personality_coordinator = ros2_nodes.personality.personality_coordinator:main',
+            # 'personality_coordinator = orchestrator.personality.personality_coordinator:main',
 
             # TODO: AI integration nodes
-            # 'ai_agent = ros2_nodes.ai_integration.ai_agent:main',
-            # 'whisper_stt = ros2_nodes.ai_integration.whisper_stt:main',
+            # 'ai_agent = orchestrator.ai_integration.ai_agent:main',
+            # 'whisper_stt = orchestrator.ai_integration.whisper_stt:main',
 
             # TODO: Navigation nodes
-            # 'cartographer = ros2_nodes.navigation.cartographer:main',
-            # 'nav2_integration = ros2_nodes.navigation.nav2_integration:main',
+            # 'cartographer = orchestrator.navigation.cartographer:main',
+            # 'nav2_integration = orchestrator.navigation.nav2_integration:main',
         ],
     },
 )

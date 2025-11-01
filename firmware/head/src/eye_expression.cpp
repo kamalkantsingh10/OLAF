@@ -1,4 +1,4 @@
-c/**
+/**
  * eye_expression.cpp - Eye Expression Animation Engine Implementation
  * Story 1.4: Head Module ESP32 Firmware - Eye Expressions
  *
@@ -538,8 +538,8 @@ void EyeExpressionEngine::updateBlinkAnimation() {
 }
 
 uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
-  // Natural human blinking: Average 4-6 seconds, but can range 2-20+ seconds
-  // Implements "clustering" - sometimes blinks cluster together, then long gaps
+  // Natural human blinking: Average 4-6 seconds, capped at 8 seconds max
+  // Implements "clustering" - sometimes blinks cluster together, then longer gaps
 
   uint32_t base_interval = 5000;  // Default 5 seconds (human average)
   uint32_t variation = 2500;      // ±2.5 seconds wide variation
@@ -561,8 +561,8 @@ uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
       break;
 
     case EXPR_THINKING:
-      base_interval = 7000;  // Thinking: 3-11 seconds (can go LONG without blinking)
-      variation = 4000;      // HUGE variation (sometimes stares for 15+ seconds)
+      base_interval = 5500;  // Thinking: 3.5-7.5 seconds (focused)
+      variation = 2000;      // Moderate variation (stays under 8s cap)
       break;
 
     case EXPR_CONFUSED:
@@ -571,8 +571,8 @@ uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
       break;
 
     case EXPR_SAD:
-      base_interval = 8000;  // Sad: 4-12 seconds (tired, slow)
-      variation = 4000;      // Very irregular
+      base_interval = 6000;  // Sad: 4-8 seconds (tired, slow)
+      variation = 2000;      // Moderate variation
       break;
 
     case EXPR_EXCITED:
@@ -603,18 +603,14 @@ uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
     variation = 800;
     Serial.printf("[Expression] -> Cluster blink %d\n", blink_count_in_cluster_);
   } else if (blink_count_in_cluster_ > 4) {
-    // After cluster: LONG gap before next blink
-    base_interval = base_interval * 2.5;  // 2.5x longer gap
-    variation = variation * 1.5;
+    // After cluster: longer gap before next blink (but capped at 8s)
+    base_interval = base_interval * 1.3;  // 1.3x longer gap (reduced from 2.5x)
+    variation = variation * 1.2;
     blink_count_in_cluster_ = 0;  // Reset cluster
-    Serial.println("[Expression] -> Post-cluster long gap");
+    Serial.println("[Expression] -> Post-cluster longer gap");
   }
 
-  // Occasional very long stares (5% chance) - humans sometimes go 15-30 seconds
-  if (random(100) < 5) {
-    base_interval = base_interval * 3;
-    Serial.println("[Expression] -> Extended stare (no blink for a while)");
-  }
+  // Occasional longer stares removed to keep under 8s cap
 
   // Add random variation
   int32_t random_offset = random(-variation, variation);
@@ -623,8 +619,8 @@ uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
   // Ensure minimum interval
   if (interval < 1200) interval = 1200;
 
-  // Cap maximum interval (don't stare TOO long)
-  if (interval > 25000) interval = 25000;
+  // Cap maximum interval at 8 seconds
+  if (interval > 8000) interval = 8000;
 
   Serial.printf("[Expression] Next blink in %lu ms (base: %lu ±%lu)\n",
                 interval, base_interval, variation);

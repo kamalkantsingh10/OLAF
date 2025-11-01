@@ -7,7 +7,7 @@ package_name = 'orchestrator'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=['orchestrator', 'orchestrator.hardware_drivers'],
+    packages=['orchestrator', 'orchestrator.hardware_drivers', 'orchestrator.ros2_nodes'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -27,6 +27,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            # Minimal coordinator for Epic 1 validation
+            'minimal_coordinator = orchestrator.ros2_nodes.minimal_coordinator:main',
+
             # Hardware driver nodes (only head_driver exists currently)
             'head_driver = orchestrator.hardware_drivers.head_driver:main',
             # TODO: Add other nodes as they're implemented

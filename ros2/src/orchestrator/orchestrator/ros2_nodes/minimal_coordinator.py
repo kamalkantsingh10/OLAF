@@ -11,7 +11,7 @@ only controls expression changes.
 
 Node: /olaf/minimal_coordinator
 Publishes:
-  - /olaf/head/expression (std_msgs/String): Expression commands in format "emotion:intensity"
+  - /olaf/head/expression (std_msgs/String): Expression commands in format "emotion,intensity"
 
 Author: OLAF Team
 License: MIT
@@ -89,9 +89,9 @@ class MinimalCoordinator(Node):
         intensity = random.randint(self.INTENSITY_MIN, self.INTENSITY_MAX)
 
         # Create and publish expression message
-        # Format: "expression:intensity" (e.g., "happy:3")
+        # Format: "expression,intensity" (e.g., "happy,3")
         msg = String()
-        msg.data = f"{expression}:{intensity}"
+        msg.data = f"{expression},{intensity}"
         self.expression_pub.publish(msg)
 
         # Log expression change

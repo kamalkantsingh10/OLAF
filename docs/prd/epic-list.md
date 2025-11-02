@@ -60,10 +60,10 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 
 ---
 
-**Epic 9: Basic Personality System**
-**Goal:** Implement 2D emotion model (7 emotion types × 5 intensity levels) with coordinated expression across all channels: eyes (animation patterns), ears (position/movement), neck (gestures), heart LCD (BPM/color), status LEDs (color/breathing), beeper (tones), and floor projection (visual cues). Personality orchestrator node synchronizes all expression modules.
+**Epic 9: Super Expressive Personality System**
+**Goal:** Transform OLAF into a super expressive companion with research-backed multi-modal emotion system featuring 21 emotional states, organic randomization (±10-15% variation prevents repetition), emotional decay (emotions fade realistically over time), and micro-movements (continuous subtle adjustments create "living" feel) across all 7 modalities: eyes (manga-style with shape morphing, pupil variations), ears (Doberman-inspired 2-DOF positioning), neck (WALL-E head tilts), sound (R2-D2 pitch/patterns), torso screen (contextual symbols), LEDs (emotion-coded colors), and body (hoverboard lean/rock). Built on 2024 HRI research + Disney animation principles. Achieves Claptrap over-enthusiastic personality with Vector-style organic movement.
 
-**Duration:** 2-3 weeks | **Value:** Full non-verbal personality expression, emotion synchronization across 7 channels, cohesive character
+**Duration:** 5-6 weeks | **Value:** Complete transformation to engaging companion with human-like expressiveness, user-validated (>80% emotion recognition), research-backed design, foundation for AI integration (Epic 13)
 
 ---
 
@@ -97,9 +97,10 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 
 ## Total Timeline
 
-**Estimated Duration:** 28-39 weeks (7-10 months of weekend development)
-**Milestone Cadence:** Every 1.5-4 weeks (13 milestones)
+**Estimated Duration:** 31-43 weeks (8-11 months of weekend development)
+**Milestone Cadence:** Every 1.5-6 weeks (13 milestones)
 **Build-in-Public Content:** 13 major posts + monthly YouTube videos
+**Note:** Epic 9 duration increased from 2-3 weeks to 5-6 weeks for comprehensive Super Expressive System
 
 ## Key Design Philosophy Changes
 
@@ -108,5 +109,6 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ✅ **Epic 5: Heart LCD integration** - NEW 1.53" heart display (ST77916) integrated into torso (separate from Epic 1 eyes)
 ✅ **Epic 7: Dedicated integration epic** - Ensures proper assembly and cable management
 ✅ **Epic 8: Projector gets dedicated epic** - Optocoupler control, mounting, display coordination
+✅ **Epic 9: Research-backed Super Expressive System** - 21 emotional states with organic randomization, micro-movements, and multi-modal coordination based on 2024 HRI research + Disney animation principles (replaces basic 7-emotion system)
 ✅ **Build flow: Design → Print → Assemble** - Each component epic includes 3D printing + assembly with feedback changes applied
 

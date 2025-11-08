@@ -1,6 +1,8 @@
 # Epic 2: Complete OnShape Design & Community Feedback
 
-**Epic Goal:** Design ALL mechanical components in OnShape in one complete pass: head housing (eyes, OAK-D Pro, mmWave, mics), ears (2-DOF articulation), neck gimbal (3-DOF), core torso (Pi mount, heart LCD integration, status indicators), power enclosure (battery, buck converters, charging), projector bay (DLP mounting), and base platform (hoverboard wheels, ODrive). Export production-ready STLs. Post complete design to Reddit/maker communities for feedback (3-7 day cycle). Incorporate feedback and mark design as "V1.0 Draft - Ready to Print" for use in all subsequent build epics.
+**Epic Goal:** Design ALL mechanical components in OnShape in one complete pass: head housing (eyes, mmWave sensor only - audio via USB peripherals), ears (2-DOF articulation), neck gimbal (3-DOF), core torso (Pi mount, heart LCD integration, status indicators), power enclosure (battery, buck converters, charging), projector bay (DLP mounting), and base platform (hoverboard wheels, ODrive). Export production-ready STLs. Post complete design to Reddit/maker communities for feedback (3-7 day cycle). Incorporate feedback and mark design as "V1.0 Draft - Ready to Print" for use in all subsequent build epics.
+
+**Note:** OAK-D Pro camera deferred to Epic 10. Microphone + speaker are USB peripherals connected to Raspberry Pi (not embedded in head housing).
 
 **Duration:** 2-3 weeks (Weeks 1.5-4)
 
@@ -27,11 +29,10 @@
 
 2. **Component Datasheets & Dimensions Collected:**
    - **Vision/Sensors:**
-     - OAK-D Pro: PCB dimensions, mounting holes, lens position, USB-C port location (from Luxonis docs)
      - GC9A01 displays (3×): 1.28" round TFT dimensions, mounting tabs, screen bezel size (2× eyes + 1× heart)
      - mmWave sensor (DFRobot SEN0395 or similar): PCB size, antenna orientation, mounting holes
-     - Microphone array (ReSpeaker 2-Mic HAT or similar): Board dimensions, mic positions, GPIO header
-     - Speaker/beeper: Physical size, mounting method
+   - **Audio (USB Peripherals - Not in CAD):**
+     - USB conference microphone + speaker: Connected to Raspberry Pi, no CAD integration needed
    - **Servos:**
      - Feetech SCS0009 (4×): Body dimensions (L×W×H), horn attachment point, shaft diameter, rotation range
      - Feetech STS3215 (3×): Body dimensions, horn type, torque specs, mounting holes, cable exit
@@ -104,11 +105,6 @@
    - Parametric sketch-based design (easy to adjust dimensions if feedback requires changes)
 
 2. **Component Mounting Features:**
-   - **OAK-D Pro camera mount:**
-     - Front-facing position (centered on "face" for symmetrical look)
-     - Mounting bosses/holes match OAK-D Pro spec (M2 or M3, verify from datasheet)
-     - Lens unobstructed, IR emitters clear (no plastic blocking stereo vision)
-     - USB-C cable exit to interior (routed down to neck)
    - **Dual OLED "eye" sockets:**
      - Side-by-side placement, 40-50mm spacing (human-like eye distance, scaled for robot size)
      - Recessed pockets hold GC9A01 displays flush or slightly inset (protects screens)
@@ -118,13 +114,8 @@
      - Top/forehead position (360° coverage, minimal obstruction)
      - Antenna clearance: No conductive material within 20mm (metal interferes with RF)
      - Sensor can be angled slightly forward (optimize human detection range)
-   - **Microphone array mount:**
-     - Side or top positions (multiple mics for directional audio, beamforming)
-     - Acoustic ports/holes allow sound entry (small perforations, 2-3mm diameter)
-     - Weatherproofing optional (mesh over holes to prevent dust/debris)
-   - **Speaker/beeper mount:**
-     - Internal cavity with sound exit port (front or side)
-     - Secure mounting (vibrations from speaker require firm attachment)
+
+**Note:** OAK-D Pro camera, microphone array, and speaker removed from head housing design. OAK-D Pro will be integrated in Epic 10. Audio handled by USB conference mic + speaker connected to Raspberry Pi.
 
 3. **Structural Features:**
    - **Wall thickness:** 2-3mm (balance strength vs. print time/weight/material cost)
@@ -140,13 +131,10 @@
 
 4. **Cable Routing Channels:**
    - Internal channels for:
-     - OAK-D Pro USB cable (thick, ~5mm diameter)
      - Eye displays I2C wires (2× thin bundles)
      - mmWave sensor wires
-     - Microphone wires (I2C or SPI to Pi)
-     - Speaker wires
    - Cable exit point at bottom (toward neck connection, single bundled exit)
-   - Minimum 10mm diameter main channel (accommodate all wire bundles + some slack)
+   - Minimum 6mm diameter main channel (accommodate wire bundles + some slack)
 
 5. **Ventilation:**
    - Small vent holes (3-5mm diameter) for air circulation

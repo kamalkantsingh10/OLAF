@@ -18,17 +18,21 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 
 ---
 
-**Epic 3: Head Module - Complete Build**
-**Goal:** 3D print head housing (with Epic 2 feedback incorporated). Assemble dual GC9A01 round TFT eyes (240×240), OAK-D Pro camera, mmWave presence sensor, microphone array, speaker/beeper. ESP32 firmware for expressive eye animations and sensor integration.
+**Epic 3: Complete Head Assembly (Head + Ears + Neck)**
+**Goal:** 3D print head housing, ear mounts, and neck gimbal (with Epic 2 feedback incorporated). Assemble complete integrated head system: dual GC9A01 round TFT eyes (240×240), mmWave presence sensor, 2-DOF articulated ears (4× Feetech SCS0009 servos), 3-DOF neck gimbal (pan ±90°, tilt ±45°, roll ±30° with 3× Feetech STS3215 servos). Shared ESP32 bus servo controller. Coordinated kinematics engine for ear+neck gestures. ESP32 firmware for expressive eye animations, sensor integration, and coordinated ear+neck movement.
 
-**Duration:** 2-3 weeks | **Value:** Expressive eyes with presence detection, complete sensory input, validated head assembly
+**Duration:** 3-4 weeks | **Value:** Complete expressive head assembly with articulation, coordinated emotional expression across eyes+ears+neck, full upper-body mobility validated
+
+**Note:** Audio handled by USB conference mic+speaker connected to Raspberry Pi (not embedded in head). OAK-D Pro camera deferred to Epic 10.
 
 ---
 
-**Epic 4: Ears + Neck Module - Complete Build**
-**Goal:** 3D print ear mounts and neck gimbal (with Epic 2 feedback incorporated). Assemble 2-DOF articulated ears (4× Feetech SCS0009 servos) and 3-DOF neck gimbal (pan ±90°, tilt ±45°, roll ±30° with 3× Feetech STS3215 servos). Shared ESP32 bus servo controller. Coordinated kinematics engine for ear+neck gestures.
+**Epic 4: ~~Ears + Neck Module - Complete Build~~ [MERGED INTO EPIC 3]**
+**Status:** This epic has been merged with Epic 3 for more logical build flow. Head, ears, and neck are mechanically integrated components and are assembled together in Epic 3.
 
-**Duration:** 2-3 weeks | **Value:** Full head articulation, independent ear movement, coordinated emotional expression
+**Original Goal:** 3D print ear mounts and neck gimbal. Assemble 2-DOF articulated ears (4× Feetech SCS0009 servos) and 3-DOF neck gimbal (3× Feetech STS3215 servos).
+
+**New Location:** See Epic 3: Complete Head Assembly
 
 ---
 
@@ -68,9 +72,11 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ---
 
 **Epic 10: SLAM & Spatial Awareness**
-**Goal:** Enable OAK-D Pro stereo depth sensing, ROS2 Nav2 SLAM integration (Google Cartographer or RTAB-Map), apartment map building, localization. Integration with base odometry for accurate positioning.
+**Goal:** Install and integrate OAK-D Pro camera hardware (mounting, wiring, ROS2 driver setup). Enable stereo depth sensing, ROS2 Nav2 SLAM integration (Google Cartographer or RTAB-Map), apartment map building, localization. Integration with base odometry for accurate positioning.
 
-**Duration:** 3-4 weeks | **Value:** Autonomous mapping, spatial understanding, navigation foundation
+**Duration:** 3-4 weeks | **Value:** Visual SLAM capability, autonomous mapping, spatial understanding, navigation foundation
+
+**Note:** OAK-D Pro camera hardware integration happens in this epic (moved from Epic 3) since this is where the camera is functionally used.
 
 ---
 
@@ -89,7 +95,7 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ---
 
 **Epic 13: AI Agent Framework, Voice & Polish**
-**Goal:** Integrate Hailo-accelerated Whisper STT (<200ms latency), cloud agent reasoning (Claude/GPT-4), tool use framework, function calling, multi-step planning. Implement Quiet Mode, Power Saving Mode. System integration testing, build documentation finalization. Prepare V1 MVP for community release.
+**Goal:** Integrate USB conference microphone + speaker hardware. Implement Hailo-accelerated Whisper STT (<200ms latency), cloud agent reasoning (Claude/GPT-4), tool use framework, function calling, multi-step planning. Implement Quiet Mode, Power Saving Mode. System integration testing, build documentation finalization. Prepare V1 MVP for community release.
 
 **Duration:** 3-4 weeks | **Value:** Voice-controlled AI companion, embodied agent reasoning, polished system, community-ready release
 
@@ -98,8 +104,9 @@ Based on the requirements, technical architecture, and V1 scope from the brief, 
 ## Total Timeline
 
 **Estimated Duration:** 31-43 weeks (8-11 months of weekend development)
-**Milestone Cadence:** Every 1.5-6 weeks (13 milestones)
-**Build-in-Public Content:** 13 major posts + monthly YouTube videos
+**Total Epics:** 12 epics (numbered 1-3, 5-13; Epic 4 merged into Epic 3)
+**Milestone Cadence:** Every 1.5-6 weeks (12 milestones)
+**Build-in-Public Content:** 12 major posts + monthly YouTube videos
 **Note:** Epic 9 duration increased from 2-3 weeks to 5-6 weeks for comprehensive Super Expressive System
 
 ## Key Design Philosophy Changes

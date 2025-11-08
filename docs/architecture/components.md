@@ -8,8 +8,8 @@
 - ESP32-S3-WROOM-2 (N16R8: 16MB Flash, 8MB PSRAM)
 - 2× GC9A01 Round TFT Display (1.28", 240×240, SPI)
 - DFRobot SEN0395 mmWave sensor
-- INMP441 I2S microphone × 2
-- PAM8403 amplifier + speaker
+
+**Note:** Audio handled by USB conference microphone + speaker connected directly to Raspberry Pi (not embedded in head module).
 
 **Firmware Architecture:**
 ```
@@ -17,8 +17,7 @@ head_controller.ino
 ├── i2c_slave.cpp
 ├── animation_engine.cpp
 ├── gc9a01_driver_spi.cpp    // Round TFT driver (240×240)
-├── presence_sensor.cpp
-└── beeper.cpp
+└── presence_sensor.cpp
 ```
 
 **Key Features:**

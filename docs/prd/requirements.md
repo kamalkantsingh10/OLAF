@@ -29,7 +29,7 @@
 14. **FR14:** The system shall support dynamic emotion intensity escalation during conversations (e.g., enthusiasm builds from level 1→5 across multi-turn interaction)
 
 **Conversational AI Integration**
-15. **FR15:** The system shall capture voice input via microphone array for voice command detection
+15. **FR15:** The system shall capture voice input via USB conference microphone connected to Raspberry Pi for voice command detection
 16. **FR16:** The system shall use Hailo-8L AI accelerator (13 TOPS) for local Whisper speech-to-text inference achieving <200ms latency (eliminating 1-1.5s cloud STT delay)
 17. **FR17:** The system shall integrate with cloud AI API (Claude API for V1) to process natural language with conversational understanding
 18. **FR18:** The system shall maintain conversation history and context across multiple interactions with persistence across power cycles in SQLite database
@@ -66,7 +66,7 @@
 
 **Cost & Accessibility**
 7. **NFR7:** Component costs shall align with configuration tiers:
-   - Minimal Olaf (~$400): Head (eyes, mic, speaker) + Ears + Neck + Base (stationary/simple wheels) - Personality focus
+   - Minimal Olaf (~$400): Head (eyes only) + Ears + Neck + USB mic/speaker peripherals + Base (stationary/simple wheels) - Personality focus
    - Standard Olaf (~$700): Minimal + Hoverboard base + Basic RGBD camera - Adds mobility
    - Full Olaf (~$1000): Standard + Floor projector + High-quality RGBD camera - Complete feature set
 8. **NFR8:** All components shall be sourceable from maker-accessible vendors (AliExpress, Amazon, Adafruit, standard electronics distributors) with BOM including direct supplier links

@@ -30,9 +30,53 @@ We're going to:
 - ✅ USB cable (ODrive to computer)
 
 **Wiring check** (you should have these already connected):
-- Motor phase wires: 3 thick wires per motor → ODrive blue screw terminals (M0, M1)
-- Hall sensors: 5 thin wires per motor → ODrive hall pins
-- Power: 12V+ to ODrive XT60 connector
+
+### ODrive Wiring Diagram
+
+```
+                    ODrive v3.6 Board
+    ┌────────────────────────────────────────────┐
+    │                                            │
+    │  M0 (Left Motor)      M1 (Right Motor)    │
+    │  ┌──────────┐         ┌──────────┐        │
+    │  │ A  B  C  │         │ A  B  C  │        │ ← Phase Wires (3 thick wires)
+    │  └────┬─────┘         └────┬─────┘        │
+    │       │                    │               │
+    │  ┌────┴──────┐        ┌────┴──────┐       │
+    │  │Hall Pins  │        │Hall Pins  │       │ ← Hall Sensors (5 thin wires)
+    │  │VCC GND    │        │VCC GND    │       │    VCC → 5V
+    │  │HA HB HC   │        │HA HB HC   │       │    GND → GND
+    │  └───────────┘        └───────────┘       │    HA, HB, HC → Signals
+    │                                            │
+    │           ┌──────┐                         │
+    │           │ USB  │ ← PC connection         │
+    │           └──────┘                         │
+    │                                            │
+    │  GPIO1 GPIO2 GND  ← UART (for ESP32)      │
+    │                                            │
+    │           ┌──────┐                         │
+    │           │ XT60 │ ← 12V Power (40V works!)│
+    │           └──────┘                         │
+    │                                            │
+    │              ● ← Green LED (power OK)      │
+    └────────────────────────────────────────────┘
+
+Left Motor                Right Motor
+┌──────────┐             ┌──────────┐
+│          │             │          │
+│ 3 Thick  │───Phase────>│ 3 Thick  │  Yellow/Green/Blue wires
+│  Wires   │             │  Wires   │  → Blue screw terminals
+│          │             │          │
+│ 5 Thin   │───Hall─────>│ 5 Thin   │  Red/Black + 3 signal wires
+│  Wires   │             │  Wires   │  → Hall pin headers
+└──────────┘             └──────────┘
+```
+
+**Connection Summary:**
+- **Phase Wires:** 3 thick wires per motor → Blue screw terminals (M0, M1)
+- **Hall Sensors:** 5 thin wires per motor → Hall pin headers
+- **Power:** 12V+ to XT60 connector (you have 40V - perfect!)
+- **USB:** For PC control and calibration
 
 If you see a **green LED** on your ODrive, you're powered and ready to go!
 
@@ -239,20 +283,57 @@ Okay, Python from PC is great for testing, but your robot can't drag a laptop ar
 
 The ODrive has two GPIO pins that speak UART (serial communication). We're going to wire those to your ESP32.
 
-**Connections:**
+**Wiring Diagram:**
+
 ```
-ODrive          ESP32
-──────          ─────
-GPIO1 (TX)  →   GPIO16 (RX2)
-GPIO2 (RX)  ←   GPIO17 (TX2)
-GND         ─   GND
+     ODrive v3.6                           ESP32-S3
+    ┌─────────────┐                    ┌──────────────┐
+    │             │                    │              │
+    │   GPIO1 ────┼────────────────────┼──> GPIO16   │  ODrive TX → ESP32 RX
+    │    (TX)     │    Brown/Yellow    │    (RX2)    │
+    │             │                    │              │
+    │   GPIO2 <───┼────────────────────┼──── GPIO17   │  ODrive RX ← ESP32 TX
+    │    (RX)     │    Orange/White    │    (TX2)    │
+    │             │                    │              │
+    │    GND  ────┼────────────────────┼──── GND     │  Common Ground
+    │             │       Black        │              │
+    │             │                    │              │
+    └─────────────┘                    └──────────────┘
+
+    Baudrate: 115200 (already configured!)
 ```
 
-**Where are these pins?**
-- On the ODrive: Look for small header pins labeled GPIO1, GPIO2 near the USB port
-- On the ESP32: GPIO16 and GPIO17 are standard GPIO pins
+**Physical Pin Locations:**
 
-**That's it.** Three wires and you're connected.
+```
+ODrive Board (view from top):
+┌────────────────────────┐
+│                        │
+│  [USB Port]            │
+│                        │
+│   ●GPIO1 ●GPIO2 ●GND   │ ← These 3 pins (small header)
+│                        │
+│  [M0]         [M1]     │
+└────────────────────────┘
+
+ESP32-S3 Board:
+        ┌──────┐
+        │ USB  │
+        └──────┘
+    ┌──────────────┐
+    │ GPIO16  ●    │ ← RX2 (connect to ODrive GPIO1)
+    │ GPIO17  ●    │ ← TX2 (connect to ODrive GPIO2)
+    │  ...         │
+    │  GND    ●    │ ← Ground (connect to ODrive GND)
+    └──────────────┘
+```
+
+**Wire Colors (typical):**
+- GPIO1 (TX) → Brown or Yellow wire
+- GPIO2 (RX) → Orange or White wire
+- GND → Black wire
+
+**That's it!** Three wires and you're connected. No resistors, no voltage dividers needed - both are 3.3V logic.
 
 ---
 
@@ -443,6 +524,61 @@ void loop() {
 | `setDifferentialVelocity(0.4, 0.2)` | Arc right while moving forward |
 
 **This is exactly what you'll use for balancing!**
+
+---
+
+### Complete System Wiring (Big Picture)
+
+Here's how everything connects together:
+
+```
+                    ┌─────────────────────┐
+                    │   Power Supply      │
+                    │   (12V-48V)         │
+                    └──────────┬──────────┘
+                               │
+                          ┌────▼─────┐
+                          │   XT60   │
+                    ┌─────┴──────────┴─────┐
+                    │                      │
+                    │    ODrive v3.6       │
+                    │                      │
+                    │  GPIO1 ──┐           │
+                    │  GPIO2 ──┼───UART───┼──> ESP32 (GPIO16/17)
+                    │  GND   ──┘           │
+                    │                      │
+                    │   M0         M1      │
+                    └────┬──────────┬──────┘
+                         │          │
+              ┌──────────┴──┐   ┌──┴──────────┐
+              │             │   │             │
+         ┌────▼────┐   ┌────▼────┐   ┌────▼────┐   ┌────▼────┐
+         │ Phase   │   │ Hall    │   │ Phase   │   │ Hall    │
+         │ A B C   │   │ 5-wire  │   │ A B C   │   │ 5-wire  │
+         └────┬────┘   └────┬────┘   └────┬────┘   └────┬────┘
+              │             │             │             │
+         ┌────▼────────────▼────┐   ┌────▼────────────▼────┐
+         │  Left Motor          │   │  Right Motor         │
+         │  (Axis 0)            │   │  (Axis 1)            │
+         │                      │   │                      │
+         │  [Hoverboard Motor]  │   │  [Hoverboard Motor]  │
+         └──────────┬───────────┘   └──────────┬───────────┘
+                    │                          │
+               ┌────▼────┐                ┌────▼────┐
+               │  Wheel  │                │  Wheel  │
+               │  6.5"   │                │  6.5"   │
+               └─────────┘                └─────────┘
+
+Power Flow:   12V-48V → ODrive → Motors
+Data Flow:    ESP32 → ODrive (UART) → Motors (PWM)
+Feedback:     Motors (Hall) → ODrive → ESP32 (velocity)
+```
+
+**Connection Summary:**
+1. **Power:** 12V-48V → ODrive XT60
+2. **Motors:** 2× hoverboard motors (3 phase + 5 hall wires each)
+3. **Control:** ESP32 → ODrive (UART: 3 wires)
+4. **PC:** ODrive → Computer (USB, for calibration only)
 
 ---
 

@@ -357,12 +357,11 @@ Your motors should:
 
 ### Video: Calibration and First Spin
 
-<video width="100%" controls>
-  <source src="images/odrive-tutorial/calibration-test.webm" type="video/webm">
-  Your browser does not support the video tag.
-</video>
+**[📹 Watch the calibration video](images/odrive-tutorial/calibration-test.webm)** _(Click to download and view)_
 
-*Watch the full calibration process and first test: motors beeping during calibration, then smoothly spinning forward and reverse under velocity control.*
+*Full calibration process and first test: motors beeping during calibration, then smoothly spinning forward and reverse under velocity control.*
+
+> **Note:** If the video doesn't play in your browser, download it and open with VLC or your preferred video player.
 
 ---
 

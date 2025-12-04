@@ -192,7 +192,7 @@ These hoverboard motors are *nice*. Smooth, powerful, built to take abuse. The h
 | Buck converters (36V→12V, 36V→5V) | ~€10 |
 | **Total** | **€125** |
 
-_(ODrive controller €120 comes in Step 2)_
+_(ODrive controller €58 + solderless connectors €6 come in Step 2)_
 
 For €125, I have a rolling platform with motors, wheels, complete power system (battery + voltage regulation), and modular chassis. The foundation is solid.
 

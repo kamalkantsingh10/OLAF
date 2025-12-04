@@ -385,6 +385,29 @@ So `input_vel = 2.0` moves your robot forward at walking speed.
 
 ---
 
+## Budget Update: Parts So Far
+
+Let's see where we are financially:
+
+| Item | Cost |
+|------|------|
+| **From Part 1 (Mechanical):** | |
+| Hoverboard (motors, wheels, battery, charger) | €40 |
+| Skateboard truck mount with suspension | €50 |
+| Kitchen bin chassis + mounting tray | €10 |
+| Metal perfboard + L-brackets | €15 |
+| Buck converters (36V→12V, 36V→5V) | €10 |
+| **From Part 2 (Motor Control):** | |
+| ODrive v3.6 motor controller | €58 |
+| Solderless connectors (3×, motor to ODrive) | €6 |
+| **Running Total** | **€189** |
+
+For under €200, we have a complete motorized platform with professional-grade motor control. Not bad at all.
+
+**What's Next:** ESP32 microcontroller + MPU9250 IMU for the balancing brain (~€20 more).
+
+---
+
 _This is a living document. As I complete each step, I'll add the details, photos, code, and lessons learned._
 
 ---

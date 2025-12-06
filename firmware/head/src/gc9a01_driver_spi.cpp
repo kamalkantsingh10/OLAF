@@ -59,10 +59,20 @@ bool GC9A01DualDriver::begin(uint8_t left_cs_pin, uint8_t right_cs_pin) {
     digitalWrite(right_cs_pin_, LOW);
 
     tft_.init();  // Initialize display controller
-    tft_.setRotation(0);  // No rotation (0° for round display)
 
     // Deselect both eyes after init
     digitalWrite(left_cs_pin_, HIGH);
+    digitalWrite(right_cs_pin_, HIGH);
+
+    // Set different rotations for each eye due to physical mounting orientation
+    // Left eye: 90° rotation (rotation value 1)
+    digitalWrite(left_cs_pin_, LOW);
+    tft_.setRotation(1);  // 90° clockwise
+    digitalWrite(left_cs_pin_, HIGH);
+
+    // Right eye: 270° rotation / -90° (rotation value 3)
+    digitalWrite(right_cs_pin_, LOW);
+    tft_.setRotation(3);  // 270° clockwise / -90° counter-clockwise
     digitalWrite(right_cs_pin_, HIGH);
 
     Serial.println("[Display] ✓ Dual displays initialized");

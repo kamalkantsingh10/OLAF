@@ -42,6 +42,10 @@ ros2/log/
 *.key
 *.pem
 
+# MCP (Model Context Protocol)
+.mcp.json
+logs/
+
 # IDE
 .idea/
 *.swp

@@ -1,329 +1,104 @@
-# OLAF 🤖
+# 🤖 OLAF - Open Lovable AI Friend
 
-**Open-source AI companion proving embodied AI belongs to builders, not just consumers**
-
-![Project Status](https://img.shields.io/badge/status-in%20development-yellow)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
----
-
-## Concept Design
+**An open-source AI companion robot. Built in public.**
 
 <p align="center">
-  <img src="docs/media/olaf-concept-front.webp" width="30%" alt="OLAF Front View" />
-  <img src="docs/media/olaf-concept-side.webp" width="30%" alt="OLAF Side View" />
-  <img src="docs/media/olaf-concept-angle.webp" width="30%" alt="OLAF Angled View" />
+  <img src="documentation/media/olaf-concept-angle.webp" alt="OLAF 3D Concept Design" width="600">
+</p>
+
+<p align="center">
+  <i>The tools to build your own JARVIS or R2D2 are finally here.</i>
 </p>
 
 ---
 
 ## What is OLAF?
 
-OLAF is a self-balancing AI companion robot designed to demonstrate that anyone with passion, a 3D printer, and access to modern tools (LLMs, SBCs, affordable electronics) can build their own JARVIS or R2D2.
+OLAF is a personality-first robotics framework that brings AI agents to physical life. A 2-3 foot tall companion with R2D2 charm meets modern AI capabilities—expressive eyes, articulated ears, animated heart display, and floor projection.
 
-Unlike commercial AI assistants that position users as passive consumers, OLAF embodies a different philosophy: **when you BUILD your AI partner, it becomes a true collaborator, not a servant.**
+**This is not another voice assistant.** When you BUILD your AI companion, it becomes a partner, not a servant.
 
-OLAF combines:
-- **R2D2-style personality** through coordinated expression (round TFT eyes, articulated ears, heart LCD, beeps)
-- **Autonomous mobility** with self-balancing hoverboard base and SLAM navigation
-- **Conversational AI** powered by hybrid local/cloud intelligence (Hailo Whisper + Claude/GPT-4)
-- **Floor projection** for visual information display
-- **Full documentation** of every design decision, success, and failure
+## Why OLAF?
 
----
+AI assistants (Alexa, Siri, ChatGPT) are trapped in screens and speakers. Meanwhile, building physical AI with personality forces impossible choices: expensive commercial robots, purely utilitarian platforms, or simple hobbyist kits.
 
-## Why OLAF Matters
+**The gap:** No open-source framework exists for embodied AI with personality that's maker-accessible.
 
-The technology to build advanced AI companions is now accessible to individual builders:
-- **3D printing** has democratized custom hardware
-- **LLMs** provide powerful coding assistance and reasoning
-- **Modern SBCs** (Raspberry Pi 5 + Hailo AI Kit) bring 13 TOPS of AI acceleration at $150
-- **ESP32-S3 modules** enable sophisticated distributed control at $5/unit
+**The opportunity:** 3D printers, powerful LLMs, modern SBCs, AI coding assistants—everything needed is finally accessible. This is the democratization moment. The future of embodied AI belongs to builders.
 
-Big tech focuses on bringing AI assistants *to* the masses. OLAF proves a different thesis: **the most meaningful AI companions will be the ones people build themselves** - growing alongside their creators through adaptation and co-evolution.
+## The Build
 
----
+**20 weeks:** From sketch → functioning prototype
+**5 Modules:** Head, Ears, Neck, Torso, Base (all ESP32-powered)
+**Built while:** Relocating cities + starting new job
+**Status:** Physical foundation complete, integrating AI intelligence layer next
 
-## Technical Approach
-
-OLAF uses a three-layer modular architecture optimized for power efficiency, low latency, and builder accessibility:
-
-### **Module Layer** (4× ESP32-S3 Smart Peripherals)
-
-Four independent ESP32-S3-WROOM-2 modules handle dedicated functions via I2C:
-
-- **Head Module** (0x08): 2× GC9A01 round TFT eyes (1.28", 240×240, SPI), mmWave presence sensor, microphone array, speaker
-- **Ears + Neck Module** (0x09): 4× ear servos (UART1) + 3× neck servos (UART2) on shared ESP32, full upper-body articulation
-- **Body Module** (0x0A): GC9A01 heart LCD (emotion display), WS2812B RGB LEDs, projector power control (optocoupler)
-- **Base Module** (0x0B): Self-balancing at 200Hz with MPU6050 IMU, ODrive motor controller (UART1), kickstand servo (UART2)
-
-**Key Decision**: I2C-only communication (no WiFi on ESP32s) achieves 5-20ms latency vs 80-200ms and saves 1000mA power. Dual UART interfaces enable simultaneous servo/motor control.
-
-### **Orchestration Layer** (Raspberry Pi 5 + Hailo-8L)
-
-ROS2 Humble framework coordinates all modules through dedicated driver nodes:
-- `/olaf/personality_coordinator` - Expression synchronization across eyes, heart, ears, neck, beeps
-- `/olaf/ai_agent` - Hailo Whisper (local STT) + Claude API (reasoning)
-- `/olaf/navigation` - Cartographer SLAM + Nav2 path planning
-- Hardware driver nodes bridge ROS2 topics to I2C registers (4× drivers for 4 modules)
-
-### **Intelligence Layer** (Hybrid AI)
-
-- **Local**: Hailo-8L accelerated Whisper (tiny/base) for <200ms speech-to-text
-- **Cloud**: Claude 3.5 Sonnet for personality and reasoning (WiFi from Pi only)
-- **Target**: <3s end-to-end AI response time (P90)
-
-**Key Decision**: Closed-loop ODrive motor controller enables accurate SLAM odometry (±10cm) vs open-loop alternatives. 200Hz balancing PID runs on Base ESP32 for real-time guarantees.
-
----
-
-## Documentation
-
-**Core Documents:**
-- [**Product Requirements Document (PRD)**](docs/prd/) - Complete feature requirements, success metrics, timeline
-- [**Technical Architecture**](docs/architecture/) - Full system design, decisions, tradeoffs, protocols
-- [**Epic List**](docs/prd/epic-list.md) - 13-epic development roadmap (see link for full details)
-
----
-
-## Technical Highlights
-
-| Component | Technology | Decision Rationale |
-|-----------|------------|-------------------|
-| **Communication** | I2C @ 400kHz-1MHz | 5-20ms latency vs 80-200ms WiFi, saves 1000mA |
-| **Modules** | 4× ESP32-S3 (not 5) | Ears+Neck consolidated, Body module added for heart LCD |
-| **ROS2 Nodes** | Pi only (no micro-ROS) | Simpler - ESP32s are smart I2C slaves |
-| **Eye Displays** | GC9A01 Round TFT (SPI) | 60 FPS full-color (240×240) vs OLED monochrome |
-| **Heart Display** | GC9A01 Round TFT (SPI) | Emotion-driven BPM animation (50-120 BPM) |
-| **Servo Control** | Dual UART per ESP32 | Simultaneous control: ears+neck, motors+kickstand |
-| **Motor Control** | ODrive v3.6 closed-loop | Accurate odometry for SLAM (±10cm) |
-| **SLAM** | Google Cartographer | Lighter footprint than RTAB-Map |
-| **Self-Balancing** | 200Hz PID on ESP32 | Pi can't guarantee real-time control |
-| **Power** | 36V hoverboard battery | 2-4 hour runtime with buck converters |
-| **AI Acceleration** | Hailo-8L (13 TOPS) | <200ms local STT vs 1-1.5s cloud |
-| **Projector Power** | Optocoupler | Galvanic isolation for safety |
-
----
-
-## How is the Project Organized?
-
-OLAF uses a **three-layer architecture** that separates AI reasoning, hardware coordination, and real-time control:
+## Architecture
 
 ```
-OLAF/
-├── agents/              # 🧠 AI Agentic Layer (future)
-│                        #    Conversational AI, personality generation, LLM integration
-│                        #    Separated for standalone development and testing
-│
-├── ros2/                # 🤖 ROS2 Orchestration Layer
-│   ├── src/
-│   │   ├── orchestrator/      # Hardware drivers, personality coordination, navigation
-│   │   └── interfaces/        # Custom ROS2 message definitions
-│   └── build/install/log/     # ROS2 build artifacts
-│
-├── firmware/            # ⚡ ESP32 Embedded Layer
-│   ├── head/            # Eyes (2× GC9A01 TFT), presence sensor, audio
-│   ├── ears-neck/       # Ear servos (4×) + neck servos (3×), shared ESP32
-│   ├── body/            # Heart LCD, RGB LEDs, projector control
-│   └── base/            # Self-balancing PID, ODrive motor, kickstand servo
-│
-├── hardware/            # 🔧 Physical Design Layer
-│   ├── 3d-models/       # STL files for 3D printing
-│   ├── bom/             # Bills of materials with supplier links
-│   └── wiring-diagrams/ # Fritzing diagrams, I2C topology
-│
-├── docs/                # 📚 Documentation
-│   ├── prd/             # Product requirements (13 epics)
-│   └── architecture/    # Technical architecture and design decisions
-│
-├── tools/               # 🛠️ Development Utilities
-│   ├── calibration/     # Servo/sensor/IMU calibration scripts
-│   └── diagnostics/     # I2C testing, health checks
-│
-├── tests/               # 🧪 Testing
-│   ├── unit/            # Unit tests (agents, ROS2, firmware)
-│   ├── integration/     # Cross-layer integration tests
-│   └── hardware/        # Hardware-in-the-loop validation
-│
-└── Makefile             # Build convenience commands (make ros-build, etc.)
+┌─────────────────────────────────────────────────────────┐
+│         INTELLIGENCE LAYER (Hybrid AI)                  │
+│  Local: Whisper STT (Hailo) | Cloud: Claude/GPT-4      │
+└────────────────────┬────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│         ORCHESTRATION LAYER                             │
+│  Raspberry Pi 5 16GB + Hailo AI Kit (ROS2)              │
+│  Personality Coordination • SLAM Navigation             │
+└──┬─────┬─────┬──────┬──────┬───────────────────────────┘
+   │     │     │      │      │
+┌──▼──┐┌─▼──┐┌─▼───┐┌─▼───┐┌▼────┐
+│HEAD ││EARS││NECK ││TORSO││BASE │
+│ESP32││    ││     ││     ││     │
+└─────┘└────┘└─────┘└─────┘└─────┘
 ```
 
-### Architecture Philosophy
+**Module Layer:** Independent ESP32-powered modules (I2C communication)
+**Orchestration:** ROS2 on Raspberry Pi 5 + Hailo AI Kit
+**Intelligence:** Hybrid local AI (fast) + cloud agents (reasoning)
 
-**Separation of Concerns (MECE Principle):**
-- **`agents/`** → "What to do" (AI reasoning, decision-making) - *Design in progress*
-- **`ros2/`** → "How to coordinate" (ROS2 nodes, hardware drivers, SLAM)
-- **`firmware/`** → "Real-time execution" (ESP32 embedded control, 60 FPS displays, 200Hz PID)
+## Key Features
 
-**Why This Structure?**
-- ✅ **Onboarding Clarity:** Obvious where to customize for your use case
-- ✅ **Standalone Testing:** Test AI without hardware, test firmware without ROS2
-- ✅ **Tutorial-Friendly:** Self-documenting directories make guides easier to follow
-- ✅ **Community Contributions:** Clear boundaries reduce friction for PRs
+- 🎭 **Multi-channel expression:** OLED eyes, articulated ears/neck, beating heart display, R2D2 beeps
+- 🧠 **Hybrid AI:** Local Whisper STT + cloud agents (Claude/GPT-4)
+- 🔧 **Modular MECE architecture:** Weekend-sprint development, independent testing
+- 📄 **Physical outputs:** Floor projection + thermal printer for lists/reminders
+- 🚶 **Mobile:** Self-balancing base with SLAM navigation
+- 📖 **Fully open:** Complete build docs, 3D files, wiring diagrams, code
 
-📖 **[Full Structure Details](docs/architecture/source-tree.md)** - Comprehensive guide with file paths and workflows
+## The Movement
 
----
+This is the **Linux moment for physical AI**—open, collaborative, human-centric.
+
+Build yours. Customize it for your needs: church assistant, teaching companion, eldercare helper. Join the community making embodied AI accessible.
 
 ## Current Status
 
-**Development Timeline**: 28-39 weeks (7-10 months of weekend development)
-**Budget**: ~$1000 USD (configurable: $400 minimal to $1000 full-featured)
-**Build Approach**: Weekly progress updates with full transparency
+✅ **Week 20:** Physical foundation complete (blinking cyan eyes!)
+🔄 **Next:** AI intelligence layer integration
+📅 **Follow:** Weekly progress updates on [LinkedIn](https://www.linkedin.com/in/kamal-singh)
 
-**Milestones:**
-- ✅ PRD and technical architecture complete
-- ✅ 13-epic roadmap defined (design-first approach)
-- ✅ 4-module I2C architecture finalized
-- ✅ Epic 01: All 11 stories drafted and ready for implementation
-- 🟡 Component sourcing (in progress)
-- ⏳ Epic 01: Foundation & I2C Communication (ready to start)
+## Documentation
 
----
+- **[Project Brief](documentation/brief.md)** - Detailed architecture, MVP scope, technical decisions
+- **Build Logs** - Coming soon
+- **3D Models** - Coming soon
+- **Wiring Diagrams** - Coming soon
 
-## Build-in-Public
+## Built In Public
 
-OLAF development follows complete transparency - documenting every decision, success, and failure:
+Progress shared weekly. Successes, failures, learnings—all documented transparently.
 
-- **Weekly LinkedIn posts** (2-3/week) - Progress updates, technical deep-dives, lessons learned
-- **Epic milestone videos** (12 videos, 1 per epic) - Demonstrations and technical explanations
-- **Reddit engagement** (1/week) - Community discussions and technical Q&A
-- **GitHub activity** - All code, documentation, issues, discussions public from day one
-
-This isn't just about building a robot - it's about proving that **individual builders can create sophisticated AI companions** and sharing that knowledge to enable a community.
+**Why?** To prove anyone can create their own JARVIS/R2D2 and build the community they can refer to for guidance.
 
 ---
 
-## Tech Stack Summary
-
-- **Robotics Framework**: ROS2 Humble (LTS until 2027)
-- **Orchestrator**: Python 3.11 on Raspberry Pi OS 64-bit (Debian 12)
-- **Firmware**: C++17 with Arduino/PlatformIO for ESP32-S3
-- **AI**: Hailo Whisper (local) + Claude 3.5 Sonnet (cloud)
-- **SLAM**: Google Cartographer + Nav2
-- **Database**: SQLite for conversation history
-- **OTA**: Flask HTTP server for wireless ESP32 firmware updates
-- **Displays**: GC9A01 Round TFT (1.28", 240×240, SPI, 60 FPS)
-- **Servos**: Feetech SCS0009 (ears) + STS3215 (neck, kickstand) via UART bus
+**License:** Open Source (TBD: MIT or Apache 2.0)
+**Builder:** [Kamal Singh](https://www.linkedin.com/in/kamal-singh)
+**Tags:** #BuildInPublic #Robotics #ROS2 #PhysicalAI #OpenSource #MakerMovement
 
 ---
 
-## Architecture Overview
-
-### 4-Module I2C Architecture
-
-```
-┌─────────────────────────────────────────┐
-│    ORCHESTRATION (Raspberry Pi 5)      │
-│         ROS2 Humble + Hailo-8L          │
-└──┬─────────┬─────────┬─────────┬────────┘
-   │ I2C     │ I2C     │ I2C     │ I2C
-   │ 0x08    │ 0x09    │ 0x0A    │ 0x0B
-   ↓         ↓         ↓         ↓
-┌──────┐ ┌──────────┐ ┌──────┐ ┌──────┐
-│ HEAD │ │EARS+NECK │ │ BODY │ │ BASE │
-│ESP32 │ │  ESP32   │ │ESP32 │ │ESP32 │
-└──┬───┘ └─┬────┬───┘ └─┬──┬─┘ └─┬──┬─┘
-   │ SPI   │    │       │  │     │  │
-   │       │    │       │  │     │  │
-   ↓       ↓    ↓       ↓  ↓     ↓  ↓
- Eyes   Ears Neck    Heart LEDs ODrv Stand
-(GC9A01) (4×) (3×)  (GC9A01)    (UART)(UART)
-```
-
-**Communication Protocols:**
-- **I2C**: Pi ↔ All ESP32-S3 modules (commands, sensor data, 5-20ms latency)
-- **SPI**: ESP32 → GC9A01 displays (eyes + heart, 60 FPS rendering)
-- **UART**: ESP32 → servo controllers, motor controllers (dual UART per module)
-- **WiFi**: Pi → Cloud AI APIs only (Claude/GPT-4)
-
----
-
-## Getting Started
-
-> **Note**: OLAF is in early development (Epic 01). Complete build guides will be published as each epic is completed.
-
-**Prerequisites for builders:**
-- Soldering experience
-- 3D printer access
-- Basic electronics and programming knowledge
-- Budget: ~$400-1000 (configurable based on component choices)
-
-**Configuration Tiers:**
-- **Minimal OLAF (~$400)**: Head (eyes, mic, speaker) + Ears + Neck + Body (heart LCD) - Personality focus
-- **Standard OLAF (~$700)**: Minimal + Hoverboard base + Basic RGBD camera - Adds mobility
-- **Full OLAF (~$1000)**: Standard + Floor projector + High-quality RGBD camera - Complete feature set
-
----
-
-### Development Setup
-
-📖 **[Setup Instructions](docs/user-guide/setup-instructions.md)** - Complete guide to hybrid PC+Pi development workflow
-
-**Quick Start (from project root):**
-```bash
-# Build ROS2 packages
-make ros-build
-
-# Launch full system
-make ros-launch
-
-# Build and upload firmware to head module
-make firmware-head
-
-# Run tests
-make test
-
-# See all commands
-make help
-```
-
-**Development Workflow:**
-- Develop on your PC (runs application nodes)
-- Raspberry Pi handles hardware (runs driver nodes for I2C communication)
-- They talk over WiFi via ROS2
-- Deploy to Pi for production—same code, zero changes
-
----
-
-## Contributing
-
-OLAF welcomes contributions from the builder community! Once the core framework is proven (post-Epic 01), contributions can include:
-
-- Building your own OLAF variant and sharing improvements
-- Creating additional modules following the architecture
-- Enhancing documentation and tutorials
-- Reporting issues and suggesting features
-- Sharing integration guides for new hardware
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines (coming soon).
-
----
-
-## Inspiration
-
-- **R2D2** (Star Wars) - Expressive non-verbal communication through beeps and movement
-- **Chappie** (Film) - Articulated ears and emotional personality development
-- **Wall-E** (Film) - Personality conveyed through motion and sound design
-- **Linux Movement** - Community-driven open-source alternative to commercial products
-
----
-
-## License
-
-MIT License - See [LICENSE](LICENSE) for details.
-
----
-
-## Follow the Journey
-
-- **GitHub Issues**: Questions, discussions, and feature requests welcome
-- **LinkedIn**: Weekly progress updates and physical AI insights
-- **YouTube**: Epic milestone demonstrations and technical deep-dives (12 videos planned)
-- **Reddit**: r/robotics, r/ROS, r/DIYrobotics community engagement
-
----
-
-*"The Linux moment for physical AI - proving embodied intelligence belongs to builders, not just consumers."*
-
-**Latest Update**: October 2025 | **Current Epic**: 01 - Foundation & I2C Communication (Stories 1.1-1.11 drafted)
+<p align="center">
+  <i>"Feel alive first, be useful second."</i>
+</p>

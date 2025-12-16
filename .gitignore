@@ -7,6 +7,9 @@
 # Ignore content drafts (LinkedIn posts, videos, etc.)
 .content/
 
+# Archive folder for old project files
+archive/
+
 # Python
 __pycache__/
 *.py[cod]

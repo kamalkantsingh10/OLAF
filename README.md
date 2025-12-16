@@ -10,15 +10,15 @@
 <table>
   <tr>
     <td width="33%" align="center">
-      <img src="documentation/media/sketch.jpeg" alt="Week 0: Initial Sketch" width="100%"><br>
+      <img src="docs/media/sketch.jpeg" alt="Week 0: Initial Sketch" width="100%"><br>
       <b>Week 0</b><br>Initial concept sketch
     </td>
     <td width="33%" align="center">
-      <img src="documentation/media/cad-design.webp" alt="Week 8: CAD Design" width="100%"><br>
+      <img src="docs/media/cad-design.webp" alt="Week 8: CAD Design" width="100%"><br>
       <b>Week 8</b><br>3D CAD design complete
     </td>
     <td width="33%" align="center">
-      <img src="documentation/media/current.jpeg" alt="Week 20: First Module Working" width="100%"><br>
+      <img src="docs/media/current.jpeg" alt="Week 20: First Module Working" width="100%"><br>
       <b>Week 20</b><br>First light! Eyes blinking (build in progress)
     </td>
   </tr>

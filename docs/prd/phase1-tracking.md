@@ -98,7 +98,7 @@
 | 3.2 | Design Torso Custom PCB in Fritzing | ⬜ Not Started | | | |
 | 3.3 | Order and Receive Torso PCB from Elecrow | ⬜ Not Started | | | Order #: |
 | 3.4 | Assemble and Test Torso PCB | ⬜ Not Started | | | |
-| 3.5 | Design and 3D Print Torso Enclosure with Pi Housing | ⬜ Not Started | | | Ensure cooling! |
+| 3.5 | Assemble Torso Enclosure with Kitchen Bin and Metal Reinforcement | ⬜ Not Started | | | Kitchen bin + metal bars |
 | 3.6 | Develop Torso ESP32 Firmware | ⬜ Not Started | | | |
 | 3.7 | Create Torso ROS2 Driver Node | ⬜ Not Started | | | |
 | 3.8 | Install and Configure Raspberry Pi 5 in Torso Module | ⬜ Not Started | | | |
@@ -128,7 +128,7 @@
 | 4.4 | Design Base Custom PCB in Fritzing | ⬜ Not Started | | | 2oz copper! |
 | 4.5 | Order and Receive Base PCB from Elecrow | ⬜ Not Started | | | Order #: |
 | 4.6 | Assemble and Test Base PCB | ⬜ Not Started | | | SAFETY FIRST! |
-| 4.7 | Design and 3D Print Base Platform and Motor Mounts | ⬜ Not Started | | | High infill needed |
+| 4.7 | Assemble Base Platform with Skateboard Suspension | ⬜ Not Started | | | Iron trucks for wheels |
 | 4.8 | Configure ODrive for Hoverboard Motors | ⬜ Not Started | | | ODrive model: |
 | 4.9 | Develop Base ESP32 Firmware with 200Hz Balancing PID | ⬜ Not Started | | | |
 | 4.10 | Fine-Tune Self-Balancing PID Parameters | ⬜ Not Started | | | PID tuning log |
@@ -204,9 +204,12 @@
 | Thermal Printer | | | | |
 | ODrive Controller | | | | |
 | Buck Converters | | | | |
-| 3D Printing Filament | | | | |
+| 3D Printing Filament | | | | Head+Ears, Neck only |
+| Kitchen Bin (Torso) | | | | Durable plastic |
+| Skateboard Suspension (Base) | | | | Iron trucks |
+| Metal Flat Bars | | | | Steel/aluminum |
 | Electronic Components | | | | Resistors, caps, etc. |
-| Mechanical Parts | | | | Fasteners, metal stock |
+| Mechanical Parts | | | | Fasteners, hardware |
 | Misc/Contingency | | | | |
 | **TOTAL** | | | | |
 

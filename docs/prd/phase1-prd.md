@@ -140,11 +140,12 @@ The **ROS2 foundation** setup happens first, establishing the orchestration laye
 - **Manufacturer**: Elecrow (China) for cost-effective fabrication
 - **Copper Weight**: 2oz copper for high-current power traces on Base module PCB
 
-**3D Modeling**:
-- **Software**: OnShape (cloud-based CAD, version controlled)
-- **Printer**: Standard FDM (Prusa, Ender 3, or equivalent)
+**Mechanical Construction**:
+- **3D Printing**: OnShape for CAD design, standard FDM printer (Prusa, Ender 3, or equivalent) for Head+Ears and Neck modules
+- **Torso Enclosure**: Kitchen bin (durable plastic) reinforced with metal flat bars (steel/aluminum)
+- **Base Platform**: Skateboard suspension (iron trucks) for mounting hoverboard wheels
 
-**Rationale**: Tools chosen for maker accessibility (Fritzing easier than KiCad for beginners), cost optimization (Elecrow competitive pricing), proven hoverboard components for self-balancing, and build-in-public workflow (OnShape cloud collaboration).
+**Rationale**: Tools chosen for maker accessibility (Fritzing easier than KiCad for beginners), cost optimization (Elecrow competitive pricing), proven hoverboard components for self-balancing, practical off-the-shelf materials (kitchen bin, skateboard suspension) reduce fabrication complexity while providing durability.
 
 ### Software Stack
 
@@ -201,10 +202,10 @@ Complete Head+Ears module (I2C 0x08) from breadboard prototype through PCB fabri
 Complete Neck module (I2C 0x09) with 3-DOF servo array (pan/tilt/roll), kickstand servo (daisy-chained STS3215 with metal structural components), 2× presence sensors, ESP32 firmware, ROS2 driver node, and mounting to robot frame. Kickstand enables stationary mode vs balancing mode.
 
 **Epic 3: Torso Module Build**
-Complete Torso module (I2C 0x0A) housing Raspberry Pi 5 + Hailo AI Kit, 2.8" square heart display (SPI), thermal printer, ESP32 firmware, ROS2 driver node, and mounting to robot frame. This module is the compute hub, receiving power from Base module.
+Complete Torso module (I2C 0x0A) housing Raspberry Pi 5 + Hailo AI Kit, 2.8" square heart display (SPI), thermal printer, ESP32 firmware, ROS2 driver node, and mounting to robot frame. Enclosure assembled from durable kitchen bin reinforced with metal flat bars. This module is the compute hub, receiving power from Base module.
 
 **Epic 4: Base Module Build**
-Complete Base module (I2C 0x0B) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors), ODrive motor controller, MPU6050 IMU, 200Hz PID control loop, power distribution system (36V → 12V/5V/3.3V), ESP32 firmware, ROS2 driver node, and mounting to robot frame. Achieves basic fine-tuned balancing capability and powers all modules.
+Complete Base module (I2C 0x0B) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors) mounted on skateboard suspension (iron trucks), ODrive motor controller, MPU6050 IMU, 200Hz PID control loop, power distribution system (36V → 12V/5V/3.3V), ESP32 firmware, ROS2 driver node, and assembly to robot frame. Achieves basic fine-tuned balancing capability and powers all modules.
 
 **Epic 5: End-to-End Demo Script**
 Create simple ROS2 Python script demonstrating coordinated multi-module operation: **deploy kickstand, blink eyes, move ears, tilt head, animate heart, retract kickstand, and balance base**—all triggered via ROS2 topic publishes. Validates Phase 1 completion: all modules respond to software commands.
@@ -543,7 +544,7 @@ Create simple ROS2 Python script demonstrating coordinated multi-module operatio
 
 ## Epic 3: Torso Module Build
 
-**Goal**: Complete the Torso module (I2C 0x0A) housing Raspberry Pi 5 + Hailo AI Kit, 2.8" square heart display (SPI), and thermal printer. This module is the compute hub for the robot, hosting the ROS2 orchestration layer and personality display elements. Power is received from Base module via cable.
+**Goal**: Complete the Torso module (I2C 0x0A) housing Raspberry Pi 5 + Hailo AI Kit, 2.8" square heart display (SPI), and thermal printer. Enclosure assembled from durable kitchen bin reinforced with metal flat bars. This module is the compute hub for the robot, hosting the ROS2 orchestration layer and personality display elements. Power is received from Base module via cable.
 
 ### Story 3.1: Breadboard Torso Components and Test Connectivity
 
@@ -600,22 +601,22 @@ Create simple ROS2 Python script demonstrating coordinated multi-module operatio
 5. Component-level tests pass: display shows animations, printer outputs test page
 6. PCB mounted on temporary test fixture for firmware development
 
-### Story 3.5: Design and 3D Print Torso Enclosure with Pi Housing
+### Story 3.5: Assemble Torso Enclosure with Kitchen Bin and Metal Reinforcement
 
 **As a** builder,
-**I want** 3D printed enclosure designed in OnShape to house Raspberry Pi 5, Torso PCB, display, and printer,
-**so that** all components are protected and organized in the robot's torso.
+**I want** a durable kitchen bin enclosure reinforced with metal flat bars to house Raspberry Pi 5, Torso PCB, display, and printer,
+**so that** all components are protected and organized in the robot's torso with a strong, practical structure.
 
 **Acceptance Criteria:**
-1. OnShape CAD model created for Torso enclosure with compartments for: Raspberry Pi 5 + Hailo Kit, Torso PCB, 2.8" display (front-facing), thermal printer (accessible output slot)
-2. Design includes ventilation for Pi and Hailo Kit thermal management (heat sinks, airflow channels)
-3. Design includes cable routing channels for internal wiring and external connections (power from Base, I2C bus, USB peripherals, HDMI to Head+Ears)
-4. Design includes mounting points for robot frame attachment (likely top connection to Neck, bottom to Base)
-5. Display is front-facing and visible; printer output slot allows paper to exit
-6. Power input connector is accessible from Base module
-7. STL files exported for 3D printing
-8. Parts printed on FDM printer with appropriate settings (layer height, infill, supports)
-9. Printed parts fit together with all components (Pi, PCB, display, printer) and provide adequate cooling
+1. Kitchen bin selected with appropriate size for: Raspberry Pi 5 + Hailo Kit, Torso PCB, 2.8" display (front-facing), thermal printer (accessible output slot)
+2. Metal flat bars sourced (steel or aluminum) for structural reinforcement
+3. Ventilation holes cut/drilled for Pi and Hailo Kit thermal management (heat sinks, airflow)
+4. Cutouts made for: front-facing display, thermal printer output slot, power input, cable routing (I2C bus, USB peripherals, HDMI to Head+Ears)
+5. Metal flat bars attached to kitchen bin for reinforcement (epoxy, bolts, or rivets)
+6. Mounting brackets/points fabricated for robot frame attachment (top connection to Neck, bottom to Base)
+7. Internal mounting system created for Pi, PCB, display, and printer (standoffs, brackets)
+8. Power input connector accessible from Base module
+9. All components fit in enclosure with adequate cooling and cable management
 10. Assembly instructions drafted with photos (saved as `modules/torso/assembly.md`)
 
 ### Story 3.6: Develop Torso ESP32 Firmware
@@ -684,7 +685,7 @@ Create simple ROS2 Python script demonstrating coordinated multi-module operatio
 
 ## Epic 4: Base Module Build
 
-**Goal**: Complete the Base module (I2C 0x0B) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors), ODrive motor controller, MPU6050 IMU, 200Hz PID control loop, power distribution system (36V → 12V/5V/3.3V), ESP32 firmware, ROS2 driver node, and mounting to robot frame. This module provides mobility, balancing, and powers all other modules.
+**Goal**: Complete the Base module (I2C 0x0B) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors) mounted on skateboard suspension (iron trucks), ODrive motor controller, MPU6050 IMU, 200Hz PID control loop, power distribution system (36V → 12V/5V/3.3V), ESP32 firmware, ROS2 driver node, and assembly to robot frame. This module provides mobility, balancing, and powers all other modules.
 
 ### Story 4.1: Source and Disassemble Hoverboard for Parts
 
@@ -781,22 +782,22 @@ Create simple ROS2 Python script demonstrating coordinated multi-module operatio
 6. Component-level tests pass: IMU provides readings, ODrive responds to UART commands, motors spin under control, all power rails stable under load
 7. PCB mounted on temporary test fixture for firmware development
 
-### Story 4.7: Design and 3D Print Base Platform and Motor Mounts
+### Story 4.7: Assemble Base Platform with Skateboard Suspension
 
 **As a** builder,
-**I want** 3D printed platform, motor mounts, and battery enclosure designed in OnShape,
-**so that** I can mount motors, battery, PCB, and ODrive to create the mobile base.
+**I want** skateboard suspension (iron trucks) to mount hoverboard wheels and create a stable mobile base platform,
+**so that** I can mount motors, battery, PCB, and ODrive with a durable, proven mounting system.
 
 **Acceptance Criteria:**
-1. OnShape CAD model created for Base platform with space for: Base PCB, ODrive controller, 36V battery pack, motor mounts (left/right), caster wheel or kickstand support area
-2. Motor mounts designed to securely hold hoverboard motors with proper alignment (parallel axles, correct wheel spacing)
-3. Battery enclosure or mounting bracket designed with secure retention and access for charging
-4. Platform includes mounting points for Torso module connection (top surface)
-5. Design ensures proper weight distribution (battery low, centered)
-6. Cable routing channels included for motor phase wires, power distribution, I2C bus
-7. STL files exported for 3D printing
-8. Parts printed on FDM printer with appropriate settings (consider high infill for structural parts)
-9. Printed parts fit together with PCB, ODrive, battery, motors and provide stable base
+1. Skateboard suspension/trucks sourced (iron construction) compatible with hoverboard wheel mounting
+2. Hoverboard wheels mounted to skateboard trucks with proper alignment (parallel axles, correct wheel spacing)
+3. Base platform designed/fabricated for: Base PCB, ODrive controller, 36V battery pack, mounting to skateboard suspension
+4. Battery mounting bracket fabricated with secure retention and access for charging
+5. Platform includes mounting points for Torso module connection (top surface)
+6. Design ensures proper weight distribution (battery low, centered)
+7. Cable routing planned for motor phase wires, power distribution, I2C bus
+8. All components (PCB, ODrive, battery) mounted to platform and secured to skateboard suspension
+9. Platform mechanically stable, wheels spin freely, no wobble or misalignment
 10. Assembly instructions drafted with photos (saved as `modules/base/assembly.md`)
 
 ### Story 4.8: Configure ODrive for Hoverboard Motors

@@ -1,14 +1,11 @@
-# 🤖 OLAF - Open Lovable AI Friend
+# 🤖 OLAF
 
 **An open-source AI companion robot. Built in public.**
 
-<p align="center">
-  <i>The tools to build your own JARVIS or R2D2 are finally here.</i>
-</p>
 
----
 
-## The Journey: 20 Weeks from Sketch to Prototype
+
+## The Journey: 20 Weeks and Counting
 
 <table>
   <tr>
@@ -21,13 +18,13 @@
       <b>Week 8</b><br>3D CAD design complete
     </td>
     <td width="33%" align="center">
-      <img src="documentation/media/current.jpeg" alt="Week 20: Working Prototype" width="100%"><br>
-      <b>Week 20</b><br>First light: cyan eyes blinking!
+      <img src="documentation/media/current.jpeg" alt="Week 20: First Module Working" width="100%"><br>
+      <b>Week 20</b><br>First light! Eyes blinking (build in progress)
     </td>
   </tr>
 </table>
 
-Built while relocating cities and starting a new job. From basic CAD knowledge to complex assemblies. From zero ROS2 experience to module orchestration. All with AI coding assistants accelerating development.
+**An active build-in-public project.** Built while relocating cities and starting a new job. Learning CAD, ROS2, embedded systems, and AI integration as I go—all with AI coding assistants accelerating development. The journey continues!
 
 ---
 
@@ -238,24 +235,32 @@ Each module owns its domain exclusively—no cross-dependencies. All powered by 
 
 ## Current Status
 
-**✅ Completed (Week 20):**
-- Physical foundation: All 5 modules designed, 3D printed, assembled
-- Head module: OLED eyes working, animated expressions functional
-- First light: Cyan eyes blinking with personality!
-- Modular I2C architecture validated
-- Basic ROS2 communication established
+**🔄 Active Development (Week 20):**
 
-**🔄 In Progress:**
-- AI intelligence layer integration (Hailo Whisper STT deployment)
-- Personality coordinator node (coordinated expression system)
-- SLAM navigation setup (Cartographer configuration)
-- Base balancing PID tuning (200Hz control loop optimization)
+This is a work-in-progress build. The journey from sketch to functioning robot continues!
 
-**📅 Next Milestones:**
-- Week 22: Voice command → coordinated expression working end-to-end
-- Week 24: SLAM navigation functional (autonomous movement)
-- Week 26: Thermal printer integration (physical list output)
-- Week 28: Complete V1 integration testing
+**What's Working:**
+- ✅ Head module: OLED eyes blinking with cyan animations
+- ✅ 3D CAD design complete for all modules
+- ✅ Initial firmware for head module operational
+- ✅ Modular architecture validated conceptually
+
+**Currently Building:**
+- 🔨 Physical assembly of remaining modules (ears, neck, torso, base)
+- 🔨 3D printing and fitting parts
+- 🔨 ESP32 firmware development for each module
+- 🔨 I2C communication between modules
+- 🔨 ROS2 integration layer
+
+**Not Yet Started:**
+- ⏳ AI intelligence layer integration (Hailo Whisper STT)
+- ⏳ Personality coordinator (coordinated expression across modules)
+- ⏳ SLAM navigation
+- ⏳ Self-balancing base with PID tuning
+- ⏳ Thermal printer integration
+
+**Realistic Timeline:**
+This is a complex build being done in spare time while working full-time. Progress is incremental, iterative, and fully documented as it happens.
 
 ---
 

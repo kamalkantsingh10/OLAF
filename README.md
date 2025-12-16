@@ -193,45 +193,6 @@ Each module owns its domain exclusively—no cross-dependencies. All powered by 
 
 ---
 
-## The Learning Journey
-
-**Skills progression over 20 weeks:**
-
-| Week 0 | Week 20 |
-|--------|---------|
-| Basic CAD knowledge | Complex multi-part assemblies in OnShape |
-| Zero ROS2 experience | Module orchestration, custom ROS2 nodes |
-| Solo debugging | AI-assisted development (Claude as coding partner) |
-| Breadboard prototypes | Custom PCB designs, 3D printed enclosures |
-| Single-threaded scripts | Real-time 200Hz PID control loops |
-
-**Key learnings:**
-- **Modularity is king:** MECE architecture enabled parallel development
-- **AI coding assistants are game-changers:** 10x faster iteration, instant debugging help
-- **Physical AI is hard but doable:** Barriers to entry have genuinely lowered
-- **Build in public accountability:** Weekly posts forced consistent progress
-
----
-
-## Build In Public Philosophy
-
-**Why share everything transparently?**
-
-1. **Proof of concept:** Demonstrate that anyone passionate can build advanced robotics at home
-2. **Community infrastructure:** Create the resource I wish existed when I started
-3. **Authentic learning:** Share failures and trade-offs, not just polished results
-4. **Movement building:** This is the **Linux moment for physical AI**—open collaboration beats closed corporate systems
-
-**What "built in public" means:**
-- ✅ Weekly LinkedIn progress posts (successes + failures)
-- ✅ Complete documentation (3D files, wiring diagrams, BOM, setup guides)
-- ✅ Open-source code (firmware, ROS2 packages, orchestration engine)
-- ✅ Build logs documenting decisions, iterations, dead ends
-- ✅ Community collaboration (pull requests welcome, forks encouraged)
-
-**The goal:** Prove that the future of embodied AI belongs to builders. Enable others to create their own companions—customized for their needs (church assistant, teaching companion, eldercare helper, lab automation).
-
----
 
 ## Current Status
 
@@ -262,45 +223,6 @@ This is a work-in-progress build. The journey from sketch to functioning robot c
 **Realistic Timeline:**
 This is a complex build being done in spare time while working full-time. Progress is incremental, iterative, and fully documented as it happens.
 
----
-
-## Getting Started (For Builders)
-
-**Prerequisites:**
-- Basic soldering skills
-- 3D printer access (personal or makerspace)
-- Comfort with Python and basic C/C++
-- Raspberry Pi 5 + ESP32 development boards
-
-**Quick Start:**
-1. **Read the [Project Brief](documentation/brief.md)** - Understand architecture, MVP scope, technical decisions
-2. **Clone the repo** - `git clone https://github.com/kamalkantsingh10/OLAF.git`
-3. **Start with one module** - Head module is recommended (eyes + personality foundation)
-4. **Join the community** - Follow on [LinkedIn](https://www.linkedin.com/in/kamal-singh) for weekly updates
-
-**Coming Soon:**
-- Detailed build guides (step-by-step per module)
-- 3D print files (STL with recommended settings)
-- Bill of Materials (BOM with supplier links)
-- Wiring diagrams (Fritzing + visual guides)
-- Setup scripts (automated environment setup)
-
----
-
-## Community & Contributions
-
-**How to contribute:**
-- 🐛 Report issues or suggest features via GitHub Issues
-- 🔧 Submit pull requests (bug fixes, improvements, new modules)
-- 📖 Improve documentation (tutorials, troubleshooting guides)
-- 🎨 Share your build (fork OLAF, customize, show us!)
-- 💬 Join discussions (comment on LinkedIn posts, ask questions)
-
-**Philosophy:**
-- Beginners welcome—we all started somewhere
-- Questions are encouraged—"stupid questions" don't exist
-- Failures are learning opportunities—share what didn't work
-- Diversity of approaches—your way might be better than mine
 
 ---
 

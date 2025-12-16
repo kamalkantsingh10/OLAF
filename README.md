@@ -3,102 +3,337 @@
 **An open-source AI companion robot. Built in public.**
 
 <p align="center">
-  <img src="documentation/media/olaf-concept-angle.webp" alt="OLAF 3D Concept Design" width="600">
-</p>
-
-<p align="center">
   <i>The tools to build your own JARVIS or R2D2 are finally here.</i>
 </p>
 
 ---
 
-## What is OLAF?
+## The Journey: 20 Weeks from Sketch to Prototype
 
-OLAF is a personality-first robotics framework that brings AI agents to physical life. A 2-3 foot tall companion with R2D2 charm meets modern AI capabilities—expressive eyes, articulated ears, animated heart display, and floor projection.
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <img src="documentation/media/sketch.jpeg" alt="Week 0: Initial Sketch" width="100%"><br>
+      <b>Week 0</b><br>Initial concept sketch
+    </td>
+    <td width="33%" align="center">
+      <img src="documentation/media/cad-design.webp" alt="Week 8: CAD Design" width="100%"><br>
+      <b>Week 8</b><br>3D CAD design complete
+    </td>
+    <td width="33%" align="center">
+      <img src="documentation/media/current.jpeg" alt="Week 20: Working Prototype" width="100%"><br>
+      <b>Week 20</b><br>First light: cyan eyes blinking!
+    </td>
+  </tr>
+</table>
 
-**This is not another voice assistant.** When you BUILD your AI companion, it becomes a partner, not a servant.
-
-## Why OLAF?
-
-AI assistants (Alexa, Siri, ChatGPT) are trapped in screens and speakers. Meanwhile, building physical AI with personality forces impossible choices: expensive commercial robots, purely utilitarian platforms, or simple hobbyist kits.
-
-**The gap:** No open-source framework exists for embodied AI with personality that's maker-accessible.
-
-**The opportunity:** 3D printers, powerful LLMs, modern SBCs, AI coding assistants—everything needed is finally accessible. This is the democratization moment. The future of embodied AI belongs to builders.
-
-## The Build
-
-**20 weeks:** From sketch → functioning prototype
-**5 Modules:** Head, Ears, Neck, Torso, Base (all ESP32-powered)
-**Built while:** Relocating cities + starting new job
-**Status:** Physical foundation complete, integrating AI intelligence layer next
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│         INTELLIGENCE LAYER (Hybrid AI)                  │
-│  Local: Whisper STT (Hailo) | Cloud: Claude/GPT-4      │
-└────────────────────┬────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────┐
-│         ORCHESTRATION LAYER                             │
-│  Raspberry Pi 5 16GB + Hailo AI Kit (ROS2)              │
-│  Personality Coordination • SLAM Navigation             │
-└──┬─────┬─────┬──────┬──────┬───────────────────────────┘
-   │     │     │      │      │
-┌──▼──┐┌─▼──┐┌─▼───┐┌─▼───┐┌▼────┐
-│HEAD ││EARS││NECK ││TORSO││BASE │
-│ESP32││    ││     ││     ││     │
-└─────┘└────┘└─────┘└─────┘└─────┘
-```
-
-**Module Layer:** Independent ESP32-powered modules (I2C communication)
-**Orchestration:** ROS2 on Raspberry Pi 5 + Hailo AI Kit
-**Intelligence:** Hybrid local AI (fast) + cloud agents (reasoning)
-
-## Key Features
-
-- 🎭 **Multi-channel expression:** OLED eyes, articulated ears/neck, beating heart display, R2D2 beeps
-- 🧠 **Hybrid AI:** Local Whisper STT + cloud agents (Claude/GPT-4)
-- 🔧 **Modular MECE architecture:** Weekend-sprint development, independent testing
-- 📄 **Physical outputs:** Floor projection + thermal printer for lists/reminders
-- 🚶 **Mobile:** Self-balancing base with SLAM navigation
-- 📖 **Fully open:** Complete build docs, 3D files, wiring diagrams, code
-
-## The Movement
-
-This is the **Linux moment for physical AI**—open, collaborative, human-centric.
-
-Build yours. Customize it for your needs: church assistant, teaching companion, eldercare helper. Join the community making embodied AI accessible.
-
-## Current Status
-
-✅ **Week 20:** Physical foundation complete (blinking cyan eyes!)
-🔄 **Next:** AI intelligence layer integration
-📅 **Follow:** Weekly progress updates on [LinkedIn](https://www.linkedin.com/in/kamal-singh)
-
-## Documentation
-
-- **[Project Brief](documentation/brief.md)** - Detailed architecture, MVP scope, technical decisions
-- **Build Logs** - Coming soon
-- **3D Models** - Coming soon
-- **Wiring Diagrams** - Coming soon
-
-## Built In Public
-
-Progress shared weekly. Successes, failures, learnings—all documented transparently.
-
-**Why?** To prove anyone can create their own JARVIS/R2D2 and build the community they can refer to for guidance.
+Built while relocating cities and starting a new job. From basic CAD knowledge to complex assemblies. From zero ROS2 experience to module orchestration. All with AI coding assistants accelerating development.
 
 ---
 
+## What is OLAF?
+
+OLAF (Open Lovable AI Friend) is a **personality-first robotics framework** that brings AI agents into physical form. Think R2D2's charm meeting modern AI capabilities—a 2-3 foot tall companion that communicates through expressive OLED eyes, articulated ears (Chappie-inspired), animated heart display, R2D2-style beeps, and floor projection for information display.
+
+**This is not another voice assistant in a box.**
+
+When you BUILD your AI companion, something fundamental changes. It becomes a partner, not a servant. JARVIS challenges Tony Stark's ideas. R2D2 takes initiative. The difference? Tony BUILT JARVIS. Luke CHOSE R2D2 and they grew together. **Building creates relationship, and relationship enables true collaboration.**
+
+---
+
+## The Problem We're Solving
+
+AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remain fundamentally **disembodied**—trapped in screens and speakers. Meanwhile, building physical AI with personality forces impossible choices:
+
+| Option | What You Get | What You Lose |
+|--------|-------------|---------------|
+| **Commercial robots** (Boston Dynamics, Vector) | Polish, capability | $1000s+, closed-source, no customization |
+| **Educational platforms** (Poppy, Niryo) | Modularity, learning | AI integration, personality, high cost |
+| **ROS2 robots** (Linorobot2, Andino) | Excellent navigation | Zero personality, assistant features |
+| **Hobbyist kits** (Otto DIY) | Affordable, charming | Limited capabilities, no AI |
+| **Closed AI robots** (HIWONDER) | AI + robotics bridge | Generic design, closed ecosystem |
+
+**The Core Gap:** No open-source framework integrates modular architecture + AI conversation + personality expression + practical assistance + maker-accessible approach + community ecosystem.
+
+**The Opportunity:** All the pieces are finally here—3D printers, powerful LLMs, modern SBCs (Raspberry Pi 5), AI coding assistants, local AI accelerators (Hailo). **This is the democratization moment.** The future of embodied AI belongs to builders, not just consumers.
+
+---
+
+## Architecture: Three Layers, Five Modules
+
+### The Three-Layer Design
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              INTELLIGENCE LAYER (Hybrid AI)                     │
+│                                                                 │
+│  Local AI (Hailo-accelerated):                                 │
+│    • Whisper STT (<200ms latency)                              │
+│    • Real-time vision processing                               │
+│                                                                 │
+│  Cloud AI Agents (Claude/GPT-4):                               │
+│    • Natural language understanding                            │
+│    • Complex reasoning & decision-making                       │
+│    • Tool use, function calling, multi-step planning           │
+│                                                                 │
+└──────────────────────┬──────────────────────────────────────────┘
+                       │ HTTPS/REST + Local Inference
+                       │
+┌──────────────────────▼──────────────────────────────────────────┐
+│              ORCHESTRATION LAYER                                │
+│         Raspberry Pi 5 16GB + Hailo AI Kit (26 TOPS)            │
+│                     Python • ROS2 Humble                        │
+│                                                                 │
+│  • Personality Coordinator (sync eyes/ears/neck/heart/beeps)   │
+│  • AI Agent Orchestration (tool routing, context management)   │
+│  • SLAM Navigation (Cartographer)                              │
+│  • Sensor Fusion & State Management                            │
+│  • Module Discovery (I2C communication)                        │
+│                                                                 │
+└──┬──────┬──────┬──────┬──────┬───────────────────────────────┘
+   │      │      │      │      │ ROS2 Topics (pub/sub)
+   │      │      │      │      │ I2C Physical Backbone
+   │      │      │      │      │
+┌──▼───┐┌─▼───┐┌─▼────┐┌─▼────┐┌▼──────────┐
+│ HEAD ││EARS ││ NECK ││TORSO ││   BASE    │
+│      ││     ││      ││      ││           │
+│ESP32 ││ESP32││ESP32 ││ESP32 ││   ESP32   │
+└──────┘└─────┘└──────┘└──────┘└───────────┘
+```
+
+### The Five Modules (MECE Principle)
+
+Each module owns its domain exclusively—no cross-dependencies. All powered by ESP32 microcontrollers acting as smart I2C peripherals.
+
+**1. HEAD Module**
+- **Hardware:** 2x OLED eyes (128x64, SPI-driven 30-60 FPS), RGBD camera + IMU, mmWave presence sensor, microphone array, floor projector (angled downward)
+- **Personality:** Animated eye expressions (happy, curious, thinking, confused, sad), smooth emotional transitions
+- **Intelligence:** Vision input for SLAM/navigation, presence detection for context-aware behaviors
+- **I2C Address:** 0x08
+
+**2. EARS Module (2x, 2-DOF each)**
+- **Hardware:** Chappie-inspired articulated ears, Feetech serial servos
+- **Personality:** Directional attention (ear orientation toward sound), emotional expression (perked up = alert, drooping = sad)
+- **Movement:** Independent 2-DOF per ear (rotation + tilt)
+- **I2C Address:** 0x09
+
+**3. NECK Module (3-DOF)**
+- **Hardware:** Servo array for pan/tilt/roll
+- **Personality:** Head orientation, expressive gestures (head tilts, nods, shakes)
+- **Movement:** Smooth organic motion curves (easing functions, not mechanical jerks)
+- **I2C Address:** 0x0A
+
+**4. TORSO Module**
+- **Hardware:** 2.8" square display (animated beating heart), thermal printer, Raspberry Pi housing, battery pack, LED status indicators
+- **Personality:** Heart rhythm changes with emotional state (fast = excited, slow = calm, irregular = confused)
+- **Output:** Thermal printer outputs lists, reminders, recipes for physical takeaways
+- **I2C Address:** 0x0B
+
+**5. BASE Module (Self-Balancing)**
+- **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive controller (UART), MPU6050 IMU (200Hz), servo kickstand
+- **Control:** 200Hz PID balancing loop (real-time guarantee on ESP32, Linux can't do this)
+- **Mobility:** SLAM navigation, follow-me mode, obstacle avoidance
+- **I2C Address:** 0x0C
+
+### Why This Architecture?
+
+**Modular MECE (Mutually Exclusive, Collectively Exhaustive):**
+- Each module completable in 1-2 weekend sprints
+- Independent testing: modules work standalone before integration
+- Progressive capability: robot functional with minimal modules, enhanced as you add more
+- Community contribution: others can develop modules without touching core framework
+
+**Hybrid Intelligence:**
+- **Local AI (Hailo):** Fast sensing, <200ms STT eliminates cloud delay, privacy-friendly
+- **Cloud Agents:** Sophisticated reasoning, tool use, multi-step planning
+- Best of both worlds: speed + sophistication
+
+**ROS2 Foundation:**
+- Industry-standard robotics middleware
+- Proven pub/sub architecture for module communication
+- Extensive ecosystem (SLAM, navigation, sensor fusion)
+- All ROS2 nodes run on Pi; ESP32s act as I2C bridges
+
+---
+
+## Key Features
+
+### Personality Expression (The Core Differentiator)
+
+**Multi-channel coordinated expression:**
+- 🎭 **OLED Eyes:** 7 emotion types × 5 intensity levels (35 unique expressions)
+- 👂 **Articulated Ears:** Directional attention + emotional positioning
+- 🎯 **Neck Movement:** 3-DOF gestures (pan/tilt/roll)
+- ❤️ **Heart Display:** Beating rhythm synchronized with emotional state
+- 🎵 **R2D2 Beeps:** Musical intervals (not harsh tones), emotion-matched inflection
+- 🎬 **Orchestrated Sync:** All channels coordinated <500ms for unified emotional states
+
+**Example:** "Express excitement level 4"
+→ Orchestrator sends I2C commands to Head (eyes wide, pupils dilated), Ears (perked forward), Neck (small bouncing motion), Torso (heart racing), Speaker (rapid high-pitched beeps)
+→ ESP32s execute locally cached animations simultaneously
+→ Result: Coherent excited expression across all channels
+
+### Intelligence & Interaction
+
+- 🗣️ **Voice-first input:** Microphone array + Hailo Whisper STT (<200ms local processing)
+- 🧠 **Cloud AI agents:** Claude/GPT-4 for natural language, reasoning, tool use
+- 🔊 **Context maintenance:** SQLite conversation history, user preferences across power cycles
+- 🎯 **Function routing:** AI decides which modules to activate (projection, printer, movement)
+- 👁️ **Vision:** RGBD camera for SLAM, obstacle detection, person following
+
+### Physical Outputs
+
+- 📽️ **Floor projector:** Information display without screen-staring (charts, recipes, reminders)
+- 🖨️ **Thermal printer:** Physical printouts for lists, notes (tangible takeaways)
+- 🎵 **Beeps + Gestures:** Non-verbal communication (avoids uncanny valley)
+
+### Mobility & Navigation
+
+- 🚶 **Self-balancing base:** Two-wheel inverted pendulum (saves floor space vs. 4-wheel)
+- 🗺️ **SLAM navigation:** Google Cartographer for autonomous apartment navigation
+- 👤 **Follow-me mode:** Vision-based person tracking + Nav2 path planning
+- 🛑 **Obstacle avoidance:** Real-time depth sensing (RGBD camera)
+
+---
+
+## The Learning Journey
+
+**Skills progression over 20 weeks:**
+
+| Week 0 | Week 20 |
+|--------|---------|
+| Basic CAD knowledge | Complex multi-part assemblies in OnShape |
+| Zero ROS2 experience | Module orchestration, custom ROS2 nodes |
+| Solo debugging | AI-assisted development (Claude as coding partner) |
+| Breadboard prototypes | Custom PCB designs, 3D printed enclosures |
+| Single-threaded scripts | Real-time 200Hz PID control loops |
+
+**Key learnings:**
+- **Modularity is king:** MECE architecture enabled parallel development
+- **AI coding assistants are game-changers:** 10x faster iteration, instant debugging help
+- **Physical AI is hard but doable:** Barriers to entry have genuinely lowered
+- **Build in public accountability:** Weekly posts forced consistent progress
+
+---
+
+## Build In Public Philosophy
+
+**Why share everything transparently?**
+
+1. **Proof of concept:** Demonstrate that anyone passionate can build advanced robotics at home
+2. **Community infrastructure:** Create the resource I wish existed when I started
+3. **Authentic learning:** Share failures and trade-offs, not just polished results
+4. **Movement building:** This is the **Linux moment for physical AI**—open collaboration beats closed corporate systems
+
+**What "built in public" means:**
+- ✅ Weekly LinkedIn progress posts (successes + failures)
+- ✅ Complete documentation (3D files, wiring diagrams, BOM, setup guides)
+- ✅ Open-source code (firmware, ROS2 packages, orchestration engine)
+- ✅ Build logs documenting decisions, iterations, dead ends
+- ✅ Community collaboration (pull requests welcome, forks encouraged)
+
+**The goal:** Prove that the future of embodied AI belongs to builders. Enable others to create their own companions—customized for their needs (church assistant, teaching companion, eldercare helper, lab automation).
+
+---
+
+## Current Status
+
+**✅ Completed (Week 20):**
+- Physical foundation: All 5 modules designed, 3D printed, assembled
+- Head module: OLED eyes working, animated expressions functional
+- First light: Cyan eyes blinking with personality!
+- Modular I2C architecture validated
+- Basic ROS2 communication established
+
+**🔄 In Progress:**
+- AI intelligence layer integration (Hailo Whisper STT deployment)
+- Personality coordinator node (coordinated expression system)
+- SLAM navigation setup (Cartographer configuration)
+- Base balancing PID tuning (200Hz control loop optimization)
+
+**📅 Next Milestones:**
+- Week 22: Voice command → coordinated expression working end-to-end
+- Week 24: SLAM navigation functional (autonomous movement)
+- Week 26: Thermal printer integration (physical list output)
+- Week 28: Complete V1 integration testing
+
+---
+
+## Getting Started (For Builders)
+
+**Prerequisites:**
+- Basic soldering skills
+- 3D printer access (personal or makerspace)
+- Comfort with Python and basic C/C++
+- Raspberry Pi 5 + ESP32 development boards
+
+**Quick Start:**
+1. **Read the [Project Brief](documentation/brief.md)** - Understand architecture, MVP scope, technical decisions
+2. **Clone the repo** - `git clone https://github.com/kamalkantsingh10/OLAF.git`
+3. **Start with one module** - Head module is recommended (eyes + personality foundation)
+4. **Join the community** - Follow on [LinkedIn](https://www.linkedin.com/in/kamal-singh) for weekly updates
+
+**Coming Soon:**
+- Detailed build guides (step-by-step per module)
+- 3D print files (STL with recommended settings)
+- Bill of Materials (BOM with supplier links)
+- Wiring diagrams (Fritzing + visual guides)
+- Setup scripts (automated environment setup)
+
+---
+
+## Community & Contributions
+
+**How to contribute:**
+- 🐛 Report issues or suggest features via GitHub Issues
+- 🔧 Submit pull requests (bug fixes, improvements, new modules)
+- 📖 Improve documentation (tutorials, troubleshooting guides)
+- 🎨 Share your build (fork OLAF, customize, show us!)
+- 💬 Join discussions (comment on LinkedIn posts, ask questions)
+
+**Philosophy:**
+- Beginners welcome—we all started somewhere
+- Questions are encouraged—"stupid questions" don't exist
+- Failures are learning opportunities—share what didn't work
+- Diversity of approaches—your way might be better than mine
+
+---
+
+## License & Credits
+
 **License:** Open Source (TBD: MIT or Apache 2.0)
+
 **Builder:** [Kamal Singh](https://www.linkedin.com/in/kamal-singh)
-**Tags:** #BuildInPublic #Robotics #ROS2 #PhysicalAI #OpenSource #MakerMovement
+- 15 years in tech (5 at Amazon)
+- 1 year intentional AI deep-dive
+- MBA + Full-stack capability (hardware + software + AI)
+
+**Inspiration:**
+- R2D2 (Star Wars) - Non-verbal personality, beeps > words
+- JARVIS (Iron Man) - AI partner, not servant
+- Chappie - Expressive ears, emotional engagement
+- Wall-E - Retro-futurism meets friendly companion
+
+**Built with:**
+- AI Coding Assistants (Claude, GPT-4) - 100% AI-assisted development
+- Raspberry Pi 5 + Hailo AI Kit - Local AI acceleration
+- ROS2 Humble - Robotics middleware
+- ESP32 - Module intelligence
+- OnShape - 3D CAD design
+- PlatformIO - Firmware development
+
+---
+
+## Tags
+
+`#BuildInPublic` `#Robotics` `#ROS2` `#PhysicalAI` `#OpenSource` `#MakerMovement` `#AI` `#LearnInPublic` `#EmbodiedAI` `#ModularRobotics`
 
 ---
 
 <p align="center">
   <i>"Feel alive first, be useful second."</i>
+</p>
+
+<p align="center">
+  <b>Star ⭐ this repo if you believe the future of AI should be open and collaborative!</b>
 </p>

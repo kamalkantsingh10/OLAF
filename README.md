@@ -56,7 +56,7 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
 
 ---
 
-## Architecture: Three Layers, Five Modules
+## Architecture: Three Layers, Four Modules
 
 ### The Three-Layer Design
 
@@ -87,50 +87,51 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
 │  • Sensor Fusion & State Management                            │
 │  • Module Discovery (I2C communication)                        │
 │                                                                 │
-└──┬──────┬──────┬──────┬──────┬───────────────────────────────┘
-   │      │      │      │      │ ROS2 Topics (pub/sub)
-   │      │      │      │      │ I2C Physical Backbone
-   │      │      │      │      │
-┌──▼───┐┌─▼───┐┌─▼────┐┌─▼────┐┌▼──────────┐
-│ HEAD ││EARS ││ NECK ││TORSO ││   BASE    │
-│      ││     ││      ││      ││           │
-│ESP32 ││ESP32││ESP32 ││ESP32 ││   ESP32   │
-└──────┘└─────┘└──────┘└──────┘└───────────┘
+└──┬──────┬──────┬──────┬────────────────────────────────────┘
+   │      │      │      │ ROS2 Topics (pub/sub)
+   │      │      │      │ I2C Physical Backbone
+   │      │      │      │
+┌──▼──────────┐┌─▼────┐┌─▼────┐┌▼──────────┐
+│ HEAD+EARS   ││ NECK ││TORSO ││   BASE    │
+│   ESP32     ││ESP32 ││ESP32 ││   ESP32   │
+│   (0x08)    ││(0x09)││(0x0A)││   (0x0B)  │
+└─────────────┘└──────┘└──────┘└───────────┘
 ```
 
-### The Five Modules (MECE Principle)
+### The Four Modules (MECE Principle)
 
 Each module owns its domain exclusively—no cross-dependencies. All powered by ESP32 microcontrollers acting as smart I2C peripherals.
 
-**1. HEAD Module**
-- **Hardware:** 2x OLED eyes (128x64, SPI-driven 30-60 FPS), RGBD camera + IMU, mmWave presence sensor, microphone array, floor projector (angled downward)
-- **Personality:** Animated eye expressions (happy, curious, thinking, confused, sad), smooth emotional transitions
+**1. HEAD+EARS Module (I2C 0x08)**
+- **Hardware:**
+  - 2× OLED eyes (128×64, SPI-driven 30-60 FPS)
+  - 2× Chappie-inspired articulated ears (2-DOF each, Feetech serial servos)
+  - Floor projector with ESP32-controlled power (optocoupler) and focus (linear servo)
+  - RGBD camera + IMU (USB to Pi)
+- **Personality:**
+  - Animated eye expressions (happy, curious, thinking, confused, sad)
+  - Ear movements for directional attention and emotional expression (perked up = alert, drooping = sad)
+  - Smooth emotional transitions
 - **Intelligence:** Vision input for SLAM/navigation, presence detection for context-aware behaviors
-- **I2C Address:** 0x08
+- **Smart Control:** Pi sends HDMI video to projector; ESP32 controls power and auto-focus
 
-**2. EARS Module (2x, 2-DOF each)**
-- **Hardware:** Chappie-inspired articulated ears, Feetech serial servos
-- **Personality:** Directional attention (ear orientation toward sound), emotional expression (perked up = alert, drooping = sad)
-- **Movement:** Independent 2-DOF per ear (rotation + tilt)
-- **I2C Address:** 0x09
-
-**3. NECK Module (3-DOF)**
-- **Hardware:** Servo array for pan/tilt/roll
+**2. NECK Module (I2C 0x09)**
+- **Hardware:** 3-DOF servo array (pan/tilt/roll, Feetech STS3215), 2× presence sensors
 - **Personality:** Head orientation, expressive gestures (head tilts, nods, shakes)
 - **Movement:** Smooth organic motion curves (easing functions, not mechanical jerks)
-- **I2C Address:** 0x0A
+- **Intelligence:** 360° human detection via dual presence sensors
 
-**4. TORSO Module**
+**3. TORSO Module (I2C 0x0A)**
 - **Hardware:** 2.8" square display (animated beating heart), thermal printer, Raspberry Pi housing, battery pack, LED status indicators
 - **Personality:** Heart rhythm changes with emotional state (fast = excited, slow = calm, irregular = confused)
 - **Output:** Thermal printer outputs lists, reminders, recipes for physical takeaways
-- **I2C Address:** 0x0B
+- **Power:** Houses main battery and power distribution to all modules
 
-**5. BASE Module (Self-Balancing)**
+**4. BASE Module (I2C 0x0B) - Self-Balancing**
 - **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive controller (UART), MPU6050 IMU (200Hz), servo kickstand
 - **Control:** 200Hz PID balancing loop (real-time guarantee on ESP32, Linux can't do this)
 - **Mobility:** SLAM navigation, follow-me mode, obstacle avoidance
-- **I2C Address:** 0x0C
+- **Safety:** Autonomous kickstand deployment when stopping
 
 ### Why This Architecture?
 

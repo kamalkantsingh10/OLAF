@@ -3,8 +3,8 @@
 **Epic Goal:** Complete the Head+Ears module (I2C 0x08) with full hardware integration, ESP32 firmware, ROS2 driver node, and physical mounting. Module will control 2× OLED eyes (128×64 SPI), 2× articulated ears (2-DOF UART servos each), floor projector power/focus control, and integrate OAK-D-Pro RGBD camera.
 
 **Status:** Not Started
-**Total Stories:** 8
-**Estimated Effort:** 3-4 weeks (part-time)
+**Total Stories:** 9
+**Estimated Effort:** 3-5 weeks (part-time)
 
 ---
 
@@ -81,6 +81,17 @@
 - Verify ROS2 control after mounting
 - **Outcome:** Head+Ears module integrated on robot
 
+### [Story 1.9: Mount Projector with 3.7V Buck Converter](story-1.9-mount-projector-buck-converter.md)
+**Priority:** High | **Effort:** 6-10 hours
+- Select and source 3.7V buck converter (adjustable, 1-2A)
+- Fabricate buck converter mounting bracket (metal or 3D printed)
+- Adjust buck converter output to exactly 3.7V
+- Fabricate projector power cable with proper connector
+- Integrate optocoupler circuit for ESP32 on/off control
+- Mount and connect all components with thermal management
+- Test projector operation and video display from Pi
+- **Outcome:** Projector operational with regulated 3.7V power
+
 ---
 
 ## Epic Completion Criteria
@@ -93,6 +104,8 @@
 - [ ] ESP32 firmware implements I2C slave (0x08)
 - [ ] Firmware controls OLEDs (30 FPS), ears (4 servos), projector (power/focus)
 - [ ] ROS2 driver node created and functional
+- [ ] 3.7V buck converter mounted and adjusted for projector power
+- [ ] Projector operational with regulated power and ESP32 control
 - [ ] Module mounted to robot frame
 - [ ] Module responds to ROS2 topic publishes: `ros2 topic pub /head_ears/eyes ...`
 
@@ -104,6 +117,7 @@
 - [ ] 2× OLED displays (128×64, SPI interface)
 - [ ] 4× Feetech servos for ears (2-DOF per ear, UART)
 - [ ] Floor projector (HDMI from Pi, power/focus control from ESP32)
+- [ ] 3.7V buck converter (adjustable, 1-2A) for projector power
 - [ ] Optocoupler for projector power switching
 - [ ] Linear servo for projector focus (PWM/UART)
 - [ ] OAK-D-Pro RGBD camera (USB to Pi)

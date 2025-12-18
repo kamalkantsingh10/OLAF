@@ -2,6 +2,12 @@
 
 This guide explains how to set up your PC for OLAF development using a hybrid PC+Pi architecture. With this setup, you can develop and test ROS2 application nodes on your PC while the Raspberry Pi handles hardware driver nodes and ESP32 module communication.
 
+**When to use this guide:**
+- Part of **Epic 0, Story 0.4** (Setup Dev Tools)
+- After Raspberry Pi setup is complete
+- Before starting module development (Epic 1+)
+- For faster development iteration on application nodes
+
 ---
 
 ## Overview: Hybrid PC+Pi Development Architecture
@@ -112,9 +118,11 @@ source ~/.bashrc
 
 ```bash
 cd ~
-git clone <your-olaf-repo-url> olaf
+git clone https://github.com/kamalkantsingh10/OLAF.git olaf
 cd olaf
 ```
+
+**Note:** If you already have the repository, skip this step and use your existing clone.
 
 ### 4. Install Python Dependencies
 
@@ -124,12 +132,15 @@ cd ~/olaf
 # Install Poetry (if not already installed)
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Install dependencies
-poetry install
+# Add Poetry to PATH
+export PATH="$HOME/.local/bin:$PATH"
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
-# OR use pip
-pip3 install -r requirements.txt  # Create this if needed
+# Install project dependencies
+poetry install
 ```
+
+**Note:** OLAF uses Poetry for dependency management. This will install all required packages including smbus2, anthropic, openai, pytest, ruff, and black.
 
 ### 5. Build ROS2 Workspace
 
@@ -716,11 +727,13 @@ cd ~/olaf
 
 # Install dependencies
 poetry install
-# OR
-pip3 install -r requirements.txt
 
-# Verify
-python3 -c "import olaf_personality"  # Should not error
+# Verify (use poetry run)
+poetry run python3 -c "import smbus2"  # Should not error
+
+# Or activate virtual environment
+poetry shell
+python3 -c "import smbus2"
 ```
 
 ---
@@ -892,16 +905,21 @@ pytest tests/
 
 ## Next Steps
 
-1. ✅ Complete Pi setup (install ROS2, flash ESP32 modules)
-2. ✅ Install ROS2 on PC (this guide)
-3. ✅ Verify network communication (test topic echo)
-4. ✅ Start developing application nodes on PC
-5. ✅ Test with Pi driver nodes
-6. ✅ Create launch files in `ros2/src/olaf_bringup/launch/`
-7. ✅ Deploy to Pi when ready
+**Epic 0 Completion:**
+1. ✅ Complete Story 0.1-0.3 (Pi setup, ROS2 workspace, I2C config)
+2. ✅ Complete Story 0.4 (this guide - PC development setup)
+3. ✅ Verify network communication (test topic echo between PC and Pi)
 
-For module-specific guides, see `modules/{module}/README.md`.
+**Ready for Module Development (Epic 1+):**
+4. Start Epic 1: Head+Ears Module Build
+5. Develop application nodes on PC while Pi handles drivers
+6. Create launch files in `ros2/src/olaf_bringup/launch/`
+7. Deploy to Pi when modules are ready for integration testing
 
-For system architecture, see `docs/architecture.md`.
+**Useful Documentation:**
+- Module guides: `modules/{module}/README.md`
+- System architecture: `docs/architecture.md`
+- Development workflow: `docs/prd/phase1-tracking.md`
+- Story details: `docs/stories/`
 
-For wiring and assembly, see `hardware/wiring/` and `docs/guides/wiring-guide.md`.
+**Repository:** https://github.com/kamalkantsingh10/OLAF

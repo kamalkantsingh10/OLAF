@@ -227,6 +227,42 @@ This is a complex build being done in spare time while working full-time. Progre
 
 ---
 
+## Repository Organization
+
+**Module-first structure.** Everything for a module lives in one place.
+
+```
+modules/
+├── head-ears/        # Eyes, ears, projector (I2C 0x08)
+├── neck/             # Servos, kickstand, sensors (I2C 0x09)
+├── torso/            # Heart LCD, printer (I2C 0x0A)
+└── base/             # Self-balancing, motors (I2C 0x0B)
+```
+
+Each module folder contains:
+- `firmware/` - ESP32 code (Arduino/PlatformIO)
+- `hardware/` - PCB designs + 3D models + BOM
+- `tests/` - Module-specific tests
+- `README.md` - Wiring, assembly, calibration
+
+**ROS2 lives separately:**
+```
+ros2/src/
+├── olaf_drivers/      # I2C ↔ ROS2 bridge nodes
+├── olaf_personality/  # Expression coordination
+└── olaf_ai/           # AI integration
+```
+
+**Why this structure?**
+- Work on one module without touching others
+- Test modules independently
+- Clear ownership boundaries
+- Easy to contribute
+
+**Full details:** See [repository-structure.md](docs/architecture/repository-structure.md)
+
+---
+
 ## License & Credits
 
 **License:** Open Source (TBD: MIT or Apache 2.0)

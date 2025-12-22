@@ -8,6 +8,8 @@
 
 ## 1. Hardware Requirements
 
+The Neck module integrates multiple subsystems requiring careful component selection and power management. The ESP32-S3 serves as the central controller, managing I2C communication with the Raspberry Pi, controlling 4 neck servos via UART, processing mmWave radar data, and driving an 8-LED status strip. All components are selected for reliability and performance in a mobile robotics environment.
+
 ### Components
 
 | Item | Qty | Specification |
@@ -19,17 +21,31 @@
 | HLK-LD2461 mmWave Sensor | 1 | 24GHz 2T4R radar, UART @ 256000 baud, front-facing |
 | 470Ω Resistor | 1 | 1/4W, for LED data line |
 | 100µF Capacitor | 1 | 16V electrolytic, for LED power |
+| Buck Converter (36V→12V) | 1 | 10A capacity for servo power |
+| Buck Converter (12V→5V) | 1 | 3A capacity for logic/sensors |
 
 ### Power Requirements
 
+The Neck module uses a two-stage power architecture. A primary 12V buck converter (36V→12V 10A) steps down the main 36V battery to 12V for servo power. A secondary buck converter (12V→5V 3A) provides regulated 5V for the ESP32, LED strip, and mmWave sensor. This design isolates noisy servo power from sensitive logic circuits, preventing voltage drops and electrical noise from affecting the microcontroller.
+
+**Critical:** The servo power rail must remain electrically isolated from the ESP32 VIN pin. Only ground connections are shared between power domains. Never connect 12V servo power directly to the ESP32 - use only the regulated 5V output.
+
 | Rail | Load | Typical | Peak | Source |
 |------|------|---------|------|--------|
-| 5V | ESP32 (80mA) + LEDs (120mA) + HLK-LD2461 (330mA) | 530mA | 1.5A | **External 5V @ 2A recommended** |
-| 6-12V | 4× Servos (motor power) | 1-2A | 4A+ | **Separate supply (NOT ESP32)** |
+| 12V | 4× Servos (motor power) | 1-2A | 4A+ | **Buck converter 36V→12V (10A)** |
+| 5V | ESP32 (80mA) + LEDs (120mA) + HLK-LD2461 (330mA) | 530mA | 1.5A | **Buck converter 12V→5V (3A)** |
 
 ---
 
 ## 2. Pin Assignments
+
+The ESP32-S3 GPIO allocation follows the standardized backplane design defined in [backplane-pinout.md](../../docs/architecture/backplane-pinout.md). The backplane pins (J1) provide common interfaces shared across all OLAF modules: I2C for Raspberry Pi communication, UART1 for actuator controllers, and UART2 for sensor communication. Module-specific pins (J3) handle unique functions like the LED status strip and onboard debugging. This separation ensures consistent wiring across modules while allowing flexibility for specialized hardware.
+
+**Key Design Decisions:**
+- **I2C (GPIO 8/9):** Uses ESP32's hardware I2C peripheral 0 for reliable slave communication
+- **UART1 (GPIO 17/18):** Dedicated to servo controller - frees main USB serial for debugging
+- **UART2 (GPIO 38/39):** Standardized sensor bus - mmWave on Neck, GPS on Base, etc.
+- **GPIO 1:** Selected for LED strip - supports RMT peripheral for precise WS2812B timing
 
 ### Backplane Pins (J1 - Standardized)
 
@@ -47,8 +63,8 @@
 | GPIO | Function | External Connection | Protocol |
 |------|----------|---------------------|----------|
 | 1 | LED_DATA | WS2812B DIN (via 470Ω) | Single-wire @ 800kHz |
-| 38 | MMWAVE_TX | mmWave sensor RX | UART2 TX @ 115200 baud |
-| 39 | MMWAVE_RX | mmWave sensor TX | UART2 RX @ 115200 baud |
+| 38 | MMWAVE_TX | mmWave sensor RX | UART2 TX @ 256000 baud |
+| 39 | MMWAVE_RX | mmWave sensor TX | UART2 RX @ 256000 baud |
 | 48 | ONBOARD_LED | Built-in RGB LED | Output (heartbeat) |
 | 43 | USB_TX | Debug console | UART0 (reserved) |
 | 44 | USB_RX | Debug console | UART0 (reserved) |
@@ -93,30 +109,34 @@ GPIO 2, 20, 21, 40, 41, 42, 47
               │   (Pan)   │  │  (Tilt)     │  │ (Roll)   │  │(Kickstand) ││
               └───────────┘  └─────────────┘  └──────────┘  └────────────┘│
                     ▲                                                       │
-                    │ Motor Power (6-12V, 4A+)                             │
-              ┌─────┴──────┐                                               │
-              │ Servo PSU  │                                               │
-              │ (ISOLATED) │                                               │
-              └────────────┘                                               │
-                                                                            │
-   ┌────────────────────────────────────────────────────────────────────────┘
-   │
-   │  WS2812B LED Strip (GPIO 1)
-   │  ┌──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┐
-   │  │ LED0 │ LED1 │ LED2 │ LED3 │ LED4 │ LED5 │ LED6 │ LED7 │
-   │  │ Bat  │ ROS2 │ Head │ Neck │Torso │ Base │  AI  │ Nav  │
-   │  └───┬──┴──────┴──────┴──────┴──────┴──────┴──────┴──────┘
-   │      │
-   │      │ DIN ←── GPIO 1 ──[470Ω]──
-   │      │ VCC ←── 5V ──[100µF]──
-   │      │ GND ──────────────────────────────┐
-   │                                          │
-   │                                          │
-   └────────── Common GND ────────────────────┴──────────────────┐
-                    ▲                                            │
-              ┌─────┴──────┐                                     │
-              │  5V Supply │                                     │
-              │  (1.5A+)   │─────────────────────────────────────┘
+                    │ Motor Power (12V, 4A+)                               │
+              ┌─────┴──────────────┐                                       │
+              │ Buck 36V→12V (10A) │                                       │
+              │  (Servo Power)     │                                       │
+              └──────┬─────────────┘                                       │
+                     │                                                      │
+                     │ 12V Bus ──────────────┐                             │
+                     │                       │                             │
+                     └─ GND                  ▼                             │
+                                   ┌──────────────────┐                    │
+   ┌───────────────────────────────│ Buck 12V→5V (3A) │                    │
+   │                               │  (Logic Power)   │                    │
+   │  WS2812B LED Strip (GPIO 1)   └─────┬────────────┘                    │
+   │  ┌──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┐           │
+   │  │ LED0 │ LED1 │ LED2 │ LED3 │ LED4 │ LED5 │ LED6 │ LED7 │           │
+   │  │ Bat  │ ROS2 │ Head │ Neck │Torso │ Base │  AI  │ Nav  │           │
+   │  └───┬──┴──────┴──────┴──────┴──────┴──────┴──────┴──────┘           │
+   │      │                       │                                        │
+   │      │ DIN ←── GPIO 1 ──[470Ω]──                                      │
+   │      │ VCC ←── 5V ────[100µF]──                                       │
+   │      │ GND ────────────────────────────┐                              │
+   │                                        │                              │
+   │                                        │                              │
+   └────────── Common GND ──────────────────┴──────────────────────────────┘
+                    ▲
+              ┌─────┴──────┐
+              │ 36V Battery│
+              │   (Main)   │
               └────────────┘
 ```
 
@@ -202,22 +222,43 @@ The HLK-LD2461 is an advanced 24GHz mmWave radar sensor with 2T4R antenna config
 
 ### E. Power Distribution
 
-Proper power distribution is critical for reliable operation. The system uses two separate power supplies: a 5V rail for logic and sensors, and a higher voltage (6-12V) rail exclusively for servo motors. **Never mix these power supplies** - connecting servo power to the ESP32 will cause permanent damage.
+Proper power distribution is critical for reliable operation. The Neck module uses a two-stage buck converter architecture powered from the main 36V battery. The first stage (36V→12V 10A) provides clean 12V power for the servo motors. The second stage (12V→5V 3A) steps down to 5V for the ESP32, LED strip, and mmWave sensor. This cascaded design isolates noisy servo currents from sensitive logic circuits.
 
-All grounds must be connected together (star-ground topology) to provide a common reference voltage. However, power rails remain isolated - only grounds are shared.
+**Power Architecture:**
+1. **Primary Buck (36V→12V @ 10A):** Handles high-current servo loads with peak demands up to 4-5A during simultaneous movement
+2. **Secondary Buck (12V→5V @ 3A):** Provides regulated logic power with 2× safety margin over peak demand (1.5A)
+3. **Ground Topology:** Star-ground configuration - all grounds connect at battery negative terminal
 
-**5V Supply Requirements:** **Recommended 2A capacity** to handle ESP32 (500mA peak), LEDs (480mA peak), and HLK-LD2461 sensor (400mA peak). The LD2461 draws significantly more power than simpler sensors due to its 2T4R antenna array and advanced processing. Use a quality regulated supply to avoid voltage drops under load.
+**Critical Safety Rules:**
+- **NEVER** connect 12V servo power to ESP32 VIN (maximum safe input: 5.5V)
+- **ALWAYS** use separate buck converters - never share power rails between servos and logic
+- **VERIFY** polarity before applying power - reversed polarity destroys the ESP32 instantly
+- **CHECK** output voltage with multimeter before connecting components
 
-**Servo Supply:** Minimum 4A capacity at 6-12V. Servos draw 1-2A each during movement. Check your servo specifications for exact voltage requirements.
+**Power Budget:**
 
+**12V Rail (Servo Power):**
+- 4× STS3215 servos: 1-2A each (4-8A total during motion)
+- Buck converter capacity: 10A (sufficient headroom)
+- Wire gauge: 18-20 AWG for current capacity
+
+**5V Rail (Logic Power):**
+- ESP32-S3: 80mA typical, 500mA peak (WiFi transmit)
+- WS2812B LEDs: 15mA × 8 = 120mA (status colors, not full white)
+- HLK-LD2461: 330mA typical, 400mA peak (2T4R radar)
+- Total: 530mA typical, 1.5A peak
+- Buck converter capacity: 3A (2× safety margin)
+
+**Wiring:**
 ```
-5V Supply (2A recommended)
-  ├─ ESP32 VIN
-  ├─ WS2812 VCC (add 100µF capacitor)
-  └─ HLK-LD2461 VCC (260-400mA peak!)
-
-Servo Supply (6-12V, 4A+) ──> Servo Controller Motor Power
-                           └─ GND to common ground
+36V Battery ──┬──> Buck 36V→12V (10A) ──> Servo Controller Motor Power
+              │                        └─> GND to common ground
+              │
+              └──> Buck 36V→12V feeds Buck 12V→5V (3A)
+                                           ├─> ESP32 VIN (5V)
+                                           ├─> WS2812 VCC (add 100µF capacitor)
+                                           ├─> HLK-LD2461 VCC (330mA)
+                                           └─> GND to common ground
 ```
 
 ---

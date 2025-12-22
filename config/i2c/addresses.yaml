@@ -17,11 +17,11 @@ modules:
 
   neck:
     address: 0x09
-    description: "Neck Module (3-DOF pan/tilt/roll, kickstand, presence sensors)"
+    description: "Neck Module (3-DOF pan/tilt/roll, kickstand, multi-target tracking sensor, LED status strip)"
     components:
-      - "3× STS3215 neck servos (pan/tilt/roll)"
-      - "1× STS3215 kickstand servo"
-      - "2× 24GHz mmWave presence sensors (UART)"
+      - "4× STS3215 servos (3 neck + 1 kickstand, via Serial Bus Controller UART1)"
+      - "1× HLK-LD2461 mmWave sensor (front, 24GHz 2T4R, 5-target tracking, UART2 @ 256000)"
+      - "8× WS2812B LED status strip (GPIO 1)"
 
   torso:
     address: 0x0A
@@ -37,66 +37,3 @@ modules:
       - "MPU6050 6-axis IMU (200Hz update for balancing)"
       - "ODrive v3.6 motor controller (hoverboard wheels)"
       - "Power distribution and battery monitoring"
-
-# Raspberry Pi 5 GPIO I2C Pins
-gpio_pins:
-  sda: 3  # GPIO 2
-  scl: 5  # GPIO 3
-  ground: [6, 9, 14, 20, 25, 30, 34, 39]
-
-# Wiring Notes
-wiring:
-  topology: "Shared I2C bus - all modules connected to same SDA/SCL lines"
-  pull_ups: "Single 4.7kΩ resistor on Pi side for SDA and SCL (not per module)"
-  common_ground: "All modules must share common ground with Raspberry Pi"
-  bus_length: "Keep I2C wiring under 1 meter for reliable 400kHz operation"
-
-# I2C Protocol Details
-protocol:
-  address_type: "7-bit addressing"
-  valid_range: "0x03 to 0x77"
-  reserved_addresses:
-    - "0x00-0x07: Reserved for special purposes"
-    - "0x78-0x7F: Reserved for 10-bit addressing and special purposes"
-  clock_stretching: "Supported - ESP32 may stretch clock during processing"
-
-# Testing Commands (Run on Raspberry Pi)
-testing:
-  enable_i2c: "sudo raspi-config → Interface Options → I2C → Enable"
-  scan_bus: "i2cdetect -y 1"
-  read_byte: "i2cget -y 1 0x08 0x00"  # Read status register from Head+Ears
-  write_byte: "i2cset -y 1 0x08 0x01 0xFF"  # Write command to Head+Ears
-  permissions: "sudo usermod -a -G i2c $USER"  # Add user to i2c group
-
-# Development Notes
-notes:
-  - "Each ESP32 firmware must configure unique I2C slave address in setup()"
-  - "Use i2cdetect to verify module presence before driver node attempts connection"
-  - "I2C timeout in ROS2 driver nodes: 100ms per read/write operation"
-  - "ESP32 I2C slave buffer: 128 bytes (configure in firmware if needed)"
-  - "Future: May upgrade to 1MHz (fast mode) if 400kHz proves insufficient"
-  - "Alternative: Move to CAN bus if I2C reliability issues arise"
-
-# Module Discovery Sequence (Epic 1-4)
-discovery_order:
-  epic_1: "Head+Ears (0x08) - First module to breadboard and test"
-  epic_2: "Neck (0x09) - Second module"
-  epic_3: "Torso (0x0A) - Third module"
-  epic_4: "Base (0x0B) - Final module, critical for self-balancing"
-
-# Troubleshooting
-troubleshooting:
-  no_devices_found:
-    - "Check I2C enabled in raspi-config"
-    - "Check wiring: SDA (Pin 3), SCL (Pin 5), GND"
-    - "Check 4.7kΩ pull-up resistors present"
-    - "Verify ESP32 power supply"
-    - "Verify ESP32 I2C slave firmware running"
-  address_conflict:
-    - "Each ESP32 must have unique address"
-    - "Flash firmware one module at a time to verify address"
-  bus_frozen:
-    - "Check for short circuits on SDA or SCL"
-    - "Verify pull-up resistor values (4.7kΩ, not too low)"
-    - "Power cycle all modules"
-    - "Disable/re-enable I2C interface on Pi"

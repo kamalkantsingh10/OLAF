@@ -1,0 +1,146 @@
+# Neck Module Configuration
+# Kinematics and servo control parameters
+
+module:
+  name: neck
+  i2c_address: 0x09
+  firmware_version: v1.0
+
+# Servo Bus Configuration
+servo_bus:
+  uart_port: 1                # Hardware UART1 on ESP32
+  tx_pin: 17                  # GPIO 17
+  rx_pin: 18                  # GPIO 18
+  baud_rate: 1000000          # 1 Mbps (STS3215 standard)
+  timeout_ms: 100             # Servo response timeout
+
+# Servo IDs and Assignments
+servos:
+  yaw: 1                      # Base servo (pan/rotation)
+  tilt_left: 2                # Left parallel linkage servo
+  tilt_right: 3               # Right parallel linkage servo
+  kickstand: 4                # Kickstand deployment
+
+# Kinematics Configuration
+kinematics:
+  # Motion ranges (degrees from center)
+  # These values are configurable based on mechanical design
+  yaw_range: 75               # ±75° horizontal rotation
+  pitch_range: 45             # ±45° vertical tilt (synchronized mode)
+  roll_range: 30              # ±30° side tilt (differential mode, estimated)
+
+  # Servo center positions (12-bit: 0-4095, center = 2048)
+  # Adjust these during calibration if head is not level at 2048
+  center_yaw: 2048
+  center_tilt_left: 2048
+  center_tilt_right: 2048
+
+  # Safety limits (prevent mechanical binding)
+  # Reserve margin from physical limits (0-4095)
+  min_servo_pos: 512          # Absolute minimum (safety margin)
+  max_servo_pos: 3584         # Absolute maximum (safety margin)
+
+  # Motion speeds (units: steps per second, max ~3000)
+  # Lower = smoother, higher = faster
+  speed_yaw: 1000             # Moderate panning (1 sec for 60°)
+  speed_pitch: 800            # Smooth nodding
+  speed_roll: 600             # Gentle expressive tilts
+  speed_combined: 900         # Speed for combined motions
+
+# Kickstand Configuration
+kickstand:
+  position_retracted: 512     # Fully up (stored position)
+  position_deployed: 3500     # Fully down (supporting robot weight)
+  speed_deploy: 1000          # Deployment speed
+  speed_retract: 800          # Retraction speed (slower for safety)
+  timeout_ms: 3000            # Max time for deploy/retract
+
+# mmWave Presence Sensors
+presence_sensors:
+  front:
+    uart_port: 2              # Hardware UART2
+    rx_pin: 39                # GPIO 39
+    tx_pin: 38                # GPIO 38 (not used for RX-only mode)
+    baud_rate: 256000         # HLK-LD2461 standard
+    detection_range_m: 5.0    # Maximum detection range
+  rear:
+    uart_port: 2              # Shared UART2 (future: separate port)
+    rx_pin: 40                # GPIO 40 (if using second sensor)
+    baud_rate: 256000
+    detection_range_m: 5.0
+
+# LED Status Strip
+status_leds:
+  pin: 1                      # GPIO 1 (WS2812B data)
+  num_leds: 8                 # 8 LEDs on strip
+  brightness: 128             # 0-255 (128 = 50%)
+  enable: true                # Enable LED status display
+
+# Power Configuration
+power:
+  input_voltage: 36           # Volts (from main battery)
+  servo_voltage: 12           # Volts (after buck converter)
+  esp32_voltage: 5            # Volts (USB or regulator)
+  max_servo_current_a: 4.0    # Total budget for 4 servos
+
+# I2C Slave Configuration (Raspberry Pi communication)
+i2c_slave:
+  sda_pin: 8                  # GPIO 8
+  scl_pin: 9                  # GPIO 9
+  clock_speed_khz: 400        # 400 kHz (fast mode)
+  address: 0x09               # I2C slave address
+
+# Timing and Control
+timing:
+  control_loop_hz: 50         # Main control loop frequency
+  sensor_poll_hz: 10          # mmWave sensor polling
+  led_update_hz: 30           # LED animation frame rate
+  i2c_timeout_ms: 100         # I2C transaction timeout
+  watchdog_timeout_sec: 5     # Watchdog timer (0 = disabled)
+
+# Expressive Motion Presets (for future use)
+expressions:
+  neutral:
+    yaw: 0
+    pitch: 0
+    roll: 0
+    speed: 600
+
+  curious:
+    yaw: 0
+    pitch: -10                # Slight down
+    roll: 15                  # Tilt left
+    speed: 600
+
+  excited:
+    yaw: 0
+    pitch: 10                 # Slight up
+    roll: 0
+    speed: 1200               # Faster motion
+
+  thinking:
+    yaw: 0
+    pitch: 20                 # Look up
+    roll: 5                   # Slight tilt
+    speed: 400                # Slow, deliberate
+
+  confused:
+    yaw: 0
+    pitch: 0
+    roll: 20                  # Strong side tilt
+    speed: 500
+
+# Debug and Testing
+debug:
+  enable_serial_logging: true
+  log_level: INFO             # DEBUG, INFO, WARN, ERROR
+  log_servo_positions: false  # Log every servo command (verbose)
+  log_sensor_data: false      # Log mmWave sensor readings (verbose)
+  test_mode: false            # Enable test mode (servo sweep, LED patterns)
+
+# Notes:
+# - All angle values are in degrees
+# - Servo positions are 12-bit (0-4095), center = 2048
+# - Speed values are in steps/second
+# - Adjust center positions during calibration if head not level
+# - Roll range is estimated; verify with mechanical testing

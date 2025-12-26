@@ -1,0 +1,24 @@
+# Pick And Place List
+# eMail=
+#
+# Project=I2C_pullup
+# Date=02:53:08
+# CreatedBy=Fritzing 1.0.6.2025-10-07.1.0.5rc1-97-g04e5bb02
+#
+# Coordinates in mils, always center of component
+# Origin 0/0=Lower left corner of PCB. Rotation in degree (0-360, math. pos.)
+RefDes,Description,Package,X,Y,Rotation,Side,Mount
+Description: resistance;capacitance;inductance;voltage;current;power;mpn;mn;
+U1,";;;;;;;;","THT",458.392,285.593,-90,Top,THT
+R1,"220;;;;;0.25W;;;","THT",408.392,485.593,0,Top,THT
+U11,";;;;;;;;","THT",808.392,185.593,0,Top,THT
+R2,"220;;;;;0.25W;;;","THT",408.392,585.593,0,Top,THT
+U8,";;;;;;;;","THT",1008.39,185.593,0,Top,THT
+U2,";;;;;;;;","THT",808.392,585.593,0,Top,THT
+U7,";;;;;;;;","THT",1208.39,185.593,0,Top,THT
+U6,";;;;;;;;","THT",1408.39,185.593,0,Top,THT
+U9,";;;;;;;;","THT",1008.39,585.593,0,Top,THT
+U5,";;;;;;;;","THT",1608.39,185.593,0,Top,THT
+U3,";;;;;;;;","THT",1208.39,585.593,0,Top,THT
+U10,";;;;;;;;","THT",1408.39,585.593,0,Top,THT
+U4,";;;;;;;;","THT",1608.39,585.593,0,Top,THT

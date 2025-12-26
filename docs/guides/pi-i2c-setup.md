@@ -1,15 +1,9 @@
 # Raspberry Pi I2C Setup Guide
 
-**Part of:** Story 0.3 - Configure I2C Communication Tools
-**Target:** Raspberry Pi 5 running OLAF orchestrator
-**Time Required:** ~15-20 minutes
-**Difficulty:** Beginner
-
----
 
 ## Overview
 
-This guide walks you through configuring I2C communication on your Raspberry Pi 5 for OLAF module connectivity. I2C is the communication protocol used between the Raspberry Pi orchestrator and all four ESP32 modules (Head+Ears, Neck, Torso, Base).
+This guide walks you through configuring I2C communication on your ***Raspberry Pi*** 5 for OLAF module connectivity. I2C is the communication protocol used between the Raspberry Pi orchestrator and all four ESP32 modules (Head+Ears, Neck, Torso, Base).
 
 **What you'll accomplish:**
 - Enable I2C interface on Raspberry Pi

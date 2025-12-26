@@ -12,17 +12,17 @@ The Neck module integrates multiple subsystems requiring careful component selec
 
 ### Components
 
-| Item | Qty | Specification |
-|------|-----|---------------|
-| ESP32-S3-DevKitC-1 (N16R8) | 1 | 16MB Flash, 8MB PSRAM |
-| WS2812B LED Strip | 1 | 8 LEDs, 5V, single data line |
-| Feetech Serial Bus Controller | 1 | STSC series, UART interface |
-| Feetech STS3215 Servo | 4 | 30 kg·cm (IDs: 1=Pan, 2=Tilt, 3=Roll, 4=Kickstand) |
-| HLK-LD2461 mmWave Sensor | 1 | 24GHz 2T4R radar, UART @ 256000 baud, front-facing |
-| 470Ω Resistor | 1 | 1/4W, for LED data line |
-| 100µF Capacitor | 1 | 16V electrolytic, for LED power |
-| Buck Converter (36V→12V) | 1 | 10A capacity for servo power |
-| Buck Converter (12V→5V) | 1 | 3A capacity for logic/sensors |
+| Item | Qty | Specification | Price | Image | Purchase Link |
+|------|-----|---------------|-------|-------|---------------|
+| ESP32-S3-DevKitC-1 (N16R8) | 1 | 16MB Flash, 8MB PSRAM | - | - | [Espressif Official Docs](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html) |
+| WS2812B LED Strip | 1 | 8 LEDs, 5V, single data line | - | - | [Arrow.com Guide](https://www.arrow.com/en/research-and-events/articles/ws2812b-led-a-microscopic-tour) |
+| Feetech Serial Bus Controller | 1 | STSC series, UART interface | CHF 5.03 | ![Servo Controller](https://ae01.alicdn.com/kf/S6977f1792cd242a5a6b48ce0d0d62b85C.jpg) | [AliExpress](https://de.aliexpress.com/item/1005008784347409.html) |
+| Feetech STS3215 Servo | 4 | 30 kg·cm (IDs: 1=Pan, 2=Tilt, 3=Roll, 4=Kickstand) | CHF 89.69 (6pcs) | ![STS3215 Servo](https://ae01.alicdn.com/kf/S1f9a5637d4e04ed9b57c685f2363fe3eB.jpg) | [AliExpress](https://de.aliexpress.com/item/1005009270126951.html) |
+| HLK-LD2461 mmWave Sensor | 1 | 24GHz 2T4R radar, UART @ 256000 baud, front-facing | CHF 5.00 | ![HLK-LD2461](../../../docs/media/component_images/hlk-ld2461.png) | [AliExpress](https://de.aliexpress.com/item/1005007253142717.html) |
+| 470Ω Resistor | 1 | 1/4W, for LED data line | - | - | - |
+| 100µF Capacitor | 1 | 16V electrolytic, for LED power | - | - | - |
+| Buck Converter (36V→12V) | 1 | 10A capacity for servo power | - | - | [Amazon](https://www.amazon.com/Converter-Waterproof-Voltage-Regulator-Transformer/dp/B097BPHDZB) |
+| Buck Converter (12V→5V) | 1 | 3A capacity for logic/sensors | - | - | - |
 
 ### Power Requirements
 
@@ -176,10 +176,6 @@ ESP32 5V ──────┬──────── WS2812 VCC
 ESP32 GND ─────┴──────── WS2812 GND
 ```
 
-**LED Index Assignment:**
-- 0: Battery/Power | 1: ROS2 Orchestrator | 2: Head+Ears (0x08) | 3: Neck (0x09)
-- 4: Torso (0x0A) | 5: Base (0x0B) | 6: AI/Cloud | 7: Navigation/SLAM
-
 ### C. Serial Bus Servo Controller
 
 The servo controller manages 4× STS3215 servos (neck pan/tilt/roll and kickstand) via a single UART connection. The servos are daisy-chained on the controller's serial bus, each with a unique ID (1-4).
@@ -222,20 +218,6 @@ The HLK-LD2461 is an advanced 24GHz mmWave radar sensor with 2T4R antenna config
 
 ### E. Power Distribution
 
-Proper power distribution is critical for reliable operation. The Neck module uses a two-stage buck converter architecture powered from the main 36V battery. The first stage (36V→12V 10A) provides clean 12V power for the servo motors. The second stage (12V→5V 3A) steps down to 5V for the ESP32, LED strip, and mmWave sensor. This cascaded design isolates noisy servo currents from sensitive logic circuits.
-
-**Power Architecture:**
-1. **Primary Buck (36V→12V @ 10A):** Handles high-current servo loads with peak demands up to 4-5A during simultaneous movement
-2. **Secondary Buck (12V→5V @ 3A):** Provides regulated logic power with 2× safety margin over peak demand (1.5A)
-3. **Ground Topology:** Star-ground configuration - all grounds connect at battery negative terminal
-
-**Critical Safety Rules:**
-- **NEVER** connect 12V servo power to ESP32 VIN (maximum safe input: 5.5V)
-- **ALWAYS** use separate buck converters - never share power rails between servos and logic
-- **VERIFY** polarity before applying power - reversed polarity destroys the ESP32 instantly
-- **CHECK** output voltage with multimeter before connecting components
-
-**Power Budget:**
 
 **12V Rail (Servo Power):**
 - 4× STS3215 servos: 1-2A each (4-8A total during motion)
@@ -265,23 +247,58 @@ Proper power distribution is critical for reliable operation. The Neck module us
 
 ## 5. Testing & Validation
 
-### Step 1: I2C Communication
+### Test 1: HLK-LD2461 mmWave Sensor UART Communication
+
+**Test Program:** `modules/neck/firmware/src/main.cpp` (with `TEST_MMWAVE_SENSOR` enabled)
+
+**Hardware Setup:**
+1. Connect HLK-LD2461 VCC to 5V (NOT 3.3V - sensor requires 5V)
+2. Connect GND to ESP32 GND
+3. Connect sensor TX to ESP32 GPIO 39 (RX)
+4. Connect sensor RX to ESP32 GPIO 38 (TX)
+
+**Running the Test:**
+1. Navigate to firmware: `cd modules/neck/firmware`
+2. Upload and monitor: `~/.platformio/penv/bin/pio run -t upload -t monitor`
+3. Observe sensor data output at 115200 baud
+
+**Expected Results:**
+- Serial monitor shows UART2 initialization (256000 baud)
+- Hex data stream appears: `0xXX 0xXX 0xXX ...`
+- Data increases when motion detected near sensor
+
+**Troubleshooting:**
+- **No data:** Verify 5V power (260-400mA), check wiring, confirm baud 256000
+- **Garbage data:** Wrong baud rate or loose TX/RX connections
+- **Sensor not powering:** Check 5V supply current capacity
+
+**Test Results:** *(To be filled after testing)*
+
+---
+
+### Test 2: I2C Communication
 ```bash
 # On Raspberry Pi
 i2cdetect -y 1
 # Expected: Device detected at 0x09
 ```
 
-### Step 2: LED Functionality
+**Test Results:** *(To be filled after testing)*
+
+---
+
+### Test 3: WS2812B LED Functionality
 Upload firmware, run LED test pattern.
 **Expected:** All 8 LEDs light up in sequence.
 
-### Step 3: Servo Control
-Send UART position command to servo ID 1.
-**Expected:** Pan servo moves, position feedback received.
+**Test Results:** *(To be filled after testing)*
 
-### Step 4: mmWave Sensor Communication
-Send query command via UART2, read sensor response.
-**Expected:** Sensor responds with presence detection data.
+---
+
+### Test 4: Servo Controller Communication
+Send UART position command to servo controller.
+**Expected:** Servos respond, position feedback received.
+
+**Test Results:** *(To be filled after testing)*
 
 ---

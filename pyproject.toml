@@ -24,11 +24,17 @@ python-dotenv = "^1.0.0"
 # Async/Await
 asyncio-mqtt = "^0.16.1"
 
-# Utilities
+# Hardware Communication
+pyserial = "^3.5"
+odrive = "^0.6.10.post0"
+
+# Data Processing
+numpy = "^1.24.0"
 pyyaml = "^6.0"
+
+# ROS2 Build Tools
 empy = "^4.2"
 lark = "^1.3.0"
-odrive = "^0.6.10.post0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing

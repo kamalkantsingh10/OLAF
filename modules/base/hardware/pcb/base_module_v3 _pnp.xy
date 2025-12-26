@@ -1,0 +1,20 @@
+# Pick And Place List
+# eMail=
+#
+# Project=base_module_v3 
+# Date=03:23:09
+# CreatedBy=Fritzing 1.0.6.2025-10-07.1.0.5rc1-97-g04e5bb02
+#
+# Coordinates in mils, always center of component
+# Origin 0/0=Lower left corner of PCB. Rotation in degree (0-360, math. pos.)
+RefDes,Description,Package,X,Y,Rotation,Side,Mount
+Description: resistance;capacitance;inductance;voltage;current;power;mpn;mn;
+Via1,";;;;;;;;","",1805.54,938.909,0,Top,MANUAL
+A1,";;;;;;;;","",1605.04,1474.28,180,Top,MANUAL
+U2,";;;;;;;;","SIP (Single Inline) [THT]",505.539,688.905,180,Top,THT
+LED Stripo,";;;;;;;;","THT",305.539,1538.9,0,Top,THT
+POWER,";;;;;;;;","THT",362.629,2239.65,180,Top,THT
+I2c,";;;;;;;;","THT",2705.54,438.905,0,Top,THT
+U1,";;;;;;;;","THT",2705.54,938.905,0,Top,THT
+J4,";;;;;;;;","THT",2705.54,1438.9,-90,Top,THT
+J5,";;;;;;;;","THT",2705.54,1538.9,-90,Top,THT

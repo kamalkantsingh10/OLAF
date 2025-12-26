@@ -1,0 +1,23 @@
+# Pick And Place List
+# eMail=
+#
+# Project=neck module
+# Date=03:09:34
+# CreatedBy=Fritzing 1.0.6.2025-10-07.1.0.5rc1-97-g04e5bb02
+#
+# Coordinates in mils, always center of component
+# Origin 0/0=Lower left corner of PCB. Rotation in degree (0-360, math. pos.)
+RefDes,Description,Package,X,Y,Rotation,Side,Mount
+Description: resistance;capacitance;inductance;voltage;current;power;mpn;mn;
+A1,";;;;;;;;","",1538.37,1463.17,180,Top,MANUAL
+C1,";;;;;;;;","cpol-radial-100uf-25v",638.87,2177.8,-90,Top,SMT
+J10,";;;;;;;;","THT",138.872,927.795,0,Top,THT
+U2,";;;;;;;;","THT",288.872,1427.79,90,Top,THT
+J9,";;;;;;;;","THT",238.872,1627.79,-90,Top,THT
+J8,";;;;;;;;","THT",238.872,1727.79,-90,Top,THT
+J7,";;;;;;;;","THT",238.872,1827.79,-90,Top,THT
+POWER,";;;;;;;;","THT",195.963,2228.54,180,Top,THT
+I2c,";;;;;;;;","THT",2638.87,427.795,0,Top,THT
+U1,";;;;;;;;","THT",2638.87,927.795,0,Top,THT
+J4,";;;;;;;;","THT",2638.87,1427.79,-90,Top,THT
+J5,";;;;;;;;","THT",2638.87,1527.79,-90,Top,THT

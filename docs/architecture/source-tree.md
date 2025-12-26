@@ -8,10 +8,10 @@
 
 ### Module Development
 ```
-modules/{module}/firmware/     # ESP32 firmware
+modules/{module}/firmware/     # ESP32 firmware (src/, test/)
 modules/{module}/hardware/     # PCB + 3D models + BOM
-modules/{module}/tests/        # Module-specific tests
-modules/{module}/README.md     # Module documentation
+modules/{module}/assembly.md   # Assembly and testing guide
+modules/{module}/wiring.md     # Wiring diagrams and pin assignments
 ```
 
 ### ROS2 Development

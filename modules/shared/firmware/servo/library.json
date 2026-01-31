@@ -1,0 +1,21 @@
+{
+  "name": "FeetechServo",
+  "version": "1.0.0",
+  "description": "Generic wrapper library for Feetech serial bus servos (STS/SCS series)",
+  "keywords": "servo, feetech, sts, scs, serial, bus, robotics",
+  "authors": {
+    "name": "OLAF Project Contributors"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/OLAF"
+  },
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [
+    {
+      "name": "STS_servos",
+      "version": "https://github.com/matthieuvigne/STS_servos.git"
+    }
+  ]
+}

@@ -30,7 +30,7 @@
 
 ## What is OLAF?
 
-OLAF (Open Lovable AI Friend) is a **personality-first robotics framework** that brings AI agents into physical form. Think R2D2's charm meeting modern AI capabilities—a 2-3 foot tall companion that communicates through expressive OLED eyes, articulated ears (Chappie-inspired), animated heart display, R2D2-style beeps, and floor projection for information display.
+OLAF is a **personality-first robotics framework** that brings AI agents into physical form. Think R2D2's charm meeting modern AI capabilities—a 2-3 foot tall companion that communicates through expressive OLED eyes, articulated ears (Chappie-inspired), animated heart display, R2D2-style beeps, and LED indicators for status visualization.
 
 **This is not another voice assistant in a box.**
 
@@ -56,7 +56,7 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
 
 ---
 
-## Architecture: Three Layers, Four Modules
+## Architecture: Three Layers, Five Modules
 
 ### The Three-Layer Design
 
@@ -78,62 +78,81 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
 │              ORCHESTRATION LAYER                                │
-│         Raspberry Pi 5 16GB + Hailo AI Kit (26 TOPS)            │
-│                     Python • ROS2 Humble                        │
+│      Raspberry Pi 5 16GB + Fusion HAT+ + Hailo AI Kit          │
+│               Ubuntu 24.04 • ROS2 Jazzy                         │
 │                                                                 │
-│  • Personality Coordinator (sync eyes/ears/neck/heart/beeps)   │
+│  • Personality Coordinator (sync eyes/ears/neck/heart/LEDs)    │
 │  • AI Agent Orchestration (tool routing, context management)   │
 │  • SLAM Navigation (Cartographer)                              │
-│  • Sensor Fusion & State Management                            │
-│  • Module Discovery (I2C communication)                        │
+│  • Direct Hardware Control (servos, LEDs, kickstand via HAT)   │
+│  • I2C Master for ESP32 modules                                │
 │                                                                 │
-└──┬──────┬──────┬──────┬────────────────────────────────────┘
-   │      │      │      │ ROS2 Topics (pub/sub)
-   │      │      │      │ I2C Physical Backbone
-   │      │      │      │
-┌──▼──────────┐┌─▼────┐┌─▼────┐┌▼──────────┐
-│ HEAD+EARS   ││ NECK ││TORSO ││   BASE    │
-│   ESP32     ││ESP32 ││ESP32 ││   ESP32   │
-│   (0x08)    ││(0x09)││(0x0A)││   (0x0B)  │
-└─────────────┘└──────┘└──────┘└───────────┘
+└──┬───────┬───────┬─────────────────┬───────────────────────────┘
+   │       │       │                 │
+   │I2C    │USB×2  │HAT WS2812       │HAT PWM
+   │       │       │                 │
+┌──▼───┐ ┌─▼─────────────┐ ┌────────▼───┐ ┌──▼──────┐
+│ HEAD │ │ WAVESHARE USB │ │ INDICATOR  │ │KICKSTAND│
+│ESP32 │ │ Neck + Ears   │ │ 24 LEDs    │ │ Servos  │
+│(0x10)│ │ Servo Adapters│ │ (3 strips) │ │(at base)│
+└──────┘ └───────────────┘ └────────────┘ └─────────┘
+┌──▼───┐
+│ BASE │
+│ESP32 │
+│(0x11)│
+└──────┘
 ```
 
-### The Four Modules (MECE Principle)
+### The Five Modules (MECE Principle)
 
-Each module owns its domain exclusively—no cross-dependencies. All powered by ESP32 microcontrollers acting as smart I2C peripherals.
+Each module owns its domain exclusively—no cross-dependencies. **Hybrid control:** ESP32s for real-time tasks, Pi direct control for latency-tolerant hardware.
 
-**1. HEAD+EARS Module (I2C 0x08)**
+**1. HEAD Module (ESP32, I2C 0x10)**
 - **Hardware:**
-  - 2× OLED eyes (128×64, SPI-driven 30-60 FPS)
-  - 2× Chappie-inspired articulated ears (2-DOF each, Feetech serial servos)
-  - Floor projector with ESP32-controlled power (optocoupler) and focus (linear servo)
-  - RGBD camera + IMU (USB to Pi)
+  - 2× GC9A01 round OLED eyes (240×240, SPI-driven 30-60 FPS)
+  - ESP32-S3 for real-time eye animations
 - **Personality:**
   - Animated eye expressions (happy, curious, thinking, confused, sad)
-  - Ear movements for directional attention and emotional expression (perked up = alert, drooping = sad)
-  - Smooth emotional transitions
-- **Intelligence:** Vision input for SLAM/navigation, presence detection for context-aware behaviors
-- **Smart Control:** Pi sends HDMI video to projector; ESP32 controls power and auto-focus
+  - Smooth emotional transitions, blink patterns
+- **Why ESP32:** 60 FPS animations require dedicated real-time control
 
-**2. NECK Module (I2C 0x09)**
-- **Hardware:** 3-DOF servo array (pan/tilt/roll, Feetech STS3215), 2× presence sensors
-- **Personality:** Head orientation, expressive gestures (head tilts, nods, shakes)
-- **Movement:** Smooth organic motion curves (easing functions, not mechanical jerks)
-- **Intelligence:** 360° human detection via dual presence sensors
-
-**3. TORSO Module (I2C 0x0A)**
-- **Hardware:** 2.8" square display (animated beating heart), thermal printer, Raspberry Pi housing, battery pack, LED status indicators
-- **Personality:** Heart rhythm changes with emotional state (fast = excited, slow = calm, irregular = confused)
-- **Output:** Thermal printer outputs lists, reminders, recipes for physical takeaways
-- **Power:** Houses main battery and power distribution to all modules
-
-**4. BASE Module (I2C 0x0B) - Self-Balancing**
-- **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive controller (UART), MPU6050 IMU (200Hz), servo kickstand
+**2. BASE Module (ESP32, I2C 0x11)**
+- **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive v3.6 (UART), MPU6050 IMU (200Hz)
 - **Control:** 200Hz PID balancing loop (real-time guarantee on ESP32, Linux can't do this)
 - **Mobility:** SLAM navigation, follow-me mode, obstacle avoidance
-- **Safety:** Autonomous kickstand deployment when stopping
+- **Why ESP32:** Self-balancing requires hard real-time guarantees
+
+**3. NECK Module (Pi-controlled, USB Serial)**
+- **Hardware:** 3× Feetech STS3215 servos (pan/tilt/roll), Waveshare Bus Servo Adapter
+- **Personality:** Head orientation, expressive gestures (head tilts, nods, shakes)
+- **Movement:** Smooth organic motion curves (easing functions, not mechanical jerks)
+- **Why Pi Direct:** USB serial via Waveshare adapter—no soldering, plug-and-play
+
+**4. EARS Module (Pi-controlled, USB Serial)**
+- **Hardware:** 4× Feetech SCS0009 servos (2-DOF × 2 ears), Waveshare Bus Servo Adapter
+- **Personality:** Chappie-inspired articulated ears for emotional expression
+- **Expression:** Perked up = alert, drooping = sad, rotating = curious
+- **Why Pi Direct:** USB serial via Waveshare adapter—no soldering, plug-and-play
+
+**5. INDICATOR Module (Pi-controlled, Fusion HAT WS2812)**
+- **Hardware:** 3× 8-LED WS2812 strips (24 LEDs total, daisy-chained)
+- **Functions:**
+  - Strip 1: Interaction state (listening, thinking, speaking)
+  - Strip 2: Module status (health of all subsystems)
+  - Strip 3: PID visualization (self-balancing feedback)
+- **Why Pi Direct:** Single data line via Fusion HAT WS2812 port
+
+**Additional Pi-Controlled Hardware:**
+- **4" Heart Display:** Animated beating heart, status info (replaces dedicated Torso ESP32)
+- **Kickstand:** 2× model plane landing gear servos via Fusion HAT PWM
+- **Speaker:** I2S audio via Fusion HAT
 
 ### Why This Architecture?
+
+**Hybrid Control Topology:**
+- **ESP32s (2 only):** Real-time critical tasks (60 FPS eyes, 200Hz balancing)
+- **Pi Direct (via Fusion HAT):** Everything else—servos, LEDs, kickstand
+- **Result:** Minimal soldering, maximum reliability, fewer firmware projects
 
 **Modular MECE (Mutually Exclusive, Collectively Exhaustive):**
 - Each module completable in 1-2 weekend sprints
@@ -147,10 +166,10 @@ Each module owns its domain exclusively—no cross-dependencies. All powered by 
 - Best of both worlds: speed + sophistication
 
 **ROS2 Foundation:**
-- Industry-standard robotics middleware
+- Industry-standard robotics middleware (ROS2 Jazzy on Ubuntu 24.04)
 - Proven pub/sub architecture for module communication
 - Extensive ecosystem (SLAM, navigation, sensor fusion)
-- All ROS2 nodes run on Pi; ESP32s act as I2C bridges
+- 5 driver nodes: olaf_head, olaf_base, olaf_neck, olaf_ears, olaf_indicator
 
 ---
 
@@ -163,27 +182,21 @@ Each module owns its domain exclusively—no cross-dependencies. All powered by 
 - 👂 **Articulated Ears:** Directional attention + emotional positioning
 - 🎯 **Neck Movement:** 3-DOF gestures (pan/tilt/roll)
 - ❤️ **Heart Display:** Beating rhythm synchronized with emotional state
+- 💡 **LED Indicators:** Interaction state, module health, PID visualization
 - 🎵 **R2D2 Beeps:** Musical intervals (not harsh tones), emotion-matched inflection
 - 🎬 **Orchestrated Sync:** All channels coordinated <500ms for unified emotional states
 
 **Example:** "Express excitement level 4"
-→ Orchestrator sends I2C commands to Head (eyes wide, pupils dilated), Ears (perked forward), Neck (small bouncing motion), Torso (heart racing), Speaker (rapid high-pitched beeps)
-→ ESP32s execute locally cached animations simultaneously
+→ Orchestrator sends commands to Head (eyes wide, pupils dilated), Ears (perked forward), Neck (small bouncing motion), Heart (racing animation), Indicators (fast pulse)
 → Result: Coherent excited expression across all channels
 
 ### Intelligence & Interaction
 
-- 🗣️ **Voice-first input:** Microphone array + Hailo Whisper STT (<200ms local processing)
+- 🗣️ **Voice-first input:** Microphone + Hailo Whisper STT (<200ms local processing)
 - 🧠 **Cloud AI agents:** Claude/GPT-4 for natural language, reasoning, tool use
 - 🔊 **Context maintenance:** SQLite conversation history, user preferences across power cycles
-- 🎯 **Function routing:** AI decides which modules to activate (projection, printer, movement)
+- 🎯 **Function routing:** AI decides which modules to activate (display, movement, expression)
 - 👁️ **Vision:** RGBD camera for SLAM, obstacle detection, person following
-
-### Physical Outputs
-
-- 📽️ **Floor projector:** Information display without screen-staring (charts, recipes, reminders)
-- 🖨️ **Thermal printer:** Physical printouts for lists, notes (tangible takeaways)
-- 🎵 **Beeps + Gestures:** Non-verbal communication (avoids uncanny valley)
 
 ### Mobility & Navigation
 
@@ -206,20 +219,21 @@ This is a work-in-progress build. The journey from sketch to functioning robot c
 - ✅ 3D CAD design complete for all modules
 - ✅ Initial firmware for head module operational
 - ✅ Modular architecture validated conceptually
+- ✅ Architecture pivot to Fusion HAT (reduced from 4 ESP32s to 2)
 
 **Currently Building:**
-- 🔨 Physical assembly of remaining modules (ears, neck, torso, base)
+- 🔨 Physical assembly of remaining modules (ears, neck, base)
 - 🔨 3D printing and fitting parts
-- 🔨 ESP32 firmware development for each module
-- 🔨 I2C communication between modules
-- 🔨 ROS2 integration layer
+- 🔨 ESP32 firmware for Head and Base modules
+- 🔨 USB servo communication for Neck and Ears
+- 🔨 ROS2 Jazzy integration layer
 
 **Not Yet Started:**
 - ⏳ AI intelligence layer integration (Hailo Whisper STT)
 - ⏳ Personality coordinator (coordinated expression across modules)
 - ⏳ SLAM navigation
 - ⏳ Self-balancing base with PID tuning
-- ⏳ Thermal printer integration
+- ⏳ WS2812 indicator animations
 
 **Realistic Timeline:**
 This is a complex build being done in spare time while working full-time. Progress is incremental, iterative, and fully documented as it happens.
@@ -233,22 +247,29 @@ This is a complex build being done in spare time while working full-time. Progre
 
 ```
 modules/
-├── head-ears/        # Eyes, ears, projector (I2C 0x08)
-├── neck/             # Servos, kickstand, sensors (I2C 0x09)
-├── torso/            # Heart LCD, printer (I2C 0x0A)
-└── base/             # Self-balancing, motors (I2C 0x0B)
+├── head/             # OLED eyes (ESP32, I2C 0x10)
+├── base/             # Self-balancing (ESP32, I2C 0x11)
+├── neck/             # 3-DOF servos (Pi USB serial)
+├── ears/             # Articulated ears (Pi USB serial)
+├── indicator/        # WS2812 LED strips (Pi Fusion HAT)
+└── shared/           # Shared ESP32 libraries
 ```
 
-Each module folder contains:
-- `firmware/` - ESP32 code (Arduino/PlatformIO)
-- `hardware/` - PCB designs + 3D models + BOM
+**ESP32 modules** (head, base) contain:
+- `firmware/` - ESP32 code (PlatformIO)
+- `hardware/` - 3D models + BOM
 - `tests/` - Module-specific tests
-- `README.md` - Wiring, assembly, calibration
+- `wiring.md` - Pin assignments, circuits
+
+**Pi-controlled modules** (neck, ears, indicator) contain:
+- `hardware/` - 3D models + BOM
+- `tests/` - Integration tests
+- `assembly.md` - Assembly guide
 
 **ROS2 lives separately:**
 ```
 ros2/src/
-├── olaf_drivers/      # I2C ↔ ROS2 bridge nodes
+├── olaf_drivers/      # 5 driver nodes (head, base, neck, ears, indicator)
 ├── olaf_personality/  # Expression coordination
 └── olaf_ai/           # AI integration
 ```
@@ -280,9 +301,12 @@ ros2/src/
 
 **Built with:**
 - AI Coding Assistants (Claude, GPT-4) - 100% AI-assisted development
-- Raspberry Pi 5 + Hailo AI Kit - Local AI acceleration
-- ROS2 Humble - Robotics middleware
-- ESP32 - Module intelligence
+- Raspberry Pi 5 16GB + Ubuntu 24.04 - Main compute
+- Sunfounder Fusion HAT+ - PWM, WS2812, I2S audio
+- Hailo AI Kit (26 TOPS) - Local AI acceleration
+- ROS2 Jazzy - Robotics middleware
+- ESP32-S3 - Real-time module controllers
+- Waveshare Bus Servo Adapters - USB servo control
 - OnShape - 3D CAD design
 - PlatformIO - Firmware development
 

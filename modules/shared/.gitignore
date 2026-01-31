@@ -1,0 +1,2 @@
+# Secrets - NEVER commit credentials!
+firmware/secrets.h

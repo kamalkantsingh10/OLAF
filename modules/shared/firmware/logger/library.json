@@ -1,0 +1,17 @@
+{
+  "name": "Logger",
+  "version": "1.0.0",
+  "description": "UDP syslog logger for multi-module WiFi debugging across OLAF robotics platform",
+  "keywords": ["logging", "udp", "syslog", "debug", "wifi"],
+  "authors": [
+    {
+      "name": "OLAF Project"
+    }
+  ],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "dependencies": {
+    "WiFi": "*",
+    "WiFiUdp": "*"
+  }
+}

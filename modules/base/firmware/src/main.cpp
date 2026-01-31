@@ -1,253 +1,123 @@
 /**
- * OLAF Base Module - Main Firmware
- * ESP32-S3 Self-Balancing Controller
+ * OLAF Base Module - Incremental Build
  *
- * Epic 6: Self-Balancing Base
- * Story 6.5: Base Module ESP32 Firmware
+ * Phase 1: MPU-6500 IMU Only
  *
- * Architecture:
- * - I2C Slave (0x0B) - Receives commands from Raspberry Pi
- * - UART1 (GPIO16/17) - Controls ODrive motor controller
- * - I2C Master (GPIO8/9) - Reads MPU6050 IMU
- * - 200Hz PID Loop - Self-balancing control
+ * ============================================================================
+ * WIRING DIAGRAM - MPU to Keyestudio ESP32 PLUS
+ * ============================================================================
  *
- * Control Flow:
- * 1. setup(): Initialize all hardware modules
- * 2. loop(): Run 200Hz balancing loop + process I2C commands
+ *   MPU-6500          ESP32 I2C Header
+ *   --------          ----------------
+ *   VCC  ──────────── 3.3V
+ *   GND  ──────────── GND
+ *   SDA  ──────────── GPIO 21
+ *   SCL  ──────────── GPIO 22
+ *   AD0  ──────────── GND     (I2C address = 0x68)
  *
- * Author: Gilfoyle Bertram (Dev Agent)
- * Date: 2025-12-02
+ * ============================================================================
  */
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <OLAFota.h>
+#include <Logger.h>
+#include "imu.h"
 
-#include "config.h"
-#include "i2c_slave.h"
-#include "odrive_uart.h"
-#include "imu_fusion.h"
-#include "balancing_controller.h"
+// ============================================================================
+// CONFIG
+// ============================================================================
+#define OTA_HOSTNAME  "olaf-base"
+#define OTA_PASSWORD  "olaf-base-ota-2024"
+#define LOG_SERVER_IP "192.168.118.30"
 
-// Status LED control
-uint32_t lastLedBlinkMs = 0;
-bool ledState = false;
+// I2C pins - Keyestudio ESP32 PLUS (standard ESP32 I2C)
+#ifndef IMU_SDA
+#define IMU_SDA 21
+#endif
+#ifndef IMU_SCL
+#define IMU_SCL 22
+#endif
 
-// Main loop timing
-uint32_t lastLoopMicros = 0;
-uint32_t loopCounter = 0;
+// ============================================================================
+// GLOBALS
+// ============================================================================
+Logger logger("BASE");
 
-// Statistics
-uint32_t lastStatsMs = 0;
-float averageLoopTimeUs = 0.0;
-float maxLoopTimeUs = 0.0;
-
-/**
- * Initialize all hardware modules
- */
+// ============================================================================
+// SETUP
+// ============================================================================
 void setup() {
-    // Initialize USB serial for debugging
-    Serial.begin(kSerialDebugBaudRate);
-    delay(1000);  // Wait for serial to initialize
+    Serial.begin(115200);
+    delay(2000);
 
-    Serial.println("\n\n========================================");
-    Serial.println("  OLAF Base Module - Self-Balancing");
-    Serial.println("  Epic 6: Story 6.5");
-    Serial.println("========================================\n");
+    // OTA + WiFi
+    bool wifi_ok = OLAFota::begin(OTA_HOSTNAME, OTA_PASSWORD);
 
-    // Initialize status LED
-    pinMode(kStatusLedPin, OUTPUT);
-    digitalWrite(kStatusLedPin, LOW);
+    // Logger
+    if (wifi_ok) {
+        logger.begin(LOG_SERVER_IP);
+        logger.setLevel(Logger::DEBUG);
+        delay(100);
+    }
 
-    // Initialize I2C master for IMU (must be before i2cSlave.begin())
-    Wire.begin(kI2CSdaPin, kI2CSclPin, kI2CFrequency);
-    Serial.println("[INIT] I2C master initialized for IMU");
+    Serial.println("========================================");
+    Serial.println("  OLAF Base Module - Phase 1: IMU");
+    Serial.println("========================================");
 
-    // Initialize IMU (MPU6050)
-    Serial.println("\n[INIT] Step 1: Initialize IMU...");
-    if (!imu.begin()) {
-        Serial.println("[INIT] FATAL: IMU initialization failed!");
+    // I2C scan for debugging
+    Serial.printf("I2C pins: SDA=%d, SCL=%d\n", IMU_SDA, IMU_SCL);
+    Wire.begin(IMU_SDA, IMU_SCL);
+    Wire.setClock(100000);  // 100kHz - slower is more reliable
+    Serial.println("Scanning I2C...");
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            Serial.printf("  Found device at 0x%02X\n", addr);
+        }
+    }
+    Serial.println("Scan done");
+
+    // Initialize IMU
+    if (!imu.begin(IMU_SDA, IMU_SCL)) {
+        Serial.println("ERROR: IMU init FAILED!");
         while (1) {
-            // Blink LED rapidly to indicate error
-            digitalWrite(kStatusLedPin, !digitalRead(kStatusLedPin));
-            delay(100);
+            OLAFota::handle();
+            delay(1000);
         }
     }
 
-    // Initialize ODrive UART
-    Serial.println("\n[INIT] Step 2: Initialize ODrive UART...");
-    odrive.begin();
-
-    // Initialize I2C slave for Pi communication
-    Serial.println("\n[INIT] Step 3: Initialize I2C Slave...");
-    i2cSlave.begin();
-    i2cSlave.setStatus(STATUS_OK);
-
-    // Initialize balancing controller
-    Serial.println("\n[INIT] Step 4: Initialize Balancing Controller...");
-    balancer.begin();
-
-    // Initialization complete
-    Serial.println("\n========================================");
-    Serial.println("  ✅ Initialization Complete!");
-    Serial.println("========================================\n");
-    Serial.println("Waiting for commands from Raspberry Pi...");
-    Serial.println("Send CMD_ENABLE_BALANCE (0x01) to start balancing\n");
-
-    // Blink LED 3 times to indicate ready
-    for (int i = 0; i < 3; i++) {
-        digitalWrite(kStatusLedPin, HIGH);
-        delay(200);
-        digitalWrite(kStatusLedPin, LOW);
-        delay(200);
+    Serial.printf("IMU ready! WHO_AM_I: 0x%02X\n", imu.getWhoAmI());
+    if (imu.hasMagnetometer()) {
+        Serial.println("Magnetometer: YES");
+    } else {
+        Serial.println("Magnetometer: NO (MPU-6500)");
     }
-
-    lastLoopMicros = micros();
-    lastStatsMs = millis();
 }
 
-/**
- * Main loop - runs continuously
- * Target: 200Hz (5ms period)
- */
+// ============================================================================
+// LOOP
+// ============================================================================
 void loop() {
-    uint32_t loopStartMicros = micros();
+    OLAFota::handle();
+    if (OLAFota::isUpdating()) return;
 
-    // ========================================================================
-    // TIMING: Enforce 200Hz loop rate (5000 microseconds = 5ms)
-    // ========================================================================
-    uint32_t elapsedMicros = loopStartMicros - lastLoopMicros;
-
-    if (elapsedMicros < kMainLoopIntervalMs * 1000) {
-        // Too early, wait
-        delayMicroseconds((kMainLoopIntervalMs * 1000) - elapsedMicros);
-        loopStartMicros = micros();
-        elapsedMicros = loopStartMicros - lastLoopMicros;
+    if (!imu.update()) {
+        Serial.println("IMU read error");
+        delay(100);
+        return;
     }
 
-    lastLoopMicros = loopStartMicros;
-
-    // ========================================================================
-    // STEP 1: Update IMU (read pitch angle)
-    // ========================================================================
-    imu.update();
-
-    // ========================================================================
-    // STEP 2: Process I2C commands from Raspberry Pi
-    // ========================================================================
-    uint8_t command = i2cSlave.getCommand();
-    if (command != 0) {
-        handleI2CCommand(command);
-        i2cSlave.clearCommand();
+    if (imu.hasMagnetometer()) {
+        Serial.printf("A:%5.2f %5.2f %5.2f G:%6.1f %6.1f %6.1f M:%5d %5d %5d\n",
+                     imu.getAccX(), imu.getAccY(), imu.getAccZ(),
+                     imu.getGyroX(), imu.getGyroY(), imu.getGyroZ(),
+                     imu.getMagX(), imu.getMagY(), imu.getMagZ());
+    } else {
+        Serial.printf("A:%5.2f %5.2f %5.2f G:%6.1f %6.1f %6.1f\n",
+                     imu.getAccX(), imu.getAccY(), imu.getAccZ(),
+                     imu.getGyroX(), imu.getGyroY(), imu.getGyroZ());
     }
 
-    // Update target velocity from I2C
-    if (balancer.getMode() == MODE_BALANCING) {
-        float linear_vel = i2cSlave.getLinearVelocity();
-        float angular_vel = i2cSlave.getAngularVelocity();
-        balancer.setTargetVelocity(linear_vel, angular_vel);
-    }
-
-    // ========================================================================
-    // STEP 3: Run balancing PID loop
-    // ========================================================================
-    bool balancing_active = balancer.update();
-
-    // Update status byte for Pi to read
-    uint8_t status = STATUS_OK;
-    if (balancing_active) {
-        status |= STATUS_BALANCING | STATUS_MOTORS_ENABLED;
-    }
-    if (balancer.isEmergency()) {
-        status |= STATUS_ERROR;
-    }
-    i2cSlave.setStatus(status);
-
-    // ========================================================================
-    // STEP 4: Update odometry and telemetry for Pi
-    // ========================================================================
-    // TODO: Calculate odometry from motor encoders
-    // For now, just report current pitch
-    i2cSlave.setPitch(imu.getPitchDeg());
-    i2cSlave.setBatteryVoltage(36.0);  // TODO: Read actual voltage
-
-    // ========================================================================
-    // STEP 5: Update ODrive (process UART responses)
-    // ========================================================================
-    odrive.update();
-
-    // ========================================================================
-    // STEP 6: Status LED heartbeat
-    // ========================================================================
-    uint32_t now = millis();
-    if (now - lastLedBlinkMs >= kLedBlinkIntervalMs) {
-        lastLedBlinkMs = now;
-        ledState = !ledState;
-        digitalWrite(kStatusLedPin, ledState);
-    }
-
-    // ========================================================================
-    // STATISTICS: Track loop timing
-    // ========================================================================
-    uint32_t loopEndMicros = micros();
-    float loopTimeUs = loopEndMicros - loopStartMicros;
-
-    averageLoopTimeUs = (averageLoopTimeUs * loopCounter + loopTimeUs) / (loopCounter + 1);
-    if (loopTimeUs > maxLoopTimeUs) {
-        maxLoopTimeUs = loopTimeUs;
-    }
-    loopCounter++;
-
-    // Print statistics every second
-    if (now - lastStatsMs >= 1000) {
-        lastStatsMs = now;
-
-        if (kEnableSerialDebug) {
-            Serial.printf("[STATS] Loop rate: %d Hz, Avg: %.1f us, Max: %.1f us, Pitch: %.2f°\n",
-                          loopCounter, averageLoopTimeUs, maxLoopTimeUs, imu.getPitchDeg());
-        }
-
-        loopCounter = 0;
-        averageLoopTimeUs = 0.0;
-        maxLoopTimeUs = 0.0;
-    }
-
-    // Warn if loop is running slow
-    if (loopTimeUs > 6000) {  // > 6ms (should be 5ms)
-        Serial.printf("[WARNING] Slow loop: %.1f us (target: 5000 us)\n", loopTimeUs);
-    }
-}
-
-/**
- * Handle I2C commands from Raspberry Pi
- */
-void handleI2CCommand(uint8_t command) {
-    Serial.printf("[I2C] Received command: 0x%02X\n", command);
-
-    switch (command) {
-        case CMD_ENABLE_BALANCE:
-            Serial.println("[I2C] Command: ENABLE_BALANCE");
-            balancer.enable();
-            break;
-
-        case CMD_DISABLE_BALANCE:
-            Serial.println("[I2C] Command: DISABLE_BALANCE");
-            balancer.disable();
-            break;
-
-        case CMD_RESET:
-            Serial.println("[I2C] Command: RESET");
-            balancer.disable();
-            balancer.resetPID();
-            break;
-
-        case CMD_CALIBRATE_IMU:
-            Serial.println("[I2C] Command: CALIBRATE_IMU");
-            balancer.disable();
-            imu.calibrate();
-            break;
-
-        default:
-            Serial.printf("[I2C] Unknown command: 0x%02X\n", command);
-            break;
-    }
+    delay(100);
 }

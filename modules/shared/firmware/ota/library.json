@@ -1,0 +1,25 @@
+{
+  "name": "OLAFota",
+  "version": "1.0.0",
+  "description": "OTA Update Library for OLAF Modules - Pure WiFi + OTA",
+  "keywords": "ota, wifi, esp32",
+  "authors": {
+    "name": "OLAF Project"
+  },
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [
+    {
+      "name": "WiFi",
+      "frameworks": "arduino"
+    },
+    {
+      "name": "ESPmDNS",
+      "frameworks": "arduino"
+    },
+    {
+      "name": "ArduinoOTA",
+      "frameworks": "arduino"
+    }
+  ]
+}

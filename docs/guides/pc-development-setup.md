@@ -1,12 +1,11 @@
 # PC Development Setup for OLAF
 
-This guide explains how to set up your PC for OLAF development using a hybrid PC+Pi architecture. With this setup, you can develop and test ROS2 application nodes on your PC while the Raspberry Pi handles hardware driver nodes and ESP32 module communication.
+This guide explains how to set up your PC for OLAF development using a hybrid PC+Pi architecture. With this setup, you develop code on your PC, push via git, and deploy to the Raspberry Pi which handles all hardware control.
 
 **When to use this guide:**
-- Part of **Epic 0, Story 0.4** (Setup Dev Tools)
-- After Raspberry Pi setup is complete
+- Part of **Epic 0, Stories 0.2, 0.3, 0.4, 0.7**
+- After Raspberry Pi setup is complete (Story 0.1)
 - Before starting module development (Epic 1+)
-- For faster development iteration on application nodes
 
 ---
 
@@ -16,64 +15,65 @@ This guide explains how to set up your PC for OLAF development using a hybrid PC
 ┌─────────────────────────────────────┐
 │  YOUR PC (Development)              │
 │  ┌───────────────────────────────┐  │
-│  │ ROS2 Application Nodes        │  │
-│  │ - olaf_personality            │  │
-│  │ - olaf_ai                     │  │
-│  │ - olaf_navigation             │  │
-│  │ - Development tools (rqt)    │  │
+│  │ • Code editing (VS Code)      │  │
+│  │ • Git push to deploy          │  │
+│  │ • ros2 topic pub/echo         │  │
+│  │ • rviz2, rqt visualization    │  │
+│  │ • PlatformIO (ESP32 firmware) │  │
 │  └───────────────────────────────┘  │
 │           ↓ ROS2 DDS (WiFi)         │
+│           ↓ ROS_DOMAIN_ID=42        │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
-│  RASPBERRY PI (Hardware Control)    │
+│  RASPBERRY PI 5 (Hardware Control)  │
 │  ┌───────────────────────────────┐  │
-│  │ ROS2 Driver Nodes ONLY        │  │
-│  │ - head_ears_driver            │  │
-│  │ - neck_driver                 │  │
-│  │ - torso_driver                │  │
-│  │ - base_driver                 │  │
+│  │ ROS2 Driver Nodes             │  │
+│  │ • olaf_head (I2C 0x10)        │  │
+│  │ • olaf_base (I2C 0x11)        │  │
+│  │ • olaf_neck (USB Serial)      │  │
+│  │ • olaf_ears (USB Serial)      │  │
+│  │ • olaf_indicator (Fusion HAT) │  │
 │  └───────────────────────────────┘  │
-│           ↓ I2C (Wired)             │
+│           ↓                         │
 └─────────────────────────────────────┘
             ↓
-    ┌───────────────────────┐
-    │ ESP32 Modules         │
-    │ - Head+Ears (0x08)    │
-    │ - Neck (0x09)         │
-    │ - Torso (0x0A)        │
-    │ - Base (0x0B)         │
-    └───────────────────────┘
+    ┌───────────────────────────────────────────────┐
+    │ Hardware                                      │
+    │ • Head ESP32 (0x10) → 2× GC9A01 OLED eyes    │
+    │ • Base ESP32 (0x11) → MPU6050 + ODrive       │
+    │ • Waveshare Neck → 3× STS3215 servos         │
+    │ • Waveshare Ears → 4× SCS0009 servos         │
+    │ • Fusion HAT → WS2812 LEDs, kickstand PWM    │
+    └───────────────────────────────────────────────┘
 ```
 
 **Benefits:**
-- ✅ Use your PC's power and development tools
-- ✅ Keep existing automation workflows
-- ✅ Test without deploying to Pi every time
-- ✅ Easy migration to production (same code, different machine)
-- ✅ Faster iteration cycle
-- ✅ Better debugging tools (RViz, RQt, IDE integration)
+- ✅ Full IDE experience on PC (VS Code, debugging tools)
+- ✅ Direct topic interaction with robot over WiFi
+- ✅ No code duplication — same git repo on both machines
+- ✅ Faster iteration (edit on PC, test via ROS2 topics)
+- ✅ Better visualization tools (rviz2, rqt run better on PC)
 
 ---
 
 ## Prerequisites
 
 ### Hardware Requirements
-- PC running Ubuntu 22.04 LTS (native or VM)
+- PC running Ubuntu 24.04 LTS
 - Raspberry Pi 5 with OLAF setup complete
 - Both PC and Pi on the same WiFi network
-- ESP32 modules flashed with firmware (optional for initial development)
 
 ### Software Requirements
-- Ubuntu 22.04 LTS (for native ROS2 Humble support)
+- Ubuntu 24.04 LTS (required for ROS2 Jazzy)
 - Git
-- Python 3.10+
+- Python 3.11+
 
 ---
 
 ## Installation Steps
 
-### 1. Install ROS2 Humble on PC
+### 1. Install ROS2 Jazzy on PC
 
 ```bash
 # Set locale
@@ -89,9 +89,9 @@ sudo apt update && sudo apt install curl -y
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
-# Install ROS2 Humble Desktop (includes RViz, RQt, etc.)
+# Install ROS2 Jazzy Desktop (includes rviz2, rqt, etc.)
 sudo apt update
-sudo apt install ros-humble-desktop -y
+sudo apt install ros-jazzy-desktop -y
 
 # Install development tools
 sudo apt install python3-colcon-common-extensions python3-rosdep -y
@@ -105,42 +105,32 @@ rosdep update
 
 ```bash
 # Add to ~/.bashrc
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc
+echo "export ROS_LOCALHOST_ONLY=0" >> ~/.bashrc
 
 # Source immediately
 source ~/.bashrc
 ```
 
-**IMPORTANT:** The `ROS_DOMAIN_ID` must match your Raspberry Pi (default: 42).
+**IMPORTANT:** The `ROS_DOMAIN_ID=42` must match your Raspberry Pi.
 
 ### 3. Clone OLAF Repository
+
+Clone directly to home directory (same structure as Pi):
 
 ```bash
 cd ~
 git clone https://github.com/kamalkantsingh10/OLAF.git olaf
-cd olaf
 ```
 
-**Note:** If you already have the repository, skip this step and use your existing clone.
+Note: Use HTTPS for simplicity. For SSH (passwordless push): `git clone git@github.com:kamalkantsingh10/OLAF.git olaf`
 
 ### 4. Install Python Dependencies
 
 ```bash
-cd ~/olaf
-
-# Install Poetry (if not already installed)
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Add Poetry to PATH
-export PATH="$HOME/.local/bin:$PATH"
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-
-# Install project dependencies
-poetry install
+pip install smbus2 pyserial numpy
 ```
-
-**Note:** OLAF uses Poetry for dependency management. This will install all required packages including smbus2, anthropic, openai, pytest, ruff, and black.
 
 ### 5. Build ROS2 Workspace
 
@@ -164,428 +154,236 @@ echo "source ~/olaf/ros2/install/setup.bash" >> ~/.bashrc
 
 ## Network Configuration
 
-### 1. Set ROS2 Domain ID (Both PC and Pi)
+### 1. Verify ROS2 Domain ID (Both PC and Pi)
 
-The `ROS_DOMAIN_ID` isolates your robot from other ROS2 systems on the network.
-
-**On PC:**
 ```bash
-# Add to ~/.bashrc (should already be set if you followed installation)
-export ROS_DOMAIN_ID=42
-```
+# On PC
+echo $ROS_DOMAIN_ID  # Should be 42
 
-**On Pi:**
-```bash
-# Should already be set by Pi setup
-echo $ROS_DOMAIN_ID  # Verify it shows 42
+# On Pi
+ssh kamal@olaf.local "echo \$ROS_DOMAIN_ID"  # Should be 42
 ```
 
 ### 2. Configure Firewall (PC)
 
 ```bash
-# On Ubuntu PC, allow ROS2 DDS ports
+# Allow ROS2 DDS ports
 sudo ufw allow 7400:7500/udp
 sudo ufw allow 7400:7500/tcp
 
-# Or disable firewall for local network
-sudo ufw disable  # Only if on trusted local network
+# Or disable firewall for local network (trusted networks only)
+sudo ufw disable
 ```
 
 ### 3. Verify Network Connectivity
 
-**Check if PC can see Pi's ROS2 topics:**
-
 ```bash
-# On Pi: Start driver nodes
-cd ~/olaf/ros2
-source install/setup.bash
-ros2 launch olaf_bringup drivers.launch.py
+# Ping Pi from PC
+ping olaf.local
 
-# On PC: List topics (should see /olaf/* topics)
-ros2 topic list
-```
+# Test ROS2 cross-machine communication
+# On Pi: Start a talker
+ssh kamal@olaf.local "ros2 run demo_nodes_cpp talker"
 
-**Expected output:**
+# On PC: Listen (should see messages)
+ros2 topic echo /chatter
 ```
-/olaf/head_ears/eyes/expression
-/olaf/head_ears/projector/status
-/olaf/neck/position
-/olaf/torso/heart/animation
-/olaf/base/velocity
-/parameter_events
-/rosout
-```
-
-If you don't see topics, check the troubleshooting section.
 
 ---
 
 ## Development Workflow
 
-### 1. Start Driver Nodes on Pi
+### Git-Based Deployment
 
-**SSH into Pi:**
-```bash
-ssh pi@raspberrypi.local
-# OR
-ssh pi@<pi-ip-address>
+```
+┌──────────────────────────────────────────────────────────────┐
+│  1. EDIT on PC                                               │
+│     code ~/olaf/ros2/src/olaf_head/                          │
+│                          ↓                                   │
+│  2. COMMIT & PUSH                                            │
+│     cd ~/olaf && git add . && git commit -m "feat: ..." && git push │
+│                          ↓                                   │
+│  3. PULL on Pi                                               │
+│     ssh kamal@olaf.local "cd ~/olaf && git pull"             │
+│                          ↓                                   │
+│  4. BUILD on Pi                                              │
+│     ssh kamal@olaf.local "cd ~/olaf/ros2 && colcon build"    │
+│                          ↓                                   │
+│  5. RUN on Pi                                                │
+│     ssh kamal@olaf.local "ros2 run olaf_head head_driver"    │
+│                          ↓                                   │
+│  6. INTERACT from PC                                         │
+│     ros2 topic pub /head/expression ...                      │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Start hardware driver nodes:**
+### Quick Deploy Script
+
+Create `~/olaf/scripts/deploy.sh`:
+
 ```bash
-cd ~/olaf/ros2
-source install/setup.bash
+#!/bin/bash
+set -e
+
+PI_HOST="kamal@olaf.local"
+
+echo "=== Deploying to Pi ==="
+
+echo "1. Pulling latest code on Pi..."
+ssh ${PI_HOST} "cd ~/olaf && git pull"
+
+echo "2. Building on Pi..."
+ssh ${PI_HOST} "cd ~/olaf/ros2 && source /opt/ros/jazzy/setup.bash && colcon build"
+
+echo "=== Deploy complete ==="
+echo "Run nodes with: ssh ${PI_HOST} 'cd ~/olaf/ros2 && source install/setup.bash && ros2 run ...'"
+```
+
+Make executable: `chmod +x scripts/deploy.sh`
+
+### Daily Development Workflow
+
+**Terminal 1 — Pi Driver Nodes:**
+```bash
+ssh kamal@olaf.local
+cd ~/olaf_ws && source install/setup.bash
 ros2 launch olaf_bringup drivers.launch.py
 ```
 
-**Leave this running** - Pi is now the hardware bridge to ESP32 modules.
-
-### 2. Develop Application Nodes on PC
-
-**Terminal 1 - Personality Coordination:**
+**Terminal 2 — PC Topic Interaction:**
 ```bash
-cd ~/olaf/ros2
-source install/setup.bash
-ros2 launch olaf_bringup personality.launch.py
+# List available topics
+ros2 topic list
+
+# Send expression command to Head
+ros2 topic pub /head/expression olaf_interfaces/msg/Expression "{emotion: 1, intensity: 3}" --once
+
+# Echo sensor data from Base
+ros2 topic echo /base/imu
 ```
 
-**Terminal 2 - AI Agent:**
+**Terminal 3 — PC Visualization:**
 ```bash
-cd ~/olaf/ros2
-source install/setup.bash
-ros2 run olaf_ai agent_node
-```
-
-**Terminal 3 - Navigation (when ready):**
-```bash
-cd ~/olaf/ros2
-source install/setup.bash
-ros2 launch olaf_bringup navigation.launch.py
-```
-
-### 3. Test Cross-Machine Communication
-
-**Publish from PC, hardware responds on Pi:**
-
-```bash
-# On PC: Send expression command
-ros2 topic pub /olaf/head_ears/eyes/expression \
-  std_msgs/String "data: 'happy'" --once
-
-# Eyes on actual robot should change (if ESP32 connected)
-# Or check Pi terminal for driver node logs
-```
-
-### 4. Monitor with RQt Tools (PC)
-
-```bash
-# Visualize ROS2 graph
-rqt_graph
-
-# Monitor topics
-rqt_topic
-
-# All-in-one dashboard
-rqt
-```
-
-### 5. Develop-Test-Deploy Cycle
-
-```bash
-# 1. Edit code on PC
-code ros2/src/olaf_personality/olaf_personality/emotion_engine.py
-
-# 2. Rebuild (from ros2/ directory)
-colcon build --packages-select olaf_personality
-source install/setup.bash
-
-# 3. Test on PC (with Pi drivers running)
-ros2 run olaf_personality emotion_engine
-
-# 4. Commit changes
-git add .
-git commit -m "feat: update emotion engine"
-git push origin main
-
-# 5. Deploy to Pi
-ssh pi@raspberrypi.local
-cd ~/olaf/ros2
-git pull origin main
-colcon build
-source install/setup.bash
-
-# 6. Run full system on Pi (production)
-ros2 launch olaf_bringup olaf.launch.py
+rqt_graph  # View node connections
+rqt        # All-in-one dashboard
 ```
 
 ---
 
 ## ESP32 Firmware Development on PC
 
-You can develop, compile, and upload ESP32 firmware from your PC.
-
 ### 1. Install PlatformIO
 
 ```bash
 # Install PlatformIO Core
-pip3 install platformio
+pip install platformio
 
-# OR install PlatformIO IDE (VS Code extension)
-# Search "PlatformIO IDE" in VS Code extensions
+# Add udev rules for ESP32
+curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/system/99-platformio-udev.rules | sudo tee /etc/udev/rules.d/99-platformio-udev.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# Add user to dialout group
+sudo usermod -aG dialout $USER
+# Log out and back in
 ```
 
-### 2. Develop Module Firmware
+### 2. Build and Upload Firmware
 
 ```bash
-# Navigate to module
-cd ~/olaf/modules/head-ears/firmware
+# Head module (ESP32, I2C 0x10)
+cd ~/olaf/modules/head/firmware
+pio run                      # Build
+pio run --target upload      # Upload (ESP32 connected to PC via USB)
+pio device monitor           # Serial monitor
 
-# Open in editor
-code .  # VS Code
-# OR
-vim src/main.cpp
-```
-
-### 3. Build Firmware
-
-```bash
-cd ~/olaf/modules/head-ears/firmware
-
-# Build
-pio run
-
-# Build for specific environment
-pio run -e esp32dev-release
-```
-
-### 4. Upload to ESP32 (USB Connected to PC)
-
-```bash
-# Connect ESP32 to PC via USB
-
-# Check port
-ls /dev/ttyUSB*  # Linux
-ls /dev/cu.*     # macOS
-
-# Upload (auto-detects port)
-pio run --target upload
-
-# Or specify port
-pio run --target upload --upload-port /dev/ttyUSB0
-```
-
-### 5. Monitor Serial Output
-
-```bash
-# Open serial monitor
-pio device monitor
-
-# Or with upload
-pio run --target upload && pio device monitor
-```
-
-### 6. Module-Specific Development
-
-Each module has its own complete firmware:
-
-```bash
-# Head+Ears (0x08)
-cd modules/head-ears/firmware
-pio run --target upload
-
-# Neck (0x09)
-cd modules/neck/firmware
-pio run --target upload
-
-# Torso (0x0A)
-cd modules/torso/firmware
-pio run --target upload
-
-# Base (0x0B)
-cd modules/base/firmware
+# Base module (ESP32, I2C 0x11)
+cd ~/olaf/modules/base/firmware
 pio run --target upload
 ```
 
 ---
 
-## Module Testing Workflow
+## ROS2 Topic Reference
 
-### 1. Test Individual Modules
-
+### Head Module (I2C 0x10)
 ```bash
-# Test head-ears module
-cd ~/olaf/modules/head-ears
+# Subscribe topics (Pi → Head ESP32)
+/head/expression    # Set eye expression
+/head/blink         # Trigger blink
+/head/look          # Set look direction
 
-# Run module tests
-pytest tests/
-
-# Run diagnostics
-python3 diagnostics/projector_diagnostic.py
-python3 diagnostics/eye_calibration.py
+# Example
+ros2 topic pub /head/expression olaf_interfaces/msg/Expression "{emotion: 1, intensity: 3}" --once
 ```
 
-### 2. Test System Integration
-
+### Base Module (I2C 0x11)
 ```bash
-# Run system-wide integration tests
-cd ~/olaf
-pytest tests/integration/
+# Subscribe topics (Pi → Base ESP32)
+/cmd_vel            # Velocity commands (geometry_msgs/Twist)
 
-# Test I2C communication (on Pi, with PC monitoring)
-python3 tools/diagnostics/i2c_scanner.py
+# Publish topics (Base ESP32 → Pi)
+/odom               # Odometry
+/imu                # IMU data
+
+# Example
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}, angular: {z: 0.0}}" --once
 ```
 
-### 3. Use Module Scripts
-
+### Neck Module (USB Serial)
 ```bash
-cd ~/olaf/modules/head-ears
+/neck/pose          # Set pan/tilt/roll angles
+/neck/lookat        # Look at point in space
 
-# Build and flash (when scripts are created)
-./scripts/build.sh
-./scripts/flash.sh
-./scripts/test.sh
+# Example
+ros2 topic pub /neck/pose olaf_interfaces/msg/NeckPose "{pan: 30.0, tilt: 15.0, roll: 0.0}" --once
 ```
 
----
-
-## Using Your Existing PC Automation
-
-### Git Hooks
-
-Create `.git/hooks/pre-commit`:
-
+### Ears Module (USB Serial)
 ```bash
-#!/bin/bash
-# Run checks before commit
+/ears/emote         # Preset emotions
+/ears/pose          # Direct servo angles
 
-# Format Python code
-black ros2/src/ --check
-
-# Lint code
-ruff ros2/src/
-
-# Run unit tests
-cd ros2
-colcon test --packages-select olaf_personality olaf_ai
-
-# Run pytest
-cd ..
-pytest tests/unit/
+# Example
+ros2 topic pub /ears/emote std_msgs/msg/String "data: 'alert'" --once
 ```
 
-Make it executable:
+### Indicator Module (Fusion HAT)
 ```bash
-chmod +x .git/hooks/pre-commit
-```
+/indicator/interact # Interaction feedback LEDs
+/indicator/status   # Status LEDs
+/indicator/pid      # PID visualization LEDs
 
-### VS Code Remote SSH
-
-1. Install "Remote - SSH" extension
-2. Connect to Pi: `Cmd+Shift+P` → "Remote-SSH: Connect to Host"
-3. Enter: `pi@raspberrypi.local`
-4. Edit files on Pi directly from PC VS Code
-
-### rsync for Fast Sync
-
-```bash
-# Sync code from PC to Pi (faster than git for iteration)
-rsync -avz --exclude='build/' --exclude='install/' --exclude='log/' \
-  --exclude='.git/' ~/olaf/ros2/ pi@raspberrypi.local:~/olaf/ros2/
-
-# Rebuild on Pi
-ssh pi@raspberrypi.local "cd ~/olaf/ros2 && colcon build && source install/setup.bash"
-```
-
-### Automated Build Script
-
-Create `scripts/sync_to_pi.sh`:
-
-```bash
-#!/bin/bash
-set -e
-
-PI_HOST="pi@raspberrypi.local"
-PROJECT_DIR="~/olaf"
-
-echo "Syncing to Pi..."
-rsync -avz --exclude='build/' --exclude='install/' --exclude='log/' \
-  --exclude='.git/' ${PROJECT_DIR}/ros2/ ${PI_HOST}:${PROJECT_DIR}/ros2/
-
-echo "Building on Pi..."
-ssh ${PI_HOST} "cd ${PROJECT_DIR}/ros2 && colcon build --symlink-install"
-
-echo "Done! Run 'ssh pi@raspberrypi.local' to test on Pi."
+# Example
+ros2 topic pub /indicator/status std_msgs/msg/String "data: 'success'" --once
 ```
 
 ---
 
 ## Monitoring and Debugging Tools
 
-### RQt Tools (GUI - run on PC)
+### RQt Tools (run on PC)
 
 ```bash
-# ROS2 graph visualizer
-rqt_graph
-
-# Topic monitor
-rqt_topic
-
-# Service caller
-rqt_service_caller
-
-# Message publisher
-rqt_publisher
-
-# Plot topic data
-rqt_plot /olaf/base/velocity/linear/x
-
-# All-in-one dashboard
-rqt
+rqt_graph           # Visualize node connections
+rqt_topic           # Monitor topics
+rqt_console         # View logs
+rqt_plot            # Plot numeric data
+rqt                 # All-in-one dashboard
 ```
 
 ### Command-Line Tools
 
 ```bash
-# List all topics
-ros2 topic list
+ros2 topic list                          # List all topics
+ros2 topic echo /head/expression         # Monitor topic
+ros2 topic info /head/expression         # Topic details
+ros2 topic pub /head/blink std_msgs/msg/Bool "data: true" --once
 
-# Echo topic data
-ros2 topic echo /olaf/head_ears/eyes/expression
+ros2 node list                           # List all nodes
+ros2 node info /olaf_head                # Node details
 
-# Show topic info
-ros2 topic info /olaf/head_ears/eyes/expression
-
-# Publish to topic
-ros2 topic pub /olaf/head_ears/projector/command \
-  std_msgs/String "data: 'ON'" --once
-
-# List all nodes
-ros2 node list
-
-# Show node info
-ros2 node info /head_ears_driver
-
-# List services
-ros2 service list
-
-# Call service
-ros2 service call /olaf/head_ears/calibrate std_srvs/Trigger
-
-# Check parameter
-ros2 param get /head_ears_driver i2c_address
-
-# Set parameter
-ros2 param set /head_ears_driver brightness 200
-```
-
-### RViz for Visualization (when URDF is created)
-
-```bash
-# Launch robot visualization
-ros2 launch olaf_description view_robot.launch.py
-
-# Or manually
-rviz2
+ros2 service list                        # List services
+ros2 param list                          # List parameters
 ```
 
 ---
@@ -594,282 +392,80 @@ rviz2
 
 ### Issue: PC cannot see Pi's ROS2 topics
 
-**Symptoms:**
+**Check 1: ROS_DOMAIN_ID matches**
 ```bash
-ros2 topic list  # Only shows /parameter_events and /rosout
+# PC
+echo $ROS_DOMAIN_ID  # Should be 42
+
+# Pi
+ssh kamal@olaf.local "echo \$ROS_DOMAIN_ID"  # Should be 42
 ```
 
-**Solutions:**
-
-1. **Check ROS_DOMAIN_ID match**
-   ```bash
-   # On PC
-   echo $ROS_DOMAIN_ID  # Should be 42
-
-   # On Pi
-   ssh pi@raspberrypi.local "echo \$ROS_DOMAIN_ID"  # Should be 42
-   ```
-
-2. **Check firewall**
-   ```bash
-   # On PC
-   sudo ufw status
-   sudo ufw allow 7400:7500/udp
-   sudo ufw allow 7400:7500/tcp
-
-   # Or disable temporarily
-   sudo ufw disable
-   ```
-
-3. **Check network connectivity**
-   ```bash
-   # Ping Pi from PC
-   ping raspberrypi.local
-
-   # Check if on same subnet
-   ip addr show  # On PC
-   ssh pi@raspberrypi.local "ip addr show"  # On Pi
-   ```
-
-4. **Check Pi driver nodes are running**
-   ```bash
-   ssh pi@raspberrypi.local "ros2 node list"
-   # Should show: /head_ears_driver, /neck_driver, etc.
-   ```
-
-5. **Configure static DDS peers** (if multicast blocked)
-
-   Create `~/.ros/fastdds.xml` on both PC and Pi:
-   ```xml
-   <?xml version="1.0" encoding="UTF-8" ?>
-   <profiles>
-     <transport_descriptors>
-       <transport_descriptor>
-         <transport_id>udp_transport</transport_id>
-         <type>UDPv4</type>
-       </transport_descriptor>
-     </transport_descriptors>
-     <participant profile_name="participant_profile" is_default_profile="true">
-       <rtps>
-         <builtin>
-           <metatrafficUnicastLocatorList>
-             <locator>
-               <udpv4>
-                 <address>192.168.1.100</address>  <!-- PC IP -->
-               </udpv4>
-             </locator>
-             <locator>
-               <udpv4>
-                 <address>192.168.1.101</address>  <!-- Pi IP -->
-               </udpv4>
-             </locator>
-           </metatrafficUnicastLocatorList>
-         </builtin>
-       </rtps>
-     </participant>
-   </profiles>
-   ```
-
-   Set environment variable:
-   ```bash
-   export FASTRTPS_DEFAULT_PROFILES_FILE=~/.ros/fastdds.xml
-   ```
-
-### Issue: Module build fails on PC
-
-**Symptoms:**
+**Check 2: Firewall**
 ```bash
-pio run
-# Error: platformio.ini not found
+sudo ufw allow 7400:7500/udp
+sudo ufw allow 7400:7500/tcp
 ```
 
-**Solution:**
+**Check 3: Network connectivity**
 ```bash
-# Ensure you're in the firmware directory
-cd modules/head-ears/firmware
-ls platformio.ini  # Should exist
+ping olaf.local
+```
 
-# If missing, check you're in the right module
-pwd  # Should end with /modules/{module}/firmware
+**Check 4: ROS_LOCALHOST_ONLY is disabled**
+```bash
+echo $ROS_LOCALHOST_ONLY  # Should be 0 or empty
 ```
 
 ### Issue: Permission denied when uploading to ESP32
 
-**Solution:**
 ```bash
-# Add user to dialout group
-sudo usermod -a -G dialout $USER
-
-# Logout and login again, or:
-newgrp dialout
-
-# Verify
-groups  # Should include 'dialout'
+sudo usermod -aG dialout $USER
+# Log out and back in
 ```
 
 ### Issue: I2C errors on Pi
 
-**Solution:**
 ```bash
-# Check I2C bus
-ssh pi@raspberrypi.local "i2cdetect -y 1"
-# Should show devices at 0x08, 0x09, 0x0A, 0x0B
-
-# Check Pi user is in i2c group
-ssh pi@raspberrypi.local "groups"  # Should include 'i2c'
-```
-
-### Issue: Python module not found
-
-**Solution:**
-```bash
-cd ~/olaf
-
-# Install dependencies
-poetry install
-
-# Verify (use poetry run)
-poetry run python3 -c "import smbus2"  # Should not error
-
-# Or activate virtual environment
-poetry shell
-python3 -c "import smbus2"
+# Check I2C devices
+ssh kamal@olaf.local "i2cdetect -y 1"
+# Should show 0x10 (Head) and 0x11 (Base) when ESP32s connected
 ```
 
 ---
 
-## Production Deployment
+## Workspace Structure
 
-When ready to deploy full system to Pi:
+Same structure on both PC and Pi — keeps things simple:
 
-### 1. Test Full System on Pi
-
-```bash
-ssh pi@raspberrypi.local
-cd ~/olaf/ros2
-source install/setup.bash
-
-# Run everything on Pi
-ros2 launch olaf_bringup olaf.launch.py
+```
+~/olaf/                             # Git repo (home base)
+├── ros2/                           # ROS2 workspace
+│   ├── src/
+│   │   ├── olaf_bringup/           # Launch files
+│   │   ├── olaf_interfaces/        # Custom messages
+│   │   ├── olaf_head/              # Head driver node
+│   │   ├── olaf_base/              # Base driver node
+│   │   ├── olaf_neck/              # Neck driver node
+│   │   ├── olaf_ears/              # Ears driver node
+│   │   └── olaf_indicator/         # LED driver node
+│   ├── build/                      # Colcon build output (gitignored)
+│   ├── install/                    # Colcon install output (gitignored)
+│   └── log/                        # Colcon logs (gitignored)
+├── modules/
+│   ├── head/
+│   │   └── firmware/               # Head ESP32 firmware
+│   └── base/
+│       └── firmware/               # Base ESP32 firmware
+├── docs/                           # Documentation
+└── tools/                          # Diagnostic scripts
 ```
 
-### 2. Verify All Nodes Running
-
-```bash
-ros2 node list
-# Expected:
-# /head_ears_driver
-# /neck_driver
-# /torso_driver
-# /base_driver
-# /personality_coordinator
-# /emotion_engine
-# /ai_agent
-# etc.
-```
-
-### 3. Create Systemd Service (Auto-Start on Boot)
-
-```bash
-# On Pi
-sudo nano /etc/systemd/system/olaf.service
-```
-
-```ini
-[Unit]
-Description=OLAF Robot Full System
-After=network.target
-
-[Service]
-Type=simple
-User=pi
-WorkingDirectory=/home/pi/olaf/ros2
-Environment="ROS_DOMAIN_ID=42"
-ExecStart=/bin/bash -c "source /opt/ros/humble/setup.bash && source /home/pi/olaf/ros2/install/setup.bash && ros2 launch olaf_bringup olaf.launch.py"
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-# Enable and start service
-sudo systemctl enable olaf.service
-sudo systemctl start olaf.service
-
-# Check status
-sudo systemctl status olaf.service
-
-# View logs
-sudo journalctl -u olaf.service -f
-```
-
----
-
-## Workflow Summary
-
-### **Daily Development (PC):**
-
-1. **Morning:** Start Pi driver nodes
-   ```bash
-   ssh pi@raspberrypi.local
-   cd ~/olaf/ros2 && source install/setup.bash
-   ros2 launch olaf_bringup drivers.launch.py
-   ```
-
-2. **PC Development:**
-   ```bash
-   # Edit code
-   code ros2/src/olaf_personality/
-
-   # Build
-   cd ros2 && colcon build --symlink-install
-
-   # Test
-   ros2 launch olaf_bringup personality.launch.py
-
-   # Monitor
-   rqt_graph
-   ```
-
-3. **Commit & Deploy:**
-   ```bash
-   git commit -am "feat: new emotion behavior"
-   git push
-
-   # Sync to Pi
-   ./scripts/sync_to_pi.sh
-   ```
-
-### **Firmware Development:**
-
-```bash
-# Edit module firmware
-cd modules/head-ears/firmware
-code src/
-
-# Build and upload
-pio run --target upload
-
-# Monitor
-pio device monitor
-
-# Test
-cd ../../tests
-pytest test_projector.py
-```
-
-### **Integration Testing:**
-
-```bash
-# System-wide tests
-pytest tests/integration/
-
-# Module tests
-cd modules/head-ears
-pytest tests/
-```
+| Task | Directory |
+|------|-----------|
+| Git operations | `~/olaf/` |
+| ROS2 build | `~/olaf/ros2/` |
+| ESP32 firmware | `~/olaf/modules/{module}/firmware/` |
 
 ---
 
@@ -877,10 +473,10 @@ pytest tests/
 
 1. **Always source workspace:**
    ```bash
-   source ~/olaf/ros2/install/setup.bash
+   source ~/olaf_ws/install/setup.bash
    ```
 
-2. **Use `--symlink-install` for faster iteration:**
+2. **Use `--symlink-install` for faster Python iteration:**
    ```bash
    colcon build --symlink-install
    # Python changes don't require rebuild
@@ -888,38 +484,27 @@ pytest tests/
 
 3. **Build specific packages only:**
    ```bash
-   colcon build --packages-select olaf_personality
+   colcon build --packages-select olaf_head
    ```
 
-4. **Use RQt for debugging, not terminal spam:**
-   ```bash
-   rqt_console  # View logs
-   rqt_graph    # Visualize connections
-   ```
+4. **Keep Pi drivers running, iterate via topics from PC**
 
-5. **Keep Pi drivers running, iterate on PC**
+5. **Use rqt_graph to visualize system state**
 
-6. **Test on PC first, deploy to Pi when stable**
+6. **Commit frequently, deploy often**
 
 ---
 
-## Next Steps
+## Related Documentation
 
-**Epic 0 Completion:**
-1. ✅ Complete Story 0.1-0.3 (Pi setup, ROS2 workspace, I2C config)
-2. ✅ Complete Story 0.4 (this guide - PC development setup)
-3. ✅ Verify network communication (test topic echo between PC and Pi)
+- **Story 0.1**: Install ROS2 on Pi — `docs/stories/0.1.install-ros2-jazzy.md`
+- **Story 0.2**: Install ROS2 on PC — `docs/stories/0.2.install-ros2-pc.md`
+- **Story 0.3**: Multi-machine networking — `docs/stories/0.3.configure-multi-machine-ros2.md`
+- **Story 0.4**: Git workflow — `docs/stories/0.4.setup-git-workflow.md`
+- **Story 0.7**: Dev tools on PC — `docs/stories/0.7.setup-dev-tools-pc.md`
+- **Architecture**: `docs/architecture/tech-stack.md`
+- **Coding Standards**: `docs/architecture/coding-standards.md`
 
-**Ready for Module Development (Epic 1+):**
-4. Start Epic 1: Head+Ears Module Build
-5. Develop application nodes on PC while Pi handles drivers
-6. Create launch files in `ros2/src/olaf_bringup/launch/`
-7. Deploy to Pi when modules are ready for integration testing
+---
 
-**Useful Documentation:**
-- Module guides: `modules/{module}/README.md`
-- System architecture: `docs/architecture.md`
-- Development workflow: `docs/prd/phase1-tracking.md`
-- Story details: `docs/stories/`
-
-**Repository:** https://github.com/kamalkantsingh10/OLAF
+**Last Updated:** 2026-02-01

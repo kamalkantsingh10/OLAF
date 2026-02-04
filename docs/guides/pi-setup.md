@@ -643,20 +643,22 @@ Using the Fusion HAT eliminates the need for custom PCBs or complex GPIO wiring.
 
 ### 6.2 Install Fusion HAT Libraries
 
-Sunfounder provides the `robot-hat` Python library. Follow the official installation instructions from [Sunfounder documentation](https://docs.sunfounder.com/projects/robot-hat-v4/en/latest/installation.html):
+The `robot-hat` library is included in OLAF's Poetry dependencies. If you completed Part 3, it's already installed.
+
+To verify or reinstall:
 
 ```bash
-# Install prerequisites
-sudo apt install -y git python3-pip python3-setuptools python3-smbus
-
-# Clone and install robot-hat library
-cd ~/
-git clone -b v2.0 https://github.com/sunfounder/robot-hat.git
-cd robot-hat
-sudo python3 setup.py install
+cd ~/olaf
+poetry install
 ```
 
-**Note:** This is a system-level installation (not Poetry) because the library requires hardware access permissions.
+**Note:** Sunfounder's official install script doesn't support Ubuntu, so we use the [PyPI package](https://pypi.org/project/robot-hat/) via Poetry instead.
+
+**Install system dependencies for I2C/SPI access:**
+
+```bash
+sudo apt install -y python3-smbus i2c-tools
+```
 
 ### 6.3 Test WS2812 LEDs
 
@@ -907,17 +909,11 @@ The Sunfounder Fusion HAT+ is designed for robotics projects and provides these 
 
 ### 8.2 Install Sunfounder Libraries
 
-If you haven't already installed `robot-hat` in Part 6, follow the [official installation instructions](https://docs.sunfounder.com/projects/robot-hat-v4/en/latest/installation.html):
+The `robot-hat` library is included in OLAF's Poetry dependencies. If you completed Part 3 and Part 6, it's already installed.
 
 ```bash
-# Install prerequisites
-sudo apt install -y git python3-pip python3-setuptools python3-smbus
-
-# Clone and install robot-hat library
-cd ~/
-git clone -b v2.0 https://github.com/sunfounder/robot-hat.git
-cd robot-hat
-sudo python3 setup.py install
+cd ~/olaf
+poetry install
 ```
 
 ### 8.3 Enable Required Interfaces

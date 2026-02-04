@@ -27,6 +27,7 @@ asyncio-mqtt = "^0.16.1"
 # Hardware Communication
 pyserial = "^3.5"
 feetech-servo-sdk = "^1.0.0"  # Feetech STS/SCS servo control
+robot-hat = "^2.3.0"  # Sunfounder Fusion HAT - https://pypi.org/project/robot-hat/
 odrive = "^0.6.10.post0"
 
 # Data Processing

@@ -326,10 +326,25 @@ echo "source ~/olaf/ros2/install/setup.bash" >> ~/.bashrc
 
 ### 3.5 Verify Build
 
-Check that the OLAF packages are recognized (note: packages may not exist yet if this is a fresh clone):
+Check that the OLAF packages are recognized:
 
 ```bash
-ros2 pkg list | grep olaf
+ros2 pkg list | grep -E "olaf|driver"
+```
+
+**Expected output:**
+```
+base_driver
+head_ears_driver
+neck_driver
+olaf_bringup
+olaf_interfaces
+torso_driver
+```
+
+If packages are missing, check build logs for errors:
+```bash
+cat log/latest_build/*/stdout_stderr.log | grep -i error
 ```
 
 ### 3.6 Directory Usage Summary
@@ -375,6 +390,14 @@ dtparam=i2c_arm_baudrate=400000
 ```
 
 The first line enables the I2C interface. The second sets the bus speed to 400kHz (Fast Mode), which is faster than the default 100kHz and well within what ESP32 can handle.
+
+**Optional: Rotate display to landscape** (if using a DSI display mounted in portrait):
+
+```
+display_rotate=3
+```
+
+Rotation values: `0`=0°, `1`=90°, `2`=180°, `3`=270° (landscape)
 
 **Save and reboot:**
 ```bash
@@ -432,6 +455,8 @@ Expected output with no devices connected (all `--`):
 20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ...
 ```
+
+**Note:** If Fusion HAT is installed, you'll see `0x17` — this is the HAT's onboard controller and is expected.
 
 When ESP32 modules are connected and running, you'll see their addresses:
 ```

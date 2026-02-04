@@ -643,16 +643,20 @@ Using the Fusion HAT eliminates the need for custom PCBs or complex GPIO wiring.
 
 ### 6.2 Install Fusion HAT Libraries
 
-Sunfounder provides Python libraries for their HAT. Check their documentation for the exact installation method:
+Sunfounder provides the `robot-hat` Python library. Follow the official installation instructions from [Sunfounder documentation](https://docs.sunfounder.com/projects/robot-hat-v4/en/latest/installation.html):
 
 ```bash
-sudo apt install -y python3-pip python3-dev
+# Install prerequisites
+sudo apt install -y git python3-pip python3-setuptools python3-smbus
 
-# Install Sunfounder libraries (check current documentation for exact package)
-pip install sunfounder-controller  # or equivalent package name
+# Clone and install robot-hat library
+cd ~/
+git clone -b v2.0 https://github.com/sunfounder/robot-hat.git
+cd robot-hat
+sudo python3 setup.py install
 ```
 
-Note: Library names may change — refer to Sunfounder's current Fusion HAT+ documentation.
+**Note:** This is a system-level installation (not Poetry) because the library requires hardware access permissions.
 
 ### 6.3 Test WS2812 LEDs
 
@@ -662,24 +666,24 @@ OLAF uses 24 WS2812 LEDs arranged in 3 strips of 8:
 - **PID strip**: Visualizes balance state
 
 ```bash
-cat > ~/test_leds.py << 'EOF'
-# Test script - adjust imports based on actual Fusion HAT library
-try:
-    from sunfounder_controller import WS2812  # Adjust import as needed
+python3 << 'EOF'
+from robot_hat import WS2812
 
-    leds = WS2812(24)  # 24 total LEDs
-    leds.set_all(255, 0, 0)  # Set all to red
-    leds.show()
-    print("✓ LEDs should now be red")
-    input("Press Enter to turn off...")
-    leds.set_all(0, 0, 0)
-    leds.show()
-except ImportError as e:
-    print(f"Library not installed: {e}")
-    print("Check Sunfounder documentation for correct package name")
+leds = WS2812(24)  # 24 total LEDs
+
+# Set all LEDs to red
+for i in range(24):
+    leds[i] = (255, 0, 0)
+leds.show()
+
+print("✓ LEDs should now be red")
+input("Press Enter to turn off...")
+
+# Turn off
+for i in range(24):
+    leds[i] = (0, 0, 0)
+leds.show()
 EOF
-
-python3 ~/test_leds.py
 ```
 
 ### 6.4 Test PWM (Kickstand Servos)
@@ -687,32 +691,28 @@ python3 ~/test_leds.py
 The kickstand uses two standard hobby servos (model plane landing gear) controlled via PWM. Servo PWM typically runs at 50Hz with pulse widths from 1ms (0°) to 2ms (180°).
 
 ```bash
-cat > ~/test_pwm.py << 'EOF'
-# Test script - adjust imports based on actual Fusion HAT library
-try:
-    from sunfounder_controller import PWM  # Adjust import as needed
+python3 << 'EOF'
+from robot_hat import Servo
+import time
 
-    # Initialize PWM channel 0
-    pwm = PWM(0)
-    pwm.set_frequency(50)  # 50Hz for hobby servos
+# Initialize servo on PWM channel 0
+servo = Servo(0)
 
-    # Center position (1.5ms pulse = 7.5% duty cycle at 50Hz)
-    pwm.set_duty_cycle(7.5)
-    print("✓ Servo should be at center position")
+print("Moving to center (0°)...")
+servo.angle(0)
+time.sleep(1)
 
-    input("Press Enter to move to 0°...")
-    pwm.set_duty_cycle(2.5)  # ~0°
+input("Press Enter to move to -90°...")
+servo.angle(-90)
+time.sleep(1)
 
-    input("Press Enter to move to 180°...")
-    pwm.set_duty_cycle(12.5)  # ~180°
+input("Press Enter to move to +90°...")
+servo.angle(90)
+time.sleep(1)
 
-    input("Press Enter to stop...")
-    pwm.set_duty_cycle(0)
-except ImportError as e:
-    print(f"Library not installed: {e}")
+print("✓ Servo test complete")
+servo.angle(0)  # Return to center
 EOF
-
-python3 ~/test_pwm.py
 ```
 
 ---
@@ -907,23 +907,17 @@ The Sunfounder Fusion HAT+ is designed for robotics projects and provides these 
 
 ### 8.2 Install Sunfounder Libraries
 
-Sunfounder provides the `robot-hat` Python library for controlling their HATs:
+If you haven't already installed `robot-hat` in Part 6, follow the [official installation instructions](https://docs.sunfounder.com/projects/robot-hat-v4/en/latest/installation.html):
 
 ```bash
-# Install system dependencies
-sudo apt install -y python3-pip python3-dev python3-smbus
+# Install prerequisites
+sudo apt install -y git python3-pip python3-setuptools python3-smbus
 
-# Install Sunfounder robot-hat library
-pip install robot-hat
-```
-
-**Alternative: Install from source for latest version:**
-
-```bash
-cd ~
-git clone https://github.com/sunfounder/robot-hat.git
+# Clone and install robot-hat library
+cd ~/
+git clone -b v2.0 https://github.com/sunfounder/robot-hat.git
 cd robot-hat
-pip install .
+sudo python3 setup.py install
 ```
 
 ### 8.3 Enable Required Interfaces

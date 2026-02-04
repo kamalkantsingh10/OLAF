@@ -7,8 +7,6 @@
   <maintainer email="kamalkantsingh10@gmail.com">Kamal Kant Singh</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
   <exec_depend>rclpy</exec_depend>
   <exec_depend>olaf_interfaces</exec_depend>
 

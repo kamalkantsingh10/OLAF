@@ -263,7 +263,41 @@ Note: We use HTTPS for simplicity. If you prefer SSH (for passwordless push), se
 └── tools/                 # Diagnostic scripts
 ```
 
-### 3.2 Install Dependencies
+### 3.2 Install Python Dependencies with Poetry
+
+OLAF uses Poetry for Python dependency management. The root `pyproject.toml` defines all required packages including:
+- `smbus2`: I2C communication with ESP32 modules
+- `pyserial`: USB serial communication with Waveshare adapters
+- `numpy`: Numerical operations for sensor processing
+- `anthropic`, `openai`: AI integration
+- `odrive`: Motor controller communication
+
+**Install Poetry:**
+
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify Poetry installation:**
+
+```bash
+poetry --version
+```
+
+**Install Python dependencies:**
+
+```bash
+cd ~/olaf
+poetry install
+```
+
+This creates a virtual environment and installs all dependencies from `pyproject.toml`.
+
+**Note:** You may see a warning about `/home/kamal/olaf/orchestrator does not contain any element` — this is expected since the orchestrator package will be created in later stories.
+
+### 3.3 Install ROS2 Dependencies
 
 ROS2 packages declare their dependencies in `package.xml` files. The `rosdep` tool reads these and installs required system packages automatically.
 
@@ -272,18 +306,7 @@ cd ~/olaf/ros2
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
-**Install Python libraries:**
-
-These are Python packages used by OLAF's driver nodes:
-- `smbus2`: I2C communication with ESP32 modules
-- `pyserial`: USB serial communication with Waveshare adapters
-- `numpy`: Numerical operations for sensor processing
-
-```bash
-pip install smbus2 pyserial numpy
-```
-
-### 3.3 Build Workspace
+### 3.4 Build Workspace
 
 `colcon build` compiles all packages in the workspace. Run it from the `ros2/` directory. The `--symlink-install` flag creates symbolic links instead of copying Python files, so you can edit code without rebuilding (for Python packages).
 
@@ -301,7 +324,7 @@ source install/setup.bash
 echo "source ~/olaf/ros2/install/setup.bash" >> ~/.bashrc
 ```
 
-### 3.4 Verify Build
+### 3.5 Verify Build
 
 Check that the OLAF packages are recognized (note: packages may not exist yet if this is a fresh clone):
 
@@ -309,7 +332,7 @@ Check that the OLAF packages are recognized (note: packages may not exist yet if
 ros2 pkg list | grep olaf
 ```
 
-### 3.5 Directory Usage Summary
+### 3.6 Directory Usage Summary
 
 | Task | Directory |
 |------|-----------|
@@ -364,12 +387,11 @@ These tools let us interact with I2C devices from the command line — essential
 
 ```bash
 sudo apt install -y i2c-tools python3-smbus
-pip install smbus2
 ```
 
 - `i2c-tools`: Command-line utilities (`i2cdetect`, `i2cget`, `i2cset`)
 - `python3-smbus`: System Python bindings for I2C
-- `smbus2`: Pure Python I2C library (more portable, what our code uses)
+- `smbus2`: Already installed via Poetry in Part 3 (pure Python I2C library used by our code)
 
 ### 4.3 Configure Permissions
 
@@ -465,13 +487,9 @@ ls /dev/ttyUSB*
 
 You should see two devices like `/dev/ttyUSB0` and `/dev/ttyUSB1`. If you see `ttyACM*` instead, that's fine — some USB-serial chips use that naming.
 
-### 5.2 Install pyserial
+### 5.2 pyserial
 
-pyserial is the Python library for serial port communication:
-
-```bash
-pip install pyserial
-```
+pyserial is the Python library for serial port communication. It's already installed via Poetry in Part 3 — no additional installation needed.
 
 ### 5.3 Configure Permissions
 

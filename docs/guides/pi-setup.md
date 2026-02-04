@@ -512,9 +512,12 @@ ls /dev/ttyUSB*
 
 You should see two devices like `/dev/ttyUSB0` and `/dev/ttyUSB1`. If you see `ttyACM*` instead, that's fine — some USB-serial chips use that naming.
 
-### 5.2 pyserial
+### 5.2 Servo Libraries
 
-pyserial is the Python library for serial port communication. It's already installed via Poetry in Part 3 — no additional installation needed.
+Both libraries are already installed via Poetry in Part 3 — no additional installation needed:
+
+- **pyserial**: Low-level serial port communication
+- **scservo-sdk**: Official Feetech SDK for STS/SCS servo control (position, speed, torque)
 
 ### 5.3 Configure Permissions
 

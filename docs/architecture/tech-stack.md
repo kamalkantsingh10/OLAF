@@ -33,6 +33,7 @@
 | **I2C Library (Pi)** | smbus2 | 0.4.x | Python I2C communication to ESP32s | Pure Python, cross-platform, simple API |
 | **I2C Library (ESP32)** | Wire.h | Arduino core | ESP32 I2C slave firmware | Built-in Arduino library, interrupt support |
 | **Serial Library (Pi)** | pyserial | 3.5+ | USB serial to Waveshare adapters | Standard Python serial, works with USB-UART |
+| **Servo Library (Pi)** | scservo-sdk | 1.0+ | Feetech STS/SCS servo control | Official Feetech SDK, position/speed/torque control |
 | **WS2812 Library (Pi)** | rpi_ws281x / Fusion HAT SDK | Latest | Control WS2812 LED strips | Native Pi support via Fusion HAT |
 | **OTA Framework (ESP32)** | ESP32 OTA | Arduino/ESP-IDF | Over-the-air firmware updates (Head, Base only) | Partition support, rollback, built-in |
 | **OTA Server** | Flask | 3.0.x | HTTP server for firmware binaries | Lightweight, Python, easy deployment |

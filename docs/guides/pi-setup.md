@@ -517,7 +517,7 @@ You should see two devices like `/dev/ttyUSB0` and `/dev/ttyUSB1`. If you see `t
 Both libraries are already installed via Poetry in Part 3 — no additional installation needed:
 
 - **pyserial**: Low-level serial port communication
-- **scservo-sdk**: Official Feetech SDK for STS/SCS servo control (position, speed, torque)
+- **feetech-servo-sdk**: Feetech SDK for STS/SCS servo control (position, speed, torque)
 
 ### 5.3 Configure Permissions
 
@@ -571,6 +571,8 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", KERNELS=="1
 ```
 
 The `MODE="0666"` makes the device readable/writable by all users.
+
+**Note:** Rules using `KERNELS` match by USB port path, not the specific board. You can swap an adapter for a different one — just plug it into the same USB port and no rule changes are needed. However, if you move an adapter to a different USB port, you'll need to update the `KERNELS` value in the rule.
 
 **Reload udev rules:**
 ```bash

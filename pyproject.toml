@@ -26,7 +26,7 @@ asyncio-mqtt = "^0.16.1"
 
 # Hardware Communication
 pyserial = "^3.5"
-scservo-sdk = "^1.0.0"  # Feetech STS/SCS servo control
+feetech-servo-sdk = "^1.0.0"  # Feetech STS/SCS servo control
 odrive = "^0.6.10.post0"
 
 # Data Processing

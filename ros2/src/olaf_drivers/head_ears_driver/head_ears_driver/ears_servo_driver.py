@@ -273,6 +273,46 @@ class EarsServoDriver:
 
 if __name__ == "__main__":
     import sys
+    import os
+
+    if len(sys.argv) > 1 and sys.argv[1] == "diag":
+        # Diagnostic mode
+        print("=== DIAGNOSTIC MODE ===\n")
+
+        # Check port exists
+        port = "/dev/waveshare_ears"
+        alt_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyACM0"]
+
+        if os.path.exists(port):
+            print(f"✓ {port} exists")
+        else:
+            print(f"✗ {port} NOT FOUND")
+            for p in alt_ports:
+                if os.path.exists(p):
+                    print(f"  Found: {p}")
+                    port = p
+                    break
+
+        # Try different baud rates
+        from scservo_sdk import PortHandler, PacketHandler
+
+        baud_rates = [1000000, 500000, 115200]
+        for baud in baud_rates:
+            print(f"\nTrying {baud} baud...")
+            ph = PortHandler(port)
+            if ph.openPort():
+                ph.setBaudRate(baud)
+                pkt = PacketHandler(0)
+                for sid in range(1, 10):
+                    _, result, _ = pkt.ping(ph, sid)
+                    if result == 0:
+                        print(f"  ✓ Found servo ID {sid} at {baud} baud!")
+                ph.closePort()
+            else:
+                print(f"  ✗ Cannot open port")
+
+        print("\nDone.")
+        exit(0)
 
     driver = EarsServoDriver()
 

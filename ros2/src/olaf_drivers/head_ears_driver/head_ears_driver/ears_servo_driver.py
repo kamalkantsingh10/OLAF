@@ -294,6 +294,25 @@ if __name__ == "__main__":
 
         print("Done! Now reconnect all 4 servos and run without 'assign'.")
 
+    elif len(sys.argv) > 1 and sys.argv[1] == "calibrate":
+        # Calibrate mode - set current position as permanent zero
+        print("=== CALIBRATION MODE ===")
+        print("Current position will be saved as 0 degrees (center) permanently.\n")
+
+        found_servos = driver.scan(start_id=1, end_id=15)
+
+        if not found_servos:
+            print("No servos found!")
+            driver.close()
+            exit(1)
+
+        input("Position all ears at CENTER (straight up), then press Enter...")
+
+        for sid in found_servos:
+            driver.set_as_center(sid)
+
+        print("\nCalibration saved to EEPROM. Positions are now permanent.")
+
     else:
         # Normal test mode
         found_servos = driver.scan(start_id=1, end_id=15)

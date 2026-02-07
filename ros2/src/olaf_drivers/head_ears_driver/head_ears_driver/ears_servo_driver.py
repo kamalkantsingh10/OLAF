@@ -26,7 +26,7 @@ class EarsServoDriver:
     ADDR_PRESENT_POSITION = 56  # 0x38
 
     # Position constants
-    CENTER_POSITION = 512  # 0° - straight up
+    CENTER_POSITION = 511  # 0° - middle position (0-1023 range)
     COUNTS_PER_DEGREE = 3.41  # ~1024 counts / 300° range
 
     def __init__(self, port: str = "/dev/waveshare_ears", baudrate: int = 1_000_000):
@@ -205,20 +205,25 @@ class EarsServoDriver:
         return success
 
     def _unlock_eeprom(self, servo_id: int) -> bool:
-        """Unlock EEPROM for writing."""
-        ADDR_LOCK = 55  # Lock register (0 = unlocked, 1 = locked)
-        result, _ = self.packet_handler.write1ByteTxRx(
-            self.port_handler, servo_id, ADDR_LOCK, 0
-        )
-        return result == 0
+        """Unlock EEPROM for writing. Tries both common lock addresses."""
+        # Try address 55 (newer servos) and 48 (older servos)
+        for addr in [55, 48]:
+            result, _ = self.packet_handler.write1ByteTxRx(
+                self.port_handler, servo_id, addr, 0
+            )
+            if result == 0:
+                return True
+        return False
 
     def _lock_eeprom(self, servo_id: int) -> bool:
-        """Lock EEPROM after writing."""
-        ADDR_LOCK = 55
-        result, _ = self.packet_handler.write1ByteTxRx(
-            self.port_handler, servo_id, ADDR_LOCK, 1
-        )
-        return result == 0
+        """Lock EEPROM after writing. Tries both common lock addresses."""
+        for addr in [55, 48]:
+            result, _ = self.packet_handler.write1ByteTxRx(
+                self.port_handler, servo_id, addr, 1
+            )
+            if result == 0:
+                return True
+        return False
 
     def set_servo_id(self, current_id: int, new_id: int) -> bool:
         """Change a servo's ID. Only connect ONE servo at a time!
@@ -377,12 +382,12 @@ if __name__ == "__main__":
                 zero_positions[sid] = pos
                 print(f"  Servo {sid}: zero = {pos}")
 
-        print("\nTesting each servo (+5 counts, then back)...\n")
+        print("\nTesting each servo (+2 counts, then back)...\n")
 
         for sid in found_servos:
-            zero = zero_positions.get(sid, 512)
-            input(f"Press Enter to move servo {sid} by +5 counts...")
-            driver.go_to_position(sid, zero + 5)
+            zero = zero_positions.get(sid, 511)
+            input(f"Press Enter to move servo {sid} by +2 counts...")
+            driver.go_to_position(sid, zero + 2)
             input(f"Press Enter to return servo {sid} to zero...")
             driver.go_to_position(sid, zero)
 

@@ -268,19 +268,15 @@ if __name__ == "__main__":
         print("Connect only ONE servo at a time!\n")
 
         for new_id in [4, 5, 6, 7]:
-            input(f"Connect servo for ID {new_id}, position it at CENTER, then press Enter...")
-            found = driver.scan(start_id=1, end_id=10)
-            if len(found) == 1:
-                old_id = found[0]
-                if old_id != new_id:
-                    driver.set_servo_id(old_id, new_id)
-                # Set current position as center
-                driver.set_as_center(new_id)
-                print(f"Servo {new_id} configured. Disconnect it.\n")
-            elif len(found) > 1:
-                print("ERROR: Multiple servos detected! Connect only ONE.\n")
-            else:
-                print("ERROR: No servo found. Check connection.\n")
+            input(f"Connect next servo, position at CENTER, press Enter (will become ID {new_id})...")
+
+            # Always write to ID 1 (factory default)
+            print(f"Setting ID 1 -> {new_id}...")
+            driver.set_servo_id(1, new_id)
+
+            # Set current position as center
+            driver.set_as_center(new_id)
+            print(f"Servo {new_id} done. Add next servo to the chain.\n")
 
         print("Done! Now reconnect all 4 servos and run without 'assign'.")
 

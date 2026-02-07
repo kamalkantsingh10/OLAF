@@ -21,9 +21,10 @@ class EarsServoDriver:
     RIGHT_PAN = 6
     RIGHT_TILT = 7
 
-    # SCS0009 register addresses
-    ADDR_GOAL_POSITION = 42  # 0x2A
-    ADDR_PRESENT_POSITION = 56  # 0x38
+    # SCS0009 register addresses (from SCS protocol)
+    ADDR_ID = 5  # P_ID
+    ADDR_GOAL_POSITION = 42  # P_GOAL_POSITION_L
+    ADDR_PRESENT_POSITION = 56  # P_PRESENT_POSITION_L
 
     # Position constants
     CENTER_POSITION = 511  # 0° - middle position (0-1023 range)
@@ -37,7 +38,7 @@ class EarsServoDriver:
             baudrate: Baud rate (default 1Mbps for SCS series)
         """
         self.port_handler = PortHandler(port)
-        self.packet_handler = PacketHandler(0)  # Protocol version 0 for SCS
+        self.packet_handler = PacketHandler(1)  # Protocol end: 1 for SCS
 
         if not self.port_handler.openPort():
             raise ConnectionError(f"Failed to open port {port}")
@@ -204,26 +205,22 @@ class EarsServoDriver:
                 success = False
         return success
 
+    # Register addresses (from SCS protocol)
+    ADDR_LOCK = 48  # P_LOCK: 0=unlocked, 1=locked
+
     def _unlock_eeprom(self, servo_id: int) -> bool:
-        """Unlock EEPROM for writing. Tries both common lock addresses."""
-        # Try address 55 (newer servos) and 48 (older servos)
-        for addr in [55, 48]:
-            result, _ = self.packet_handler.write1ByteTxRx(
-                self.port_handler, servo_id, addr, 0
-            )
-            if result == 0:
-                return True
-        return False
+        """Unlock EEPROM for writing."""
+        result, _ = self.packet_handler.write1ByteTxRx(
+            self.port_handler, servo_id, self.ADDR_LOCK, 0
+        )
+        return result == 0
 
     def _lock_eeprom(self, servo_id: int) -> bool:
-        """Lock EEPROM after writing. Tries both common lock addresses."""
-        for addr in [55, 48]:
-            result, _ = self.packet_handler.write1ByteTxRx(
-                self.port_handler, servo_id, addr, 1
-            )
-            if result == 0:
-                return True
-        return False
+        """Lock EEPROM after writing."""
+        result, _ = self.packet_handler.write1ByteTxRx(
+            self.port_handler, servo_id, self.ADDR_LOCK, 1
+        )
+        return result == 0
 
     def set_servo_id(self, current_id: int, new_id: int) -> bool:
         """Change a servo's ID. Only connect ONE servo at a time!
@@ -235,15 +232,13 @@ class EarsServoDriver:
         Returns:
             True if successful
         """
-        ADDR_ID = 5  # ID register address for SCS series
-
         # Unlock EEPROM first
         if not self._unlock_eeprom(current_id):
             print("Warning: Failed to unlock EEPROM")
 
         # Write new ID
         result, _ = self.packet_handler.write1ByteTxRx(
-            self.port_handler, current_id, ADDR_ID, new_id
+            self.port_handler, current_id, self.ADDR_ID, new_id
         )
         if result != 0:
             print(f"Failed to change ID: {self.packet_handler.getTxRxResult(result)}")

@@ -123,8 +123,22 @@ class EarsServoDriver:
         return success
 
     def center_all(self) -> bool:
-        """Move all ears to center position (0°, 0°)."""
-        return self.move_both_ears(0, 0, 0, 0)
+        """Move all ears to center position (512)."""
+        success = True
+        for servo_id in [self.LEFT_PAN, self.LEFT_TILT, self.RIGHT_PAN, self.RIGHT_TILT]:
+            result, _ = self.packet_handler.write2ByteTxRx(
+                self.port_handler, servo_id, self.ADDR_GOAL_POSITION, 512
+            )
+            if result != 0:
+                success = False
+        return success
+
+    def go_to_position(self, servo_id: int, position: int) -> bool:
+        """Move servo to raw position (0-1023)."""
+        result, _ = self.packet_handler.write2ByteTxRx(
+            self.port_handler, servo_id, self.ADDR_GOAL_POSITION, position
+        )
+        return result == 0
 
     def read_position(self, servo_id: int) -> float | None:
         """Read current position of a servo in degrees."""
@@ -294,14 +308,16 @@ if __name__ == "__main__":
             print("Run with 'assign' argument to set IDs: python ears_servo_driver.py assign\n")
 
         print("\nTesting each found servo individually...")
-        print("Watch which part moves!\n")
+        print("Using raw positions: 512=center, +50 counts = small move\n")
 
         for sid in found_servos:
-            input(f"Press Enter to move servo {sid} by +20 degrees...")
-            driver.move_servo(sid, 20)
-            input(f"Press Enter to center servo {sid}...")
-            driver.move_servo(sid, 0)
+            input(f"Press Enter to move servo {sid} to position 562 (+50 from center)...")
+            driver.go_to_position(sid, 562)
+            input(f"Press Enter to return servo {sid} to center (512)...")
+            driver.go_to_position(sid, 512)
 
-        print("\nDone. Update the ID mapping based on what you observed.")
+        print("\nCentering all servos...")
+        driver.center_all()
+        print("Done. Update the ID mapping based on what you observed.")
 
     driver.close()

@@ -141,6 +141,26 @@ class EarsServoDriver:
         _, result, _ = self.packet_handler.ping(self.port_handler, servo_id)
         return result == 0
 
+    def set_servo_id(self, current_id: int, new_id: int) -> bool:
+        """Change a servo's ID. Only connect ONE servo at a time!
+
+        Args:
+            current_id: Current servo ID
+            new_id: New servo ID (1-253)
+
+        Returns:
+            True if successful
+        """
+        ADDR_ID = 5  # ID register address for SCS series
+        result, _ = self.packet_handler.write1ByteTxRx(
+            self.port_handler, current_id, ADDR_ID, new_id
+        )
+        if result != 0:
+            print(f"Failed to change ID: {self.packet_handler.getTxRxResult(result)}")
+            return False
+        print(f"Changed servo ID from {current_id} to {new_id}")
+        return True
+
     def scan(self, start_id: int = 1, end_id: int = 20) -> list[int]:
         """Scan for connected servos in ID range.
 
@@ -162,25 +182,54 @@ class EarsServoDriver:
 
 
 if __name__ == "__main__":
-    # Test servos one by one to identify mapping
+    import sys
+
     driver = EarsServoDriver()
 
-    # First scan to find all connected servos
-    found_servos = driver.scan(start_id=1, end_id=15)
+    if len(sys.argv) > 1 and sys.argv[1] == "assign":
+        # ID assignment mode - connect ONE servo at a time!
+        print("=== SERVO ID ASSIGNMENT MODE ===")
+        print("Connect only ONE servo at a time!\n")
 
-    if not found_servos:
-        print("No servos found! Check wiring and power.")
-        driver.close()
-        exit(1)
+        for new_id in [4, 5, 6, 7]:
+            input(f"Connect servo for ID {new_id}, then press Enter...")
+            found = driver.scan(start_id=1, end_id=10)
+            if len(found) == 1:
+                old_id = found[0]
+                if old_id != new_id:
+                    driver.set_servo_id(old_id, new_id)
+                    print(f"Servo now has ID {new_id}. Disconnect it.\n")
+                else:
+                    print(f"Servo already has ID {new_id}. Disconnect it.\n")
+            elif len(found) > 1:
+                print("ERROR: Multiple servos detected! Connect only ONE.\n")
+            else:
+                print("ERROR: No servo found. Check connection.\n")
 
-    print("\nTesting each found servo individually...")
-    print("Watch which part moves!\n")
+        print("Done! Now reconnect all 4 servos and run without 'assign'.")
 
-    for sid in found_servos:
-        input(f"Press Enter to move servo {sid} by +20 degrees...")
-        driver.move_servo(sid, 20)
-        input(f"Press Enter to center servo {sid}...")
-        driver.move_servo(sid, 0)
+    else:
+        # Normal test mode
+        found_servos = driver.scan(start_id=1, end_id=15)
 
-    print("\nDone. Update the ID mapping based on what you observed.")
+        if not found_servos:
+            print("No servos found! Check wiring and power.")
+            driver.close()
+            exit(1)
+
+        if len(found_servos) < 4:
+            print(f"\nWARNING: Expected 4 servos, found {len(found_servos)}")
+            print("Run with 'assign' argument to set IDs: python ears_servo_driver.py assign\n")
+
+        print("\nTesting each found servo individually...")
+        print("Watch which part moves!\n")
+
+        for sid in found_servos:
+            input(f"Press Enter to move servo {sid} by +20 degrees...")
+            driver.move_servo(sid, 20)
+            input(f"Press Enter to center servo {sid}...")
+            driver.move_servo(sid, 0)
+
+        print("\nDone. Update the ID mapping based on what you observed.")
+
     driver.close()

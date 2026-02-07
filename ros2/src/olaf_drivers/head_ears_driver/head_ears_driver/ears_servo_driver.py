@@ -165,8 +165,10 @@ class EarsServoDriver:
         # Calculate offset needed to make current position = 512
         offset = self.CENTER_POSITION - current_pos
 
-        # Offset is stored as signed 8-bit in some servos, or 16-bit
-        # For SCS0009, try 16-bit write
+        # Unlock EEPROM
+        self._unlock_eeprom(servo_id)
+
+        # Offset is stored as signed 16-bit
         result, _ = self.packet_handler.write2ByteTxRx(
             self.port_handler, servo_id, ADDR_OFFSET, offset & 0xFFFF
         )
@@ -174,7 +176,10 @@ class EarsServoDriver:
             print(f"Failed to set offset: {self.packet_handler.getTxRxResult(result)}")
             return False
 
-        print(f"Servo {servo_id}: position {current_pos} -> set as center (offset {offset})")
+        # Lock EEPROM to save
+        self._lock_eeprom(servo_id)
+
+        print(f"Servo {servo_id}: position {current_pos} -> set as center (offset {offset}, saved)")
         return True
 
     def set_all_as_center(self) -> bool:
@@ -184,6 +189,22 @@ class EarsServoDriver:
             if not self.set_as_center(servo_id):
                 success = False
         return success
+
+    def _unlock_eeprom(self, servo_id: int) -> bool:
+        """Unlock EEPROM for writing."""
+        ADDR_LOCK = 55  # Lock register (0 = unlocked, 1 = locked)
+        result, _ = self.packet_handler.write1ByteTxRx(
+            self.port_handler, servo_id, ADDR_LOCK, 0
+        )
+        return result == 0
+
+    def _lock_eeprom(self, servo_id: int) -> bool:
+        """Lock EEPROM after writing."""
+        ADDR_LOCK = 55
+        result, _ = self.packet_handler.write1ByteTxRx(
+            self.port_handler, servo_id, ADDR_LOCK, 1
+        )
+        return result == 0
 
     def set_servo_id(self, current_id: int, new_id: int) -> bool:
         """Change a servo's ID. Only connect ONE servo at a time!
@@ -196,13 +217,24 @@ class EarsServoDriver:
             True if successful
         """
         ADDR_ID = 5  # ID register address for SCS series
+
+        # Unlock EEPROM first
+        if not self._unlock_eeprom(current_id):
+            print("Warning: Failed to unlock EEPROM")
+
+        # Write new ID
         result, _ = self.packet_handler.write1ByteTxRx(
             self.port_handler, current_id, ADDR_ID, new_id
         )
         if result != 0:
             print(f"Failed to change ID: {self.packet_handler.getTxRxResult(result)}")
             return False
-        print(f"Changed servo ID from {current_id} to {new_id}")
+
+        # Lock EEPROM to save
+        if not self._lock_eeprom(new_id):
+            print("Warning: Failed to lock EEPROM")
+
+        print(f"Changed servo ID from {current_id} to {new_id} (saved to EEPROM)")
         return True
 
     def scan(self, start_id: int = 1, end_id: int = 20) -> list[int]:

@@ -307,17 +307,26 @@ if __name__ == "__main__":
             print(f"\nWARNING: Expected 4 servos, found {len(found_servos)}")
             print("Run with 'assign' argument to set IDs: python ears_servo_driver.py assign\n")
 
-        print("\nTesting each found servo individually...")
-        print("Using raw positions: 512=center, +50 counts = small move\n")
+        # Read current positions as "zero" reference
+        print("\nReading current positions as zero reference...")
+        zero_positions = {}
+        for sid in found_servos:
+            pos, result, _ = driver.packet_handler.read2ByteTxRx(
+                driver.port_handler, sid, driver.ADDR_PRESENT_POSITION
+            )
+            if result == 0:
+                zero_positions[sid] = pos
+                print(f"  Servo {sid}: zero = {pos}")
+
+        print("\nTesting each servo (+5 counts, then back)...\n")
 
         for sid in found_servos:
-            input(f"Press Enter to move servo {sid} to position 562 (+50 from center)...")
-            driver.go_to_position(sid, 562)
-            input(f"Press Enter to return servo {sid} to center (512)...")
-            driver.go_to_position(sid, 512)
+            zero = zero_positions.get(sid, 512)
+            input(f"Press Enter to move servo {sid} by +5 counts...")
+            driver.go_to_position(sid, zero + 5)
+            input(f"Press Enter to return servo {sid} to zero...")
+            driver.go_to_position(sid, zero)
 
-        print("\nCentering all servos...")
-        driver.center_all()
-        print("Done. Update the ID mapping based on what you observed.")
+        print("\nDone. Update the ID mapping based on what you observed.")
 
     driver.close()

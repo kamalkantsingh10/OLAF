@@ -141,6 +141,50 @@ class EarsServoDriver:
         _, result, _ = self.packet_handler.ping(self.port_handler, servo_id)
         return result == 0
 
+    def set_as_center(self, servo_id: int) -> bool:
+        """Set the current physical position as the center (0 degrees).
+
+        This writes an offset to the servo so current position = 512 (center).
+
+        Args:
+            servo_id: Servo ID
+
+        Returns:
+            True if successful
+        """
+        ADDR_OFFSET = 31  # Offset register for SCS series
+
+        # Read current position
+        current_pos, result, _ = self.packet_handler.read2ByteTxRx(
+            self.port_handler, servo_id, self.ADDR_PRESENT_POSITION
+        )
+        if result != 0:
+            print(f"Failed to read position: {self.packet_handler.getTxRxResult(result)}")
+            return False
+
+        # Calculate offset needed to make current position = 512
+        offset = self.CENTER_POSITION - current_pos
+
+        # Offset is stored as signed 8-bit in some servos, or 16-bit
+        # For SCS0009, try 16-bit write
+        result, _ = self.packet_handler.write2ByteTxRx(
+            self.port_handler, servo_id, ADDR_OFFSET, offset & 0xFFFF
+        )
+        if result != 0:
+            print(f"Failed to set offset: {self.packet_handler.getTxRxResult(result)}")
+            return False
+
+        print(f"Servo {servo_id}: position {current_pos} -> set as center (offset {offset})")
+        return True
+
+    def set_all_as_center(self) -> bool:
+        """Set current position of all 4 ear servos as center."""
+        success = True
+        for servo_id in [self.LEFT_PAN, self.LEFT_TILT, self.RIGHT_PAN, self.RIGHT_TILT]:
+            if not self.set_as_center(servo_id):
+                success = False
+        return success
+
     def set_servo_id(self, current_id: int, new_id: int) -> bool:
         """Change a servo's ID. Only connect ONE servo at a time!
 
@@ -192,15 +236,15 @@ if __name__ == "__main__":
         print("Connect only ONE servo at a time!\n")
 
         for new_id in [4, 5, 6, 7]:
-            input(f"Connect servo for ID {new_id}, then press Enter...")
+            input(f"Connect servo for ID {new_id}, position it at CENTER, then press Enter...")
             found = driver.scan(start_id=1, end_id=10)
             if len(found) == 1:
                 old_id = found[0]
                 if old_id != new_id:
                     driver.set_servo_id(old_id, new_id)
-                    print(f"Servo now has ID {new_id}. Disconnect it.\n")
-                else:
-                    print(f"Servo already has ID {new_id}. Disconnect it.\n")
+                # Set current position as center
+                driver.set_as_center(new_id)
+                print(f"Servo {new_id} configured. Disconnect it.\n")
             elif len(found) > 1:
                 print("ERROR: Multiple servos detected! Connect only ONE.\n")
             else:

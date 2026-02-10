@@ -12,7 +12,12 @@ import sys
 
 import yaml
 from scservo_sdk import PortHandler, COMM_SUCCESS
-from scservo_sdk.scscl import scscl, scs_id as ADDR_ID
+from scservo_sdk.scscl import scscl, scs_id as ADDR_ID, SCSCL_PRESENT_POSITION_L
+
+# -- SCS0009 EEPROM registers (not in scscl.py) --
+ADDR_OFS_L = 31   # Offset low byte (signed 16-bit)
+ADDR_OFS_H = 32   # Offset high byte
+CENTER_POSITION = 512  # Mid-range of 0-1023
 
 # -- Load config from central servo-ids.yaml --
 CONFIG_PATH = os.path.join(
@@ -138,6 +143,81 @@ def assign_all(packet: scscl, ears_config: dict) -> bool:
     return True
 
 
+def set_center(packet: scscl, servo_id: int) -> bool:
+    """Set the servo's current physical position as center (512).
+
+    Writes an offset to EEPROM so that the current position reads as 512.
+    All future movements will be relative to this zero point.
+    Commanding 'go to 512' will return the servo to this physical position.
+
+    Args:
+        packet: scscl packet handler.
+        servo_id: Servo ID to calibrate.
+
+    Returns:
+        True if offset was written successfully.
+    """
+    # 1. Read current raw position
+    current_pos, result, error = packet.ReadPos(servo_id)
+    if result != COMM_SUCCESS:
+        print(f"[ERROR] Failed to read position from ID {servo_id}: "
+              f"{packet.getTxRxResult(result)}")
+        return False
+    print(f"[INFO] Servo {servo_id}: current position = {current_pos}")
+
+    # 2. Calculate offset so current position becomes 512
+    offset = CENTER_POSITION - current_pos
+    print(f"[INFO] Servo {servo_id}: writing offset = {offset}")
+
+    # 3. Unlock EEPROM
+    result, error = packet.unLockEprom(servo_id)
+    if result != COMM_SUCCESS:
+        print(f"[ERROR] Failed to unlock EEPROM: {packet.getTxRxResult(result)}")
+        return False
+
+    # 4. Write offset as signed 16-bit to registers 31-32
+    offset_unsigned = offset & 0xFFFF
+    result, error = packet.write2ByteTxRx(servo_id, ADDR_OFS_L, offset_unsigned)
+    if result != COMM_SUCCESS:
+        print(f"[ERROR] Failed to write offset: {packet.getTxRxResult(result)}")
+        return False
+    if error != 0:
+        print(f"[ERROR] Servo error on offset write: {packet.getRxPacketError(error)}")
+        return False
+
+    # 5. Lock EEPROM
+    packet.LockEprom(servo_id)
+
+    # 6. Verify — read position again, should be ~512 now
+    new_pos, result, _ = packet.ReadPos(servo_id)
+    if result == COMM_SUCCESS:
+        print(f"[OK] Servo {servo_id}: position now reads {new_pos} (offset {offset} saved)")
+    else:
+        print(f"[WARN] Servo {servo_id}: offset written but couldn't verify")
+
+    return True
+
+
+def set_center_all(packet: scscl, ears_config: dict) -> bool:
+    """Set current position as center for all ear servos from config."""
+    assignments = get_servo_assignments(ears_config)
+    print("=== SET CENTER POSITION ===")
+    print("Current physical position of each servo will become 0 degrees (512).\n")
+
+    all_ok = True
+    for servo_id, function in assignments:
+        print(f"--- {function} (ID {servo_id}) ---")
+        if not set_center(packet, servo_id):
+            all_ok = False
+        print()
+
+    if all_ok:
+        print("[OK] All servos calibrated. Current positions are now center.")
+    else:
+        print("[WARN] Some servos failed. Check errors above.")
+    return all_ok
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="SCS0009 ear servo calibration tool")
     subparsers = parser.add_subparsers(dest="command")
@@ -147,6 +227,11 @@ def main() -> None:
         "ping", help="Ping a servo ID to check if it responds"
     )
     sp_ping.add_argument("servo_id", type=int, help="Servo ID to ping (1-253)")
+
+    # -- set-center command --
+    subparsers.add_parser(
+        "set-center", help="Set current position as center (0 deg) for all ear servos"
+    )
 
     # -- assign-all command --
     subparsers.add_parser(
@@ -177,6 +262,9 @@ def main() -> None:
             else:
                 print(f"[FAIL] No response from ID {args.servo_id}")
             sys.exit(0 if result == COMM_SUCCESS else 1)
+        elif args.command == "set-center":
+            ok = set_center_all(packet, ears_config)
+            sys.exit(0 if ok else 1)
         elif args.command == "assign-all":
             ok = assign_all(packet, ears_config)
             sys.exit(0 if ok else 1)

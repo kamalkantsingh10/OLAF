@@ -16,28 +16,31 @@ EMOTION_CONFUSED = 4
 EMOTION_SAD = 5
 EMOTION_EXCITED = 6
 
-# Preset angles: {left_pan, left_tilt, right_pan, right_tilt}
+# Doberman-style ear presets.
+# Pan: outward splay (0=straight up, +90=full airplane).
+# Tilt: forward/back pitch (+=forward, -=backward).
+# Hardware limits: left_tilt [-90,+20], right_tilt [-7,+110], right_pan [0,70].
 PRESETS: dict[int, dict[str, float]] = {
     EMOTION_NEUTRAL: {
         "left_pan": 0, "left_tilt": 0, "right_pan": 0, "right_tilt": 0,
     },
-    EMOTION_HAPPY: {
-        "left_pan": 45, "left_tilt": 70, "right_pan": 45, "right_tilt": 70,
+    EMOTION_HAPPY: {  # Doberman greeting: ears pulled back + wide splay
+        "left_pan": 50, "left_tilt": -7, "right_pan": 50, "right_tilt": -7,
     },
-    EMOTION_CURIOUS: {
-        "left_pan": 70, "left_tilt": 50, "right_pan": 70, "right_tilt": 50,
+    EMOTION_CURIOUS: {  # Asymmetric, tilted forward, one ear cocked
+        "left_pan": 15, "left_tilt": 20, "right_pan": 35, "right_tilt": 20,
     },
-    EMOTION_THINKING: {
-        "left_pan": 15, "left_tilt": 40, "right_pan": 55, "right_tilt": -25,
+    EMOTION_THINKING: {  # Subtle asymmetric forward scan
+        "left_pan": 10, "left_tilt": 15, "right_pan": 25, "right_tilt": 10,
     },
-    EMOTION_CONFUSED: {
-        "left_pan": 40, "left_tilt": -40, "right_pan": 75, "right_tilt": 30,
+    EMOTION_CONFUSED: {  # Strong asymmetry — one up, one way out
+        "left_pan": 5, "left_tilt": -7, "right_pan": 65, "right_tilt": 20,
     },
-    EMOTION_SAD: {
-        "left_pan": 0, "left_tilt": -70, "right_pan": 0, "right_tilt": -70,
+    EMOTION_SAD: {  # Full airplane droop — wide splay, backward where possible
+        "left_pan": 70, "left_tilt": -40, "right_pan": 65, "right_tilt": -7,
     },
-    EMOTION_EXCITED: {
-        "left_pan": 85, "left_tilt": 90, "right_pan": 85, "right_tilt": 90,
+    EMOTION_EXCITED: {  # Perked forward + moderate splay, ready to play
+        "left_pan": 30, "left_tilt": 20, "right_pan": 30, "right_tilt": 20,
     },
 }
 

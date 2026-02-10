@@ -31,8 +31,8 @@ class TestPresetLookup:
     def test_get_preset_happy(self):
         angles = get_preset(EMOTION_HAPPY)
         assert angles is not None
-        assert angles["left_pan"] > 0
-        assert angles["left_tilt"] > 0
+        assert angles["left_pan"] > 0  # Ears splay outward
+        assert angles["left_tilt"] <= 0  # Doberman greeting: ears pull back
 
     def test_get_preset_sad(self):
         angles = get_preset(EMOTION_SAD)
@@ -87,23 +87,18 @@ class TestIntensityScaling:
 
 
 class TestAngleBounds:
-    """Test that presets stay within hardware limits."""
+    """Test that presets stay within actual hardware limits (per-servo)."""
 
-    PAN_MIN = 0
-    PAN_MAX = 90
-    TILT_MIN = -90
-    TILT_MAX = 110
+    LIMITS = {
+        "left_pan": (0, 90),
+        "left_tilt": (-90, 20),
+        "right_pan": (0, 70),
+        "right_tilt": (-7, 110),
+    }
 
-    def test_all_presets_within_pan_limits(self):
+    def test_all_presets_within_hardware_limits(self):
         for emotion_type, preset in PRESETS.items():
-            for key in ["left_pan", "right_pan"]:
-                assert self.PAN_MIN <= preset[key] <= self.PAN_MAX, (
-                    f"Emotion {emotion_type} {key}={preset[key]} out of pan range"
-                )
-
-    def test_all_presets_within_tilt_limits(self):
-        for emotion_type, preset in PRESETS.items():
-            for key in ["left_tilt", "right_tilt"]:
-                assert self.TILT_MIN <= preset[key] <= self.TILT_MAX, (
-                    f"Emotion {emotion_type} {key}={preset[key]} out of tilt range"
+            for key, (lo, hi) in self.LIMITS.items():
+                assert lo <= preset[key] <= hi, (
+                    f"Emotion {emotion_type} {key}={preset[key]} out of [{lo},{hi}]"
                 )

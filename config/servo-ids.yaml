@@ -25,8 +25,8 @@ ears:
       model: SCS0009
       function: "Left ear angle"
       center_position: 76
-      min_angle: -90   # Backward tilt (degrees)
-      max_angle: 110   # Forward tilt (degrees)
+      min_angle: -90   # Backward tilt (degrees) — plenty of range
+      max_angle: 20    # Forward tilt limited — center near raw 0
       direction: -1    # -1 = decreasing counts = forward tilt (mirror of right)
     right_pan:
       id: 6
@@ -34,15 +34,15 @@ ears:
       function: "Right ear base rotation"
       center_position: 241
       min_angle: 0     # Center position (degrees)
-      max_angle: 90    # Max outward rotation CCW (degrees)
+      max_angle: 70    # Max outward — limited by center at raw 241
       direction: -1    # -1 = decreasing counts = outward for right ear
     right_tilt:
       id: 7
       model: SCS0009
       function: "Right ear angle"
       center_position: 27
-      min_angle: -90   # Backward tilt (degrees)
-      max_angle: 110   # Forward tilt (degrees)
+      min_angle: -7    # Backward tilt limited — center near raw 0
+      max_angle: 110   # Forward tilt (degrees) — plenty of range
       direction: 1     # 1 = increasing counts = forward tilt
 
 neck:

@@ -22,22 +22,22 @@ PRESETS: dict[int, dict[str, float]] = {
         "left_pan": 0, "left_tilt": 0, "right_pan": 0, "right_tilt": 0,
     },
     EMOTION_HAPPY: {
-        "left_pan": 20, "left_tilt": 30, "right_pan": 20, "right_tilt": 30,
+        "left_pan": 45, "left_tilt": 70, "right_pan": 45, "right_tilt": 70,
     },
     EMOTION_CURIOUS: {
-        "left_pan": 40, "left_tilt": 20, "right_pan": 40, "right_tilt": 20,
+        "left_pan": 70, "left_tilt": 50, "right_pan": 70, "right_tilt": 50,
     },
     EMOTION_THINKING: {
-        "left_pan": 10, "left_tilt": 15, "right_pan": 30, "right_tilt": -10,
+        "left_pan": 15, "left_tilt": 40, "right_pan": 55, "right_tilt": -25,
     },
     EMOTION_CONFUSED: {
-        "left_pan": 25, "left_tilt": -15, "right_pan": 45, "right_tilt": 10,
+        "left_pan": 40, "left_tilt": -40, "right_pan": 75, "right_tilt": 30,
     },
     EMOTION_SAD: {
-        "left_pan": 0, "left_tilt": -30, "right_pan": 0, "right_tilt": -30,
+        "left_pan": 0, "left_tilt": -70, "right_pan": 0, "right_tilt": -70,
     },
     EMOTION_EXCITED: {
-        "left_pan": 50, "left_tilt": 40, "right_pan": 50, "right_tilt": 40,
+        "left_pan": 85, "left_tilt": 90, "right_pan": 85, "right_tilt": 90,
     },
 }
 

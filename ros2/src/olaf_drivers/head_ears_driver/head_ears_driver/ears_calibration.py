@@ -125,6 +125,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="SCS0009 ear servo calibration tool")
     subparsers = parser.add_subparsers(dest="command")
 
+    # -- ping command --
+    sp_ping = subparsers.add_parser(
+        "ping", help="Ping a servo ID to check if it responds"
+    )
+    sp_ping.add_argument("servo_id", type=int, help="Servo ID to ping (1-253)")
+
     # -- assign-all command --
     subparsers.add_parser(
         "assign-all", help="Assign IDs 4-7 to ear servos interactively"
@@ -146,7 +152,14 @@ def main() -> None:
     port, packet = open_port()
 
     try:
-        if args.command == "assign-all":
+        if args.command == "ping":
+            _, result, _ = packet.ping(args.servo_id)
+            if result == COMM_SUCCESS:
+                print(f"[OK] Servo ID {args.servo_id} responded")
+            else:
+                print(f"[FAIL] No response from ID {args.servo_id}")
+            sys.exit(0 if result == COMM_SUCCESS else 1)
+        elif args.command == "assign-all":
             ok = assign_all(packet)
             sys.exit(0 if ok else 1)
         elif args.command == "set-id":

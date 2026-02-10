@@ -12,12 +12,7 @@ import sys
 
 import yaml
 from scservo_sdk import PortHandler, COMM_SUCCESS
-from scservo_sdk.scscl import scscl, scs_id as ADDR_ID, SCSCL_PRESENT_POSITION_L
-
-# -- SCS0009 EEPROM registers (not in scscl.py) --
-ADDR_OFS_L = 31   # Offset low byte (signed 16-bit)
-ADDR_OFS_H = 32   # Offset high byte
-CENTER_POSITION = 512  # Mid-range of 0-1023
+from scservo_sdk.scscl import scscl, scs_id as ADDR_ID
 
 # -- Load config from central servo-ids.yaml --
 CONFIG_PATH = os.path.join(
@@ -143,78 +138,41 @@ def assign_all(packet: scscl, ears_config: dict) -> bool:
     return True
 
 
-def set_center(packet: scscl, servo_id: int) -> bool:
-    """Set the servo's current physical position as center (512).
-
-    Writes an offset to EEPROM so that the current position reads as 512.
-    All future movements will be relative to this zero point.
-    Commanding 'go to 512' will return the servo to this physical position.
-
-    Args:
-        packet: scscl packet handler.
-        servo_id: Servo ID to calibrate.
-
-    Returns:
-        True if offset was written successfully.
-    """
-    # 1. Read current raw position
-    current_pos, result, error = packet.ReadPos(servo_id)
-    if result != COMM_SUCCESS:
-        print(f"[ERROR] Failed to read position from ID {servo_id}: "
-              f"{packet.getTxRxResult(result)}")
-        return False
-    print(f"[INFO] Servo {servo_id}: current position = {current_pos}")
-
-    # 2. Calculate offset so current position becomes 512
-    offset = CENTER_POSITION - current_pos
-    print(f"[INFO] Servo {servo_id}: writing offset = {offset}")
-
-    # 3. Unlock EEPROM
-    result, error = packet.unLockEprom(servo_id)
-    if result != COMM_SUCCESS:
-        print(f"[ERROR] Failed to unlock EEPROM: {packet.getTxRxResult(result)}")
-        return False
-
-    # 4. Write offset as signed 16-bit to registers 31-32
-    offset_unsigned = offset & 0xFFFF
-    result, error = packet.write2ByteTxRx(servo_id, ADDR_OFS_L, offset_unsigned)
-    if result != COMM_SUCCESS:
-        print(f"[ERROR] Failed to write offset: {packet.getTxRxResult(result)}")
-        return False
-    if error != 0:
-        print(f"[ERROR] Servo error on offset write: {packet.getRxPacketError(error)}")
-        return False
-
-    # 5. Lock EEPROM
-    packet.LockEprom(servo_id)
-
-    # 6. Verify — read position again, should be ~512 now
-    new_pos, result, _ = packet.ReadPos(servo_id)
-    if result == COMM_SUCCESS:
-        print(f"[OK] Servo {servo_id}: position now reads {new_pos} (offset {offset} saved)")
-    else:
-        print(f"[WARN] Servo {servo_id}: offset written but couldn't verify")
-
-    return True
-
-
 def set_center_all(packet: scscl, ears_config: dict) -> bool:
-    """Set current position as center for all ear servos from config."""
-    assignments = get_servo_assignments(ears_config)
+    """Read current positions and save as center_position in config/servo-ids.yaml.
+
+    Position ears physically at desired center before running this.
+    The driver uses these values as the zero reference for degree-based movement.
+    """
     print("=== SET CENTER POSITION ===")
-    print("Current physical position of each servo will become 0 degrees (512).\n")
+    print("Reading current positions and saving to config/servo-ids.yaml\n")
+
+    # Read full config file to preserve other sections (neck, etc.)
+    config_path = os.path.normpath(CONFIG_PATH)
+    with open(config_path) as f:
+        full_config = yaml.safe_load(f)
 
     all_ok = True
-    for servo_id, function in assignments:
-        print(f"--- {function} (ID {servo_id}) ---")
-        if not set_center(packet, servo_id):
+    for name, info in ears_config["servos"].items():
+        servo_id = info["id"]
+        function = info["function"]
+
+        pos, result, _ = packet.ReadPos(servo_id)
+        if result != COMM_SUCCESS:
+            print(f"[ERROR] Failed to read ID {servo_id}: {packet.getTxRxResult(result)}")
             all_ok = False
-        print()
+            continue
+
+        full_config["ears"]["servos"][name]["center_position"] = pos
+        print(f"[OK] ID {servo_id} ({function}): center_position = {pos}")
 
     if all_ok:
-        print("[OK] All servos calibrated. Current positions are now center.")
+        with open(config_path, "w") as f:
+            yaml.dump(full_config, f, default_flow_style=False, sort_keys=False)
+        print(f"\n[OK] Saved to {config_path}")
     else:
-        print("[WARN] Some servos failed. Check errors above.")
+        print("\n[WARN] Some servos failed. Config not saved.")
+
     return all_ok
 
 

@@ -14,18 +14,22 @@ ears:
       id: 4
       model: SCS0009
       function: "Left ear base rotation"
+      center_position: 679  # Raw position: ear straight up, fin parallel to eyeline
     left_tilt:
       id: 5
       model: SCS0009
       function: "Left ear angle"
+      center_position: 76
     right_pan:
       id: 6
       model: SCS0009
       function: "Right ear base rotation"
+      center_position: 241
     right_tilt:
       id: 7
       model: SCS0009
       function: "Right ear angle"
+      center_position: 27
 
 neck:
   port: /dev/waveshare_neck

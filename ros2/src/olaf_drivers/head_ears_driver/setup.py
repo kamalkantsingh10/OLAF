@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'head_ears_driver_node = head_ears_driver.head_ears_driver_node:main',
+            'ears_node = head_ears_driver.ears_node:main',
         ],
     },
 )

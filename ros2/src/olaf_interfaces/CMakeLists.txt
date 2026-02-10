@@ -19,6 +19,7 @@ find_package(geometry_msgs REQUIRED)
 # Declare ROS2 messages
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Expression.msg"
+  "msg/EarsPose.msg"
   "msg/Gesture.msg"
   "msg/HeartRate.msg"
   "msg/ModuleStatus.msg"

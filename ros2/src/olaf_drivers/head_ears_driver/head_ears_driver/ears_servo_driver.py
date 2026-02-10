@@ -15,9 +15,15 @@ from scservo_sdk.scscl import (
     SCSCL_PRESENT_TEMPERATURE,
 )
 
-# -- Config path --
-CONFIG_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "servo-ids.yaml"
+# -- Config path resolution --
+# Try relative to source tree first, then common deploy locations
+_CANDIDATES = [
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "servo-ids.yaml"),
+    os.path.expanduser("~/olaf/config/servo-ids.yaml"),
+]
+CONFIG_PATH = next(
+    (os.path.normpath(p) for p in _CANDIDATES if os.path.isfile(p)),
+    os.path.normpath(_CANDIDATES[0]),  # Fallback for error message
 )
 
 

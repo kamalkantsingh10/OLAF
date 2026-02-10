@@ -14,9 +14,14 @@ import yaml
 from scservo_sdk import PortHandler, COMM_SUCCESS
 from scservo_sdk.scscl import scscl, scs_id as ADDR_ID
 
-# -- Load config from central servo-ids.yaml --
-CONFIG_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "servo-ids.yaml"
+# -- Config path resolution --
+_CANDIDATES = [
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "servo-ids.yaml"),
+    os.path.expanduser("~/olaf/config/servo-ids.yaml"),
+]
+CONFIG_PATH = next(
+    (os.path.normpath(p) for p in _CANDIDATES if os.path.isfile(p)),
+    os.path.normpath(_CANDIDATES[0]),
 )
 FACTORY_DEFAULT_ID = 1
 

@@ -19,7 +19,7 @@ ears:
       center_position: 679  # Raw position: ear straight up, fin parallel to eyeline
       min_angle: 0    # Center position (degrees)
       max_angle: 90   # Max outward rotation CW (degrees)
-      direction: -1   # -1 = decreasing counts = outward for left ear
+      direction: 1    # 1 = increasing counts = outward for left ear
     left_tilt:
       id: 5
       model: SCS0009

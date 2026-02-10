@@ -10,7 +10,7 @@ ears:
   baudrate: 1000000
   protocol: scscl  # SCS0009 uses SCS protocol
   counts_per_degree: 3.41  # SCS0009: 1024 counts / 300 degree range
-  base_speed: 200  # Default servo speed (expressions adjust ±30%)
+  base_speed: 300  # Default servo speed (expressions adjust ±30%)
   servos:
     left_pan:
       id: 4

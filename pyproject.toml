@@ -6,7 +6,8 @@ authors = ["Kamal Kant Singh <kamalkantsingh10@gmail.com>"]
 readme = "README.md"
 license = "MIT"
 packages = [
-    { include = "orchestrator" }
+    { include = "orchestrator" },
+    { include = "scservo_sdk", from = "libs" },
 ]
 
 [tool.poetry.dependencies]

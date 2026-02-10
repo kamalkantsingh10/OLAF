@@ -35,7 +35,7 @@ ears:
       center_position: 241
       min_angle: 0     # Center position (degrees)
       max_angle: 90    # Max outward rotation CCW (degrees)
-      direction: 1     # 1 = increasing counts = outward for right ear
+      direction: -1    # -1 = decreasing counts = outward for right ear
     right_tilt:
       id: 7
       model: SCS0009

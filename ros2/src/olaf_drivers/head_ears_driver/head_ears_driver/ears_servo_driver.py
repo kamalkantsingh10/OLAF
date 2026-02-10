@@ -8,7 +8,12 @@ import os
 
 import yaml
 from scservo_sdk import PortHandler, COMM_SUCCESS
-from scservo_sdk.scscl import scscl
+from scservo_sdk.scscl import (
+    scscl,
+    SCSCL_PRESENT_LOAD_L,
+    SCSCL_PRESENT_VOLTAGE,
+    SCSCL_PRESENT_TEMPERATURE,
+)
 
 # -- Config path --
 CONFIG_PATH = os.path.join(
@@ -143,3 +148,53 @@ class EarsServoDriver:
         center = servo["center_position"]
         direction = servo["direction"]
         return (pos - center) / (direction * self._counts_per_deg)
+
+    def read_load(self, servo_name: str) -> int | None:
+        """Read current load/torque from a servo.
+
+        Returns:
+            Load value (0-1023, 10-bit), or None on read failure.
+            Bit 10 indicates direction (0=CW, 1=CCW), bits 0-9 are magnitude.
+        """
+        servo = self._get_servo(servo_name)
+        load, result, _ = self._packet.read2ByteTxRx(servo["id"], SCSCL_PRESENT_LOAD_L)
+        if result != COMM_SUCCESS:
+            return None
+        return load
+
+    def read_voltage(self, servo_name: str) -> float | None:
+        """Read current supply voltage from a servo.
+
+        Returns:
+            Voltage in volts (raw value / 10), or None on read failure.
+        """
+        servo = self._get_servo(servo_name)
+        voltage, result, _ = self._packet.read1ByteTxRx(servo["id"], SCSCL_PRESENT_VOLTAGE)
+        if result != COMM_SUCCESS:
+            return None
+        return voltage / 10.0
+
+    def read_temperature(self, servo_name: str) -> int | None:
+        """Read current temperature from a servo.
+
+        Returns:
+            Temperature in degrees Celsius, or None on read failure.
+        """
+        servo = self._get_servo(servo_name)
+        temp, result, _ = self._packet.read1ByteTxRx(servo["id"], SCSCL_PRESENT_TEMPERATURE)
+        if result != COMM_SUCCESS:
+            return None
+        return temp
+
+    def read_all_feedback(self, servo_name: str) -> dict | None:
+        """Read all feedback from a servo: position, load, voltage, temperature.
+
+        Returns:
+            Dict with keys: position_deg, load, voltage, temperature. None on failure.
+        """
+        return {
+            "position_deg": self.read_position(servo_name),
+            "load": self.read_load(servo_name),
+            "voltage": self.read_voltage(servo_name),
+            "temperature": self.read_temperature(servo_name),
+        }

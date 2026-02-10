@@ -5,7 +5,7 @@ package_name = 'head_ears_driver'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=[package_name],
+    packages=[package_name, 'scservo_sdk'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

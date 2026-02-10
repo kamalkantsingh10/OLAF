@@ -7,27 +7,40 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 
+import yaml
 from scservo_sdk import PortHandler, COMM_SUCCESS
 from scservo_sdk.scscl import scscl, scs_id as ADDR_ID
 
-# -- Hardware constants --
-DEVICE_PORT = "/dev/waveshare_ears"
-BAUDRATE = 1_000_000
+# -- Load config from central servo-ids.yaml --
+CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "servo-ids.yaml"
+)
 FACTORY_DEFAULT_ID = 1
 
-# -- Ear servo ID assignments --
-SERVO_ASSIGNMENTS = [
-    (4, "Left ear",  "Base rotation"),
-    (5, "Left ear",  "Ear angle"),
-    (6, "Right ear", "Base rotation"),
-    (7, "Right ear", "Ear angle"),
-]
+
+def load_config() -> dict:
+    """Load ears config from config/servo-ids.yaml."""
+    path = os.path.normpath(CONFIG_PATH)
+    with open(path) as f:
+        config = yaml.safe_load(f)
+    return config["ears"]
 
 
-def open_port(device: str = DEVICE_PORT, baudrate: int = BAUDRATE) -> tuple[PortHandler, scscl]:
-    """Open serial port and return (port_handler, packet_handler)."""
+def get_servo_assignments(ears_config: dict) -> list[tuple[int, str]]:
+    """Build assignment list from config."""
+    assignments = []
+    for name, info in ears_config["servos"].items():
+        assignments.append((info["id"], info["function"]))
+    return assignments
+
+
+def open_port(ears_config: dict) -> tuple[PortHandler, scscl]:
+    """Open serial port from config and return (port_handler, packet_handler)."""
+    device = ears_config["port"]
+    baudrate = ears_config["baudrate"]
     port = PortHandler(device)
     if not port.openPort():
         print(f"[ERROR] Failed to open port: {device}")
@@ -93,20 +106,23 @@ def set_servo_id(packet: scscl, current_id: int, new_id: int) -> bool:
     return True
 
 
-def assign_all(packet: scscl) -> bool:
-    """Assign IDs 4-7 to ear servos, adding one at a time to the daisy chain.
+def assign_all(packet: scscl, ears_config: dict) -> bool:
+    """Assign ear servo IDs from config, adding one at a time to the daisy chain.
 
     Each new servo arrives with factory default ID 1. After reassignment
     it no longer conflicts, so just keep adding the next servo to the chain.
     """
+    assignments = get_servo_assignments(ears_config)
+
     print("=== EAR SERVO ID ASSIGNMENT ===\n")
-    print("Assignments:")
-    for target_id, location, function in SERVO_ASSIGNMENTS:
-        print(f"  ID {target_id}: {location} - {function}")
+    print("Assignments (from config/servo-ids.yaml):")
+    for target_id, function in assignments:
+        print(f"  ID {target_id}: {function}")
     print()
 
-    for i, (target_id, location, function) in enumerate(SERVO_ASSIGNMENTS, 1):
-        input(f"[{i}/4] Add servo for {location} / {function} (will become ID {target_id}), "
+    total = len(assignments)
+    for i, (target_id, function) in enumerate(assignments, 1):
+        input(f"[{i}/{total}] Add servo for {function} (will become ID {target_id}), "
               f"then press Enter...")
 
         ok = set_servo_id(packet, FACTORY_DEFAULT_ID, target_id)
@@ -116,8 +132,9 @@ def assign_all(packet: scscl) -> bool:
 
         print()
 
-    print("=== ALL 4 SERVOS ASSIGNED ===")
-    print("All servos are on the chain with IDs 4, 5, 6, 7.")
+    ids = [str(a[0]) for a in assignments]
+    print(f"=== ALL {total} SERVOS ASSIGNED ===")
+    print(f"All servos on the chain with IDs {', '.join(ids)}.")
     return True
 
 
@@ -149,7 +166,8 @@ def main() -> None:
         parser.print_help()
         sys.exit(0)
 
-    port, packet = open_port()
+    ears_config = load_config()
+    port, packet = open_port(ears_config)
 
     try:
         if args.command == "ping":
@@ -160,7 +178,7 @@ def main() -> None:
                 print(f"[FAIL] No response from ID {args.servo_id}")
             sys.exit(0 if result == COMM_SUCCESS else 1)
         elif args.command == "assign-all":
-            ok = assign_all(packet)
+            ok = assign_all(packet, ears_config)
             sys.exit(0 if ok else 1)
         elif args.command == "set-id":
             ok = set_servo_id(packet, args.current_id, args.new_id)

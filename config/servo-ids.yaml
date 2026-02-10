@@ -1,0 +1,46 @@
+# OLAF Servo ID Assignments
+# Central configuration for all Feetech servo IDs across modules.
+# All servos use Waveshare Bus Servo Adapter (A) in USB mode.
+#
+# Protocol: SCS series use scscl (protocol_end=1), STS series use sms_sts
+# Baud rate: 1000000 (1Mbps) for all servos
+
+ears:
+  port: /dev/waveshare_ears
+  baudrate: 1000000
+  protocol: scscl  # SCS0009 uses SCS protocol
+  servos:
+    left_pan:
+      id: 4
+      model: SCS0009
+      function: "Left ear base rotation"
+    left_tilt:
+      id: 5
+      model: SCS0009
+      function: "Left ear angle"
+    right_pan:
+      id: 6
+      model: SCS0009
+      function: "Right ear base rotation"
+    right_tilt:
+      id: 7
+      model: SCS0009
+      function: "Right ear angle"
+
+neck:
+  port: /dev/waveshare_neck
+  baudrate: 1000000
+  protocol: sms_sts  # STS3215 uses STS protocol
+  servos:
+    pan:
+      id: 1
+      model: STS3215
+      function: "Neck pan (left/right)"
+    tilt:
+      id: 2
+      model: STS3215
+      function: "Neck tilt (up/down)"
+    roll:
+      id: 3
+      model: STS3215
+      function: "Neck roll (head tilt)"

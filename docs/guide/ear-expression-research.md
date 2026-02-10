@@ -196,4 +196,27 @@ The Expression.msg interface uses a 1-5 integer scale (matching OLAF's expressio
 
 ---
 
+## Appendix: Running the Demo
+
+A 12-expression demo script cycles through all emotional states with descriptions and varied speeds (sleepy = slow, startled = fast snap).
+
+**On the Pi directly:**
+
+```bash
+cd ~/olaf
+PYTHONPATH=ros2/src/olaf_drivers/head_ears_driver \
+  ~/.local/bin/poetry run python \
+  ros2/src/olaf_drivers/head_ears_driver/head_ears_driver/ears_demo.py
+```
+
+**Via SSH from your workstation:**
+
+```bash
+ssh olaf.local 'cd ~/olaf && PYTHONPATH=ros2/src/olaf_drivers/head_ears_driver ~/.local/bin/poetry run python ros2/src/olaf_drivers/head_ears_driver/head_ears_driver/ears_demo.py'
+```
+
+The demo runs through: Neutral, Alert, Curious, Mildly Curious, Thinking, Happy, Excited, Relaxed, Confused, Sad, Sleepy, and Startled — then returns to neutral.
+
+---
+
 *End of article.*

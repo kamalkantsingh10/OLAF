@@ -176,6 +176,32 @@ def set_center_all(packet: scscl, ears_config: dict) -> bool:
     return all_ok
 
 
+def go_center(packet: scscl, ears_config: dict) -> bool:
+    """Move all ear servos to their saved center positions."""
+    print("=== GO TO CENTER ===\n")
+
+    all_ok = True
+    for name, info in ears_config["servos"].items():
+        servo_id = info["id"]
+        function = info["function"]
+        center = info.get("center_position")
+
+        if center is None:
+            print(f"[ERROR] No center_position for ID {servo_id}. Run set-center first.")
+            all_ok = False
+            continue
+
+        # WritePos(id, position, time_ms, speed) — time=0 means move at given speed
+        result, error = packet.WritePos(servo_id, center, 0, 100)
+        if result != COMM_SUCCESS:
+            print(f"[ERROR] Failed to move ID {servo_id}: {packet.getTxRxResult(result)}")
+            all_ok = False
+        else:
+            print(f"[OK] ID {servo_id} ({function}) -> position {center}")
+
+    return all_ok
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="SCS0009 ear servo calibration tool")
     subparsers = parser.add_subparsers(dest="command")
@@ -189,6 +215,11 @@ def main() -> None:
     # -- set-center command --
     subparsers.add_parser(
         "set-center", help="Set current position as center (0 deg) for all ear servos"
+    )
+
+    # -- go-center command --
+    subparsers.add_parser(
+        "go-center", help="Move all ear servos to saved center positions"
     )
 
     # -- assign-all command --
@@ -222,6 +253,9 @@ def main() -> None:
             sys.exit(0 if result == COMM_SUCCESS else 1)
         elif args.command == "set-center":
             ok = set_center_all(packet, ears_config)
+            sys.exit(0 if ok else 1)
+        elif args.command == "go-center":
+            ok = go_center(packet, ears_config)
             sys.exit(0 if ok else 1)
         elif args.command == "assign-all":
             ok = assign_all(packet, ears_config)

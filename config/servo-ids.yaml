@@ -27,7 +27,7 @@ ears:
       center_position: 76
       min_angle: -90   # Backward tilt (degrees)
       max_angle: 110   # Forward tilt (degrees)
-      direction: 1     # 1 = increasing counts = forward tilt
+      direction: -1    # -1 = decreasing counts = forward tilt (mirror of right)
     right_pan:
       id: 6
       model: SCS0009

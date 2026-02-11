@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'neck_driver_node = neck_driver.neck_driver_node:main',
+            'neck_calibration = neck_driver.neck_calibration:main',
         ],
     },
 )

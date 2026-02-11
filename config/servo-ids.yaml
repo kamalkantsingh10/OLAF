@@ -49,16 +49,22 @@ neck:
   port: /dev/waveshare_neck
   baudrate: 1000000
   protocol: sms_sts  # STS3215 uses STS protocol
+  counts_per_degree: 11.38  # STS3215: 4096 counts / 360 degree range
+  base_speed: 500  # Default servo speed (steps/sec)
+  base_acc: 50  # Default acceleration (0-254, higher = smoother ramp)
+  # Parallel linkage neck: base pan servo + universal joint with two linkage servos
+  # Tilt forward/back = both linkages push same direction
+  # Roll left/right = linkages push opposite directions (differential)
   servos:
     pan:
-      id: 1
+      id: 11
       model: STS3215
-      function: "Neck pan (left/right)"
-    tilt:
-      id: 2
+      function: "Neck base rotation (pan left/right)"
+    left_linkage:
+      id: 12
       model: STS3215
-      function: "Neck tilt (up/down)"
-    roll:
-      id: 3
+      function: "Left linkage servo (tilt/roll via universal joint)"
+    right_linkage:
+      id: 13
       model: STS3215
-      function: "Neck roll (head tilt)"
+      function: "Right linkage servo (tilt/roll via universal joint)"

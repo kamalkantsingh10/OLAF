@@ -43,6 +43,9 @@ constexpr uint8_t REG_BLINK_TRIGGER        = 0x12;  // Write any value to blink
 constexpr uint8_t REG_LOOK_X = 0x20;  // Signed: -100 (left) to +100 (right)
 constexpr uint8_t REG_LOOK_Y = 0x21;  // Signed: -100 (down) to +100 (up)
 
+// System Status Register
+constexpr uint8_t REG_SYSTEM_STATUS = 0x30;  // 0-5 matches LedState enum
+
 // ============================================================================
 // Status Flags
 // ============================================================================
@@ -78,6 +81,7 @@ struct I2CCommand {
   int8_t look_y;   // -100 to +100
   uint8_t status;
   uint8_t error_code;
+  uint8_t system_status;  // 0-5, matches LedState enum
 };
 
 // ============================================================================

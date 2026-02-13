@@ -50,36 +50,16 @@ bool GC9A01DualDriver::begin(uint8_t left_cs_pin, uint8_t right_cs_pin) {
     tft_.setRotation(1);
     digitalWrite(left_cs_pin_, HIGH);
 
-    // Right eye: 270 degrees (mirrored)
+    // Right eye: 90 degrees (180° rotated from left for physical mounting)
     digitalWrite(right_cs_pin_, LOW);
     tft_.setRotation(3);
     digitalWrite(right_cs_pin_, HIGH);
 
     Serial.println("[Display] Displays initialized, rotations set");
 
-    // Clear both displays
+    // Clear both displays to black
     clearBothEyes();
     Serial.println("[Display] Displays cleared");
-
-    // Test pattern - fill with color to verify displays work
-    selectEye(BOTH);
-    tft_.fillScreen(TFT_RED);
-    deselectAllEyes();
-    delay(500);
-
-    selectEye(BOTH);
-    tft_.fillScreen(TFT_GREEN);
-    deselectAllEyes();
-    delay(500);
-
-    selectEye(BOTH);
-    tft_.fillScreen(TFT_BLUE);
-    deselectAllEyes();
-    delay(500);
-
-    // Clear back to black
-    clearBothEyes();
-    Serial.println("[Display] Test pattern complete (R/G/B)");
 
     // Initialize timing
     frame_start_micros_ = 0;
@@ -99,16 +79,19 @@ void GC9A01DualDriver::selectEye(Eye eye) {
     case LEFT:
       digitalWrite(left_cs_pin_, LOW);
       digitalWrite(right_cs_pin_, HIGH);
+      tft_.setRotation(3);  // 270°
       break;
 
     case RIGHT:
       digitalWrite(left_cs_pin_, HIGH);
       digitalWrite(right_cs_pin_, LOW);
+      tft_.setRotation(1);  // 90°
       break;
 
     case BOTH:
       digitalWrite(left_cs_pin_, LOW);
       digitalWrite(right_cs_pin_, LOW);
+      tft_.setRotation(3);  // 270°
       break;
   }
 }

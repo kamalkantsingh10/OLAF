@@ -74,6 +74,24 @@ constexpr uint8_t kTargetFps = 30;  // Minimum frames per second
 constexpr uint32_t kFrameTimeMs = 1000 / kTargetFps;  // ~33ms per frame
 
 // ============================================================================
+// WS2812 LED STRIP CONFIGURATION (Face Status Indicator)
+// 8 LEDs arranged symmetrically: [0][1][2][3] | [4][5][6][7]
+// Animations radiate from center (indices 3,4) to edges (indices 0,7)
+// ============================================================================
+
+constexpr uint8_t kLedStripPin = 4;          // GPIO4 - WS2812 data line
+constexpr uint8_t kLedStripCount = 8;        // Number of LEDs
+constexpr uint8_t kLedDefaultBrightness = 10; // Default brightness (0-255)
+constexpr uint8_t kLedMaxBrightness = 80;    // Max brightness for effects
+
+// LED strip center indices (for symmetrical animations)
+constexpr uint8_t kLedCenterLeft = 3;        // Left side center
+constexpr uint8_t kLedCenterRight = 4;       // Right side center
+
+// Animation timing
+constexpr uint32_t kLedUpdateIntervalMs = 20; // 50 FPS for smooth animations
+
+// ============================================================================
 // OTA CONFIGURATION
 // ============================================================================
 

@@ -26,6 +26,7 @@ void I2CSlave::begin(uint8_t address, uint8_t sda_pin, uint8_t scl_pin) {
   current_command_.look_y = 0;
   current_command_.status = STATUS_READY;
   current_command_.error_code = 0;
+  current_command_.system_status = 0;  // IDLE
 
   // Initialize volatile state
   register_address_ = 0;
@@ -111,6 +112,17 @@ void I2CSlave::processRegisterWrite(uint8_t reg, uint8_t value) {
       current_command_.look_y = (int8_t)value;
       new_command_received_ = true;
       Serial.printf("[I2C] Look Y: %d\n", current_command_.look_y);
+      break;
+
+    case REG_SYSTEM_STATUS:
+      if (value <= 5) {
+        current_command_.system_status = value;
+        new_command_received_ = true;
+        Serial.printf("[I2C] System status: %d\n", value);
+      } else {
+        Serial.printf("[I2C] ERROR: Invalid system status %d\n", value);
+        setError(0x02);
+      }
       break;
 
     case REG_COMMAND:

@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'head_ears_driver_node = head_ears_driver.head_ears_driver_node:main',
+            'head_node = head_ears_driver.head_node:main',
             'ears_node = head_ears_driver.ears_node:main',
         ],
     },

@@ -61,6 +61,10 @@ class NeckServoDriver:
             raise ConnectionError(f"Failed to set baud rate {self._config['baudrate']}")
         self._packet = sms_sts(self._port)
 
+        # Clear any latched overload protection from previous sessions
+        for info in self._servos.values():
+            self._clear_overload(info["id"])
+
     def close(self):
         """Close serial connection."""
         self._port.closePort()

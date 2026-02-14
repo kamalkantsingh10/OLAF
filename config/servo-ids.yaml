@@ -60,11 +60,23 @@ neck:
       id: 11
       model: STS3215
       function: "Neck base rotation (pan left/right)"
+      center_position: 2436
+      min_angle: -90
+      max_angle: 90
+      direction: -1  # +counts = OLAF's right, positive angle = OLAF's left
     left_linkage:
       id: 12
       model: STS3215
       function: "Left linkage servo (tilt/roll via universal joint)"
+      center_position: 3426
+      min_angle: -8   # Conservative limit at 5V (stalls ~15 deg)
+      max_angle: 8
+      direction: 1    # +counts = chin up (tilt up)
     right_linkage:
       id: 13
       model: STS3215
       function: "Right linkage servo (tilt/roll via universal joint)"
+      center_position: 215
+      min_angle: -8   # Conservative limit at 5V (stalls ~15 deg)
+      max_angle: 8
+      direction: -1   # +counts = chin down; for tilt up, needs negative movement

@@ -89,6 +89,20 @@ class NeckServoDriver:
         self._packet.write1ByteTxRx(servo_id, SMS_STS_TORQUE_ENABLE, 0)
         self._packet.write1ByteTxRx(servo_id, SMS_STS_TORQUE_ENABLE, 1)
 
+    def _write_pos(self, servo_id: int, position: int, speed: int, acc: int) -> bool:
+        """Write position to a servo with overload auto-recovery.
+
+        If the servo has a latched overload error, toggles torque to clear
+        it and retries the command.
+        """
+        result, error = self._packet.WritePosEx(servo_id, position, speed, acc)
+        if result != COMM_SUCCESS:
+            return False
+        if error & 0x20:  # Overload bit
+            self._clear_overload(servo_id)
+            self._packet.WritePosEx(servo_id, position, speed, acc)
+        return True
+
     def _move_servo(self, name: str, degrees: float, speed: int | None = None,
                     acc: int | None = None) -> bool:
         """Move a single servo to the given angle.
@@ -107,15 +121,7 @@ class NeckServoDriver:
         position = self._degrees_to_position(servo, degrees)
         speed = speed or self._base_speed
         acc = acc or self._base_acc
-
-        servo_id = servo["id"]
-        result, error = self._packet.WritePosEx(servo_id, position, speed, acc)
-        if result != COMM_SUCCESS:
-            return False
-        if error & 0x20:  # Overload bit
-            self._clear_overload(servo_id)
-            self._packet.WritePosEx(servo_id, position, speed, acc)
-        return True
+        return self._write_pos(servo["id"], position, speed, acc)
 
     def move_pan(self, degrees: float, speed: int | None = None) -> bool:
         """Pan head left/right.
@@ -189,9 +195,9 @@ class NeckServoDriver:
         acc = self._base_acc
 
         ok1 = self._move_servo("pan", pan, speed)
-        r2, _ = self._packet.WritePosEx(left["id"], pos_l, speed, acc)
-        r3, _ = self._packet.WritePosEx(right["id"], pos_r, speed, acc)
-        return ok1 and r2 == COMM_SUCCESS and r3 == COMM_SUCCESS
+        ok2 = self._write_pos(left["id"], pos_l, speed, acc)
+        ok3 = self._write_pos(right["id"], pos_r, speed, acc)
+        return ok1 and ok2 and ok3
 
     def center_all(self, speed: int | None = None) -> bool:
         """Move all servos to center (0 degrees)."""

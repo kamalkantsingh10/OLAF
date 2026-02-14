@@ -96,8 +96,8 @@ class NeckServoDriver:
     def _write_pos(self, servo_id: int, position: int, speed: int, acc: int) -> bool:
         """Write position to a servo with overload auto-recovery.
 
-        If the servo has a latched overload error, toggles torque to clear
-        it and retries the command.
+        If the servo reports overload in the response, toggles torque to
+        clear the latch and retries.
         """
         result, error = self._packet.WritePosEx(servo_id, position, speed, acc)
         if result != COMM_SUCCESS:

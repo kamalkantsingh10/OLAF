@@ -69,14 +69,14 @@ neck:
       model: STS3215
       function: "Left linkage servo (tilt/roll via universal joint)"
       center_position: 3426
-      min_angle: -8   # Conservative limit at 5V (stalls ~15 deg)
-      max_angle: 8
+      min_angle: -20
+      max_angle: 20
       direction: 1    # +counts = chin up (tilt up)
     right_linkage:
       id: 13
       model: STS3215
       function: "Right linkage servo (tilt/roll via universal joint)"
       center_position: 215
-      min_angle: -8   # Conservative limit at 5V (stalls ~15 deg)
-      max_angle: 8
+      min_angle: -20
+      max_angle: 20
       direction: -1   # +counts = chin down; for tilt up, needs negative movement

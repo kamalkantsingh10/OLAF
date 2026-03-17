@@ -82,22 +82,37 @@ class OlafDemo:
 
 
 SCENES = [
-    # ── ACT 1: WAKE UP ──
+    # ══════════════════════════════════════════════════════════════
+    # ACT 1: DEEP SLEEP → WAKE  (~18 s)
+    # ══════════════════════════════════════════════════════════════
     {
-        "title": "Sleeping",
-        "desc": "OLAF is in deep sleep. Everything still.",
+        "title": "Deep Sleep",
+        "desc": "OLAF is powered down. Everything still and dark.",
         "actions": lambda o: [
             o.status("idle"),
-            o.expression("sleepy"),
+            o.expression("sleepy", 5),
             o.ear_preset("sleepy", speed_pct=-0.3),
             o.neck_pose(pan=0, tilt=-7, speed=200),
-            o.look(0, -50),
+            o.look(0, -80),
+        ],
+        "hold": 5.0,
+    },
+    {
+        "title": "Stir",
+        "desc": "A faint sound. Ears twitch, head shifts slightly.",
+        "actions": lambda o: [
+            o.ear_angles(left_pan=40, left_tilt=-30, right_pan=50, right_tilt=-7,
+                         speed_pct=-0.2),
+            o.neck_pose(pan=3, tilt=-6, speed=150),
+            time.sleep(1.5),
+            o.ear_preset("sleepy", speed_pct=-0.3),
+            o.neck_pose(pan=-2, tilt=-7, speed=150),
         ],
         "hold": 3.0,
     },
     {
         "title": "Wake Up!",
-        "desc": "Something stirred. Eyes snap open, ears bolt up, head lifts.",
+        "desc": "Eyes snap open! Ears bolt upright, head lifts fast.",
         "actions": lambda o: [
             o.status("woke_up"),
             o.expression("surprised", 4),
@@ -105,23 +120,27 @@ SCENES = [
             o.neck_pose(pan=0, tilt=0, speed=3000),
             o.look(0, 0),
         ],
-        "hold": 2.5,
+        "hold": 3.0,
     },
     {
         "title": "Blink Awake",
-        "desc": "A few sleepy blinks as OLAF adjusts.",
+        "desc": "Sleepy blinks. Eyes adjusting to the light.",
         "actions": lambda o: [
             o.blink(),
-            time.sleep(0.6),
+            time.sleep(0.7),
             o.blink(),
-            time.sleep(0.4),
+            time.sleep(0.5),
             o.expression("neutral"),
             o.neck_pose(pan=5, tilt=2, roll=3, speed=700),
+            time.sleep(0.8),
+            o.blink(),
         ],
-        "hold": 1.5,
+        "hold": 2.5,
     },
 
-    # ── ACT 2: CURIOSITY ──
+    # ══════════════════════════════════════════════════════════════
+    # ACT 2: CURIOSITY & SCANNING  (~28 s)
+    # ══════════════════════════════════════════════════════════════
     {
         "title": "Hear Something Left",
         "desc": "A sound to the left — ears perk, head snaps, eyes track.",
@@ -131,19 +150,34 @@ SCENES = [
             o.neck_pose(pan=50, tilt=3, roll=-4, speed=2500),
             o.look(-60, 10),
         ],
+        "hold": 3.5,
+    },
+    {
+        "title": "Slow Scan Right",
+        "desc": "Tracking the sound... slow deliberate head pan.",
+        "actions": lambda o: [
+            o.ear_preset("thinking"),
+            o.neck_pose(pan=-30, tilt=2, roll=2, speed=400),
+            o.look(-30, 5),
+            time.sleep(1.0),
+            o.look(0, 5),
+            time.sleep(1.0),
+            o.look(30, 5),
+        ],
         "hold": 2.5,
     },
     {
-        "title": "Investigate Right",
-        "desc": "Now something on the right! Even faster snap.",
+        "title": "Snap Right!",
+        "desc": "Something on the right! Fast snap with startled ears.",
         "actions": lambda o: [
-            o.expression("surprised", 3),
+            o.expression("surprised", 4),
             o.ear_preset("surprised"),
             o.neck_pose(pan=-50, tilt=3, roll=4, speed=3000),
             o.look(60, 10),
+            time.sleep(0.4),
             o.blink(),
         ],
-        "hold": 2.5,
+        "hold": 3.0,
     },
     {
         "title": "Look Up",
@@ -151,13 +185,44 @@ SCENES = [
         "actions": lambda o: [
             o.expression("surprised", 3),
             o.ear_preset("curious"),
-            o.neck_pose(pan=0, tilt=7, speed=1000),
+            o.neck_pose(pan=0, tilt=7, speed=1200),
             o.look(0, 60),
         ],
-        "hold": 2.0,
+        "hold": 3.0,
+    },
+    {
+        "title": "Double Take Left",
+        "desc": "Wait — was that the same thing? Quick glance back left.",
+        "actions": lambda o: [
+            o.expression("neutral"),
+            o.ear_preset("confused"),
+            o.neck_pose(pan=40, tilt=2, roll=-3, speed=2800),
+            o.look(-50, 0),
+            time.sleep(0.6),
+            o.blink(),
+            time.sleep(0.5),
+            o.neck_pose(pan=25, tilt=3, roll=-5, speed=600),
+            o.look(-30, 10),
+        ],
+        "hold": 3.0,
+    },
+    {
+        "title": "Back to Center",
+        "desc": "Nothing there. Slow return, confused head tilt.",
+        "actions": lambda o: [
+            o.expression("neutral"),
+            o.ear_center(),
+            o.neck_pose(pan=0, tilt=0, roll=0, speed=500),
+            o.look(0, 0),
+            time.sleep(0.8),
+            o.blink(),
+        ],
+        "hold": 2.5,
     },
 
-    # ── ACT 3: THINKING ──
+    # ══════════════════════════════════════════════════════════════
+    # ACT 3: LISTENING & THINKING  (~20 s)
+    # ══════════════════════════════════════════════════════════════
     {
         "title": "Listening",
         "desc": "OLAF listens carefully. Curious head tilt.",
@@ -168,11 +233,11 @@ SCENES = [
             o.neck_pose(pan=8, tilt=0, roll=6, speed=600),
             o.look(0, 0),
         ],
-        "hold": 3.0,
+        "hold": 4.0,
     },
     {
         "title": "Processing",
-        "desc": "Thinking hard... head drifts, eyes wander.",
+        "desc": "Thinking hard... head drifts left, eyes wander.",
         "actions": lambda o: [
             o.status("processing"),
             o.expression("neutral"),
@@ -180,29 +245,72 @@ SCENES = [
             o.neck_pose(pan=-15, tilt=2, roll=-5, speed=400),
             o.look(30, -20),
         ],
+        "hold": 3.5,
+    },
+    {
+        "title": "Still Thinking...",
+        "desc": "Head drifts the other way. Deep in thought.",
+        "actions": lambda o: [
+            o.neck_pose(pan=12, tilt=1, roll=4, speed=350),
+            o.look(-20, -10),
+            time.sleep(1.5),
+            o.look(-30, 10),
+            o.neck_pose(pan=18, tilt=2, roll=6, speed=300),
+        ],
+        "hold": 3.5,
+    },
+    {
+        "title": "Eureka!",
+        "desc": "Got it! Quick upward snap — idea moment.",
+        "actions": lambda o: [
+            o.expression("surprised", 3),
+            o.ear_center(),
+            o.neck_pose(pan=0, tilt=7, speed=2500),
+            o.look(0, 20),
+            time.sleep(0.5),
+            o.blink(),
+        ],
         "hold": 2.5,
     },
 
-    # ── ACT 4: EMOTIONS ──
+    # ══════════════════════════════════════════════════════════════
+    # ACT 4: EMOTIONS — HAPPY ARC  (~22 s)
+    # ══════════════════════════════════════════════════════════════
     {
         "title": "Happy!",
-        "desc": "OLAF figured it out! Chin up, quick nod.",
+        "desc": "OLAF figured it out! Chin up, joyful nod.",
         "actions": lambda o: [
             o.status("speaking"),
             o.expression("happy", 5),
             o.ear_preset("happy"),
             o.neck_pose(pan=0, tilt=6, speed=1200),
             o.look(0, 10),
-            time.sleep(0.5),
+            time.sleep(0.6),
             o.neck_pose(pan=0, tilt=3, speed=1800),
-            time.sleep(0.2),
+            time.sleep(0.25),
             o.neck_pose(pan=0, tilt=6, speed=1800),
         ],
-        "hold": 2.0,
+        "hold": 3.0,
     },
     {
-        "title": "Excited!",
-        "desc": "Bouncing with energy. Rapid head snaps.",
+        "title": "Happy Look Around",
+        "desc": "Sharing the joy — looking left and right with a grin.",
+        "actions": lambda o: [
+            o.expression("happy", 4),
+            o.ear_preset("happy"),
+            o.neck_pose(pan=30, tilt=5, roll=-3, speed=1000),
+            o.look(-20, 10),
+            time.sleep(1.2),
+            o.neck_pose(pan=-30, tilt=5, roll=3, speed=1000),
+            o.look(20, 10),
+            time.sleep(1.0),
+            o.blink(),
+        ],
+        "hold": 2.5,
+    },
+    {
+        "title": "Excited Bounce!",
+        "desc": "Can't contain it! Rapid head snaps side to side.",
         "actions": lambda o: [
             o.status("woke_up"),
             o.expression("happy", 4),
@@ -221,18 +329,22 @@ SCENES = [
             time.sleep(0.3),
             o.neck_pose(pan=0, tilt=7, speed=2000),
         ],
-        "hold": 1.5,
+        "hold": 2.0,
     },
     {
-        "title": "Wink",
-        "desc": "A cheeky wink. OLAF knows something you don't.",
+        "title": "Cheeky Wink",
+        "desc": "A sly wink. OLAF knows something you don't.",
         "actions": lambda o: [
             o.expression("wink", 4),
             o.neck_pose(pan=-10, tilt=5, roll=7, speed=800),
             o.ear_angles(left_pan=20, left_tilt=5, right_pan=0, right_tilt=0),
         ],
-        "hold": 2.0,
+        "hold": 3.0,
     },
+
+    # ══════════════════════════════════════════════════════════════
+    # ACT 5: EMOTIONS — NEGATIVE ARC  (~25 s)
+    # ══════════════════════════════════════════════════════════════
     {
         "title": "Confused",
         "desc": "Wait, what? Slow head tilt, asymmetric ears.",
@@ -242,7 +354,19 @@ SCENES = [
             o.neck_pose(pan=15, tilt=0, roll=-7, speed=500),
             o.look(-20, 20),
         ],
-        "hold": 2.5,
+        "hold": 3.5,
+    },
+    {
+        "title": "More Confused",
+        "desc": "Tilts the other way. Still doesn't get it.",
+        "actions": lambda o: [
+            o.ear_angles(left_pan=55, left_tilt=5, right_pan=0, right_tilt=20),
+            o.neck_pose(pan=-12, tilt=0, roll=7, speed=500),
+            o.look(20, 15),
+            time.sleep(1.0),
+            o.blink(),
+        ],
+        "hold": 3.0,
     },
     {
         "title": "Sad",
@@ -253,61 +377,151 @@ SCENES = [
             o.neck_pose(pan=0, tilt=-7, speed=200),
             o.look(0, -40),
         ],
+        "hold": 4.0,
+    },
+    {
+        "title": "Deeper Sadness",
+        "desc": "Head sinks further. A slow blink.",
+        "actions": lambda o: [
+            o.expression("sad", 5),
+            o.ear_preset("sad", intensity=0.8),
+            o.neck_pose(pan=-5, tilt=-7, roll=-2, speed=150),
+            o.look(-10, -50),
+            time.sleep(1.5),
+            o.blink(),
+        ],
         "hold": 3.0,
     },
     {
         "title": "Angry!",
-        "desc": "Don't mess with OLAF. Slow menacing chin-down.",
+        "desc": "Enough! Slow menacing chin-down, ears pinned back.",
         "actions": lambda o: [
             o.expression("angry", 5),
             o.ear_preset("angry"),
             o.neck_pose(pan=0, tilt=-6, speed=300),
             o.look(0, -10),
         ],
-        "hold": 2.5,
+        "hold": 3.5,
+    },
+    {
+        "title": "Angry Glare",
+        "desc": "Locked on. Slow tracking glare left to right.",
+        "actions": lambda o: [
+            o.expression("angry", 4),
+            o.ear_preset("angry", intensity=0.8),
+            o.neck_pose(pan=20, tilt=-5, roll=-2, speed=300),
+            o.look(-30, -10),
+            time.sleep(1.5),
+            o.neck_pose(pan=-20, tilt=-5, roll=2, speed=300),
+            o.look(30, -10),
+        ],
+        "hold": 3.0,
     },
 
-    # ── ACT 5: WIND DOWN ──
+    # ══════════════════════════════════════════════════════════════
+    # ACT 6: RECOVERY & WIND DOWN  (~25 s)
+    # ══════════════════════════════════════════════════════════════
     {
-        "title": "Calm Down",
-        "desc": "Deep breath. Slow return to neutral.",
+        "title": "Deep Breath",
+        "desc": "Anger fades. Slow exhale, head rises to center.",
         "actions": lambda o: [
             o.expression("neutral"),
             o.ear_center(),
-            o.neck_pose(pan=0, tilt=0, roll=0, speed=400),
+            o.neck_pose(pan=0, tilt=-3, roll=0, speed=300),
+            o.look(0, -10),
+            time.sleep(1.5),
+            o.neck_pose(pan=0, tilt=0, speed=300),
             o.look(0, 0),
-            time.sleep(0.5),
-            o.blink(),
             time.sleep(0.8),
+            o.blink(),
+        ],
+        "hold": 2.5,
+    },
+    {
+        "title": "Gentle Curiosity",
+        "desc": "Life goes on. A soft glance around, ears relaxed.",
+        "actions": lambda o: [
+            o.expression("neutral"),
+            o.ear_preset("curious", intensity=0.5),
+            o.neck_pose(pan=20, tilt=2, roll=-2, speed=500),
+            o.look(-15, 5),
+            time.sleep(1.2),
+            o.neck_pose(pan=-15, tilt=2, roll=2, speed=500),
+            o.look(10, 5),
+            time.sleep(1.0),
             o.blink(),
         ],
         "hold": 2.0,
     },
     {
-        "title": "Getting Sleepy",
-        "desc": "Eyes getting heavy... slow droop begins.",
+        "title": "Soft Smile",
+        "desc": "A quiet happy moment. Content.",
+        "actions": lambda o: [
+            o.expression("happy", 3),
+            o.ear_preset("happy", intensity=0.6),
+            o.neck_pose(pan=0, tilt=3, roll=0, speed=500),
+            o.look(0, 5),
+        ],
+        "hold": 3.5,
+    },
+    {
+        "title": "Yawn",
+        "desc": "Getting tired... big slow blink and head dip.",
         "actions": lambda o: [
             o.status("going_idle"),
+            o.expression("sleepy", 3),
+            o.ear_preset("neutral"),
+            o.neck_pose(pan=0, tilt=1, speed=400),
+            o.look(0, 0),
+            time.sleep(1.0),
+            o.blink(),
+            time.sleep(0.3),
+            o.expression("sleepy", 4),
+            o.neck_pose(pan=0, tilt=-3, speed=300),
+            o.look(0, -20),
+        ],
+        "hold": 3.0,
+    },
+    {
+        "title": "Getting Sleepy",
+        "desc": "Eyes getting heavy... ears droop, slow drift.",
+        "actions": lambda o: [
             o.expression("sleepy", 4),
             o.ear_preset("sleepy", intensity=0.7, speed_pct=-0.3),
-            o.neck_pose(pan=0, tilt=-5, speed=250),
+            o.neck_pose(pan=3, tilt=-5, roll=2, speed=200),
             o.look(0, -30),
-            time.sleep(1),
+            time.sleep(1.5),
+            o.blink(),
+            time.sleep(1.0),
+            o.neck_pose(pan=-2, tilt=-6, roll=-1, speed=150),
+            o.look(0, -50),
+        ],
+        "hold": 3.0,
+    },
+    {
+        "title": "Last Blink",
+        "desc": "One final heavy blink...",
+        "actions": lambda o: [
+            o.expression("sleepy", 5),
+            o.ear_preset("sleepy", speed_pct=-0.3),
+            o.neck_pose(pan=0, tilt=-6, speed=150),
+            o.look(0, -60),
+            time.sleep(1.0),
             o.blink(),
         ],
         "hold": 3.0,
     },
     {
         "title": "Asleep",
-        "desc": "Goodnight, OLAF. Full droop, eyes closed, everything still.",
+        "desc": "Goodnight, OLAF. Everything still.",
         "actions": lambda o: [
             o.status("idle"),
             o.expression("sleepy", 5),
             o.ear_preset("sleepy", speed_pct=-0.3),
-            o.neck_pose(pan=0, tilt=-7, speed=200),
+            o.neck_pose(pan=0, tilt=-7, speed=100),
             o.look(0, -80),
         ],
-        "hold": 3.0,
+        "hold": 5.0,
     },
 ]
 

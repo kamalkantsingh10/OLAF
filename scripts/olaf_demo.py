@@ -595,11 +595,10 @@ def run_demo():
             time.sleep(scene["hold"])
             print()
 
-        # Final reset
+        # Final reset — keep ears in sleepy droop
         print("[--] Returning to neutral...")
         olaf.status("idle")
         olaf.expression("neutral")
-        olaf.ear_center()
         olaf.neck_center(speed=200)
         olaf.look(0, 0)
         time.sleep(1)
@@ -607,7 +606,6 @@ def run_demo():
     except KeyboardInterrupt:
         print("\n[--] Interrupted. Resetting...")
         olaf.status("idle")
-        olaf.ear_center()
         olaf.neck_center(speed=200)
         time.sleep(1)
 

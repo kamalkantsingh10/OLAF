@@ -40,19 +40,19 @@ PRESETS: dict[int, dict[str, float]] = {
         "left_pan": 0, "left_tilt": 20, "right_pan": 55, "right_tilt": 5,
     },
     EMOTION_SAD: {  # Full airplane droop — both ears hanging wide and down
-        "left_pan": 80, "left_tilt": 30, "right_pan": 55, "right_tilt": 30,
+        "left_pan": 80, "left_tilt": 20, "right_pan": 55, "right_tilt": 30,
     },
     EMOTION_EXCITED: {  # Both ears fully forward, high energy ready-to-play
         "left_pan": 15, "left_tilt": 20, "right_pan": 15, "right_tilt": 20,
     },
     EMOTION_ANGRY: {  # Ears pinned flat back — aggressive, tilted forward/down
-        "left_pan": 15, "left_tilt": 30, "right_pan": 10, "right_tilt": 30,
+        "left_pan": 15, "left_tilt": 20, "right_pan": 10, "right_tilt": 30,
     },
     EMOTION_SURPRISED: {  # Ears swept wide — startled, drooping outward
-        "left_pan": 55, "left_tilt": 25, "right_pan": 50, "right_tilt": 25,
+        "left_pan": 55, "left_tilt": 20, "right_pan": 50, "right_tilt": 25,
     },
     EMOTION_SLEEPY: {  # Heavy droop — ears hanging wide and down
-        "left_pan": 65, "left_tilt": 30, "right_pan": 50, "right_tilt": 30,
+        "left_pan": 65, "left_tilt": 20, "right_pan": 50, "right_tilt": 30,
     },
 }
 

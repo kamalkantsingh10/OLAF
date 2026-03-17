@@ -204,6 +204,7 @@ SCENES = [
         "title": "Excited!",
         "desc": "Bouncing with energy. Rapid head snaps.",
         "actions": lambda o: [
+            o.status("woke_up"),
             o.expression("happy", 4),
             o.ear_preset("excited"),
             o.neck_pose(pan=45, tilt=4, roll=-3, speed=3000),

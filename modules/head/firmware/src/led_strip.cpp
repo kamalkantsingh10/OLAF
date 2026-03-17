@@ -329,12 +329,11 @@ LedState ledStripGetState() {
 
 void ledStripUpdate() {
     switch (current_state) {
-        case LedState::IDLE:       animateIdle();       break;
-        case LedState::WOKE_UP:    animateWokeUp();     break;
-        case LedState::LISTENING:  animateListening();   break;
-        case LedState::PROCESSING: animateProcessing();  break;
         case LedState::SPEAKING:   animateSpeaking();    break;
-        case LedState::GOING_IDLE: animateGoingIdle();   break;
+        default:
+            clearAll();
+            active_brightness = kLedDefaultBrightness;
+            break;
     }
 
     FastLED.setBrightness(active_brightness);

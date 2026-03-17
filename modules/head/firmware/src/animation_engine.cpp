@@ -1,12 +1,15 @@
 /**
- * animation_engine.cpp - Sprite-Based Eye Animation Engine
+ * animation_engine.cpp - Layered Eye Animation Engine
  * Story 1.3: Develop Head ESP32 Firmware
  *
  * Renders to a 200x200 TFT_eSprite in PSRAM, then pushes the
- * complete frame to each display.  Zero flicker.
+ * complete frame to each display. Zero flicker.
  *
- * All expressions use white (TFT_WHITE).  Shape conveys emotion.
- * Eyes are sized to fill the round display with minimal dead space.
+ * Each eye is drawn in four layers:
+ *   1. Colored iris circle  (teal, height-clipped for blink/wake)
+ *   2. Black eyelid mask    (expression-specific shape)
+ *   3. Dark pupil circle    (offset by look direction, ~40% iris radius)
+ *   4. White highlight dot  (specular, top-right of pupil)
  */
 
 #include "animation_engine.h"
@@ -16,23 +19,22 @@
 // Constants
 // ============================================================================
 
-constexpr uint16_t EYE_COLOR = TFT_WHITE;
+constexpr uint16_t BASE_IRIS_RADIUS  = 65;   // Fills ~65% of sprite half-width
+constexpr uint16_t MAX_IRIS_RADIUS   = 88;   // Surprised: near display edge
+constexpr uint16_t MIN_IRIS_RADIUS   = 30;
+constexpr int16_t  MAX_PUPIL_OFFSET  = 22;   // Look direction range (px)
 
-constexpr uint16_t BASE_PUPIL_RADIUS = 60;   // Fills ~50% of display
-constexpr uint16_t MAX_PUPIL_RADIUS = 85;    // Surprised: ~71% of display
-constexpr uint16_t MIN_PUPIL_RADIUS = 25;
-constexpr int16_t MAX_PUPIL_OFFSET = 25;     // Look direction range
-constexpr uint32_t TRANSITION_DURATION_MS = 200;
-constexpr uint32_t BLINK_DURATION_MS = 250;
-constexpr uint32_t WAKE_DURATION_MS = 250;
-constexpr uint32_t SLEEP_DURATION_MS = 600;
+constexpr uint32_t TRANSITION_MS  = 200;
+constexpr uint32_t BLINK_MS       = 250;
+constexpr uint32_t WAKE_MS        = 250;
+constexpr uint32_t SLEEP_MS       = 600;
 
 static float easeOut(float t) {
-    return sinf(t * PI * 0.5f);
+  return sinf(t * PI * 0.5f);
 }
 
 static float easeInOut(float t) {
-    return 0.5f * (1.0f - cosf(t * PI));
+  return 0.5f * (1.0f - cosf(t * PI));
 }
 
 // ============================================================================
@@ -42,7 +44,6 @@ static float easeInOut(float t) {
 void EyeExpressionEngine::begin(GC9A01DualDriver* driver) {
   driver_ = driver;
 
-  // Create sprite in PSRAM (200x200 × 16-bit = 80 KB)
   sprite_ = new TFT_eSprite(&driver_->getTFT());
   sprite_->setColorDepth(16);
   void* buf = sprite_->createSprite(SPRITE_SIZE, SPRITE_SIZE);
@@ -55,33 +56,31 @@ void EyeExpressionEngine::begin(GC9A01DualDriver* driver) {
   }
 
   current_expression_ = EXPR_NEUTRAL;
-  current_intensity_ = 2;
-  target_expression_ = EXPR_NEUTRAL;
-  target_intensity_ = 2;
-  current_params_ = calculateExpressionParams(EXPR_NEUTRAL, 2);
-  target_params_ = current_params_;
+  current_intensity_  = 2;
+  target_expression_  = EXPR_NEUTRAL;
+  target_intensity_   = 2;
+  current_params_     = calculateExpressionParams(EXPR_NEUTRAL, 2);
+  target_params_      = current_params_;
 
   look_x_ = 0;
   look_y_ = 0;
   transition_progress_ = 1.0f;
-  last_update_millis_ = millis();
+  last_update_millis_  = millis();
 
-  blink_state_ = {false, 0, BLINK_DURATION_MS};
-  last_blink_millis_ = millis();
+  blink_state_           = {false, 0, BLINK_MS};
+  last_blink_millis_     = millis();
   next_blink_interval_ms_ = calculateNextBlinkInterval();
-  double_blink_pending_ = false;
+  double_blink_pending_  = false;
 
-  // Start asleep
-  system_status_ = 0;
-  wake_level_ = 0.0f;
-  wake_target_ = 0.0f;
+  system_status_   = 0;
+  wake_level_      = 0.0f;
+  wake_target_     = 0.0f;
   wake_start_level_ = 0.0f;
-  wake_start_ms_ = millis();
-  wake_duration_ms_ = WAKE_DURATION_MS;
-  auto_look_x_ = 0;
-  auto_look_y_ = 0;
+  wake_start_ms_   = millis();
+  wake_duration_ms_ = WAKE_MS;
+  auto_look_x_     = 0;
+  auto_look_y_     = 0;
 
-  // Clear displays and draw initial closed eyes
   driver_->clearBothEyes();
   renderFrame();
 
@@ -104,25 +103,25 @@ void EyeExpressionEngine::setSystemStatus(uint8_t status) {
   switch (status) {
     case 0:  // IDLE
       if (wake_level_ > 0.01f) {
-        wake_target_ = 0.0f;
+        wake_target_      = 0.0f;
         wake_start_level_ = wake_level_;
-        wake_start_ms_ = millis();
-        wake_duration_ms_ = SLEEP_DURATION_MS;
+        wake_start_ms_    = millis();
+        wake_duration_ms_ = SLEEP_MS;
       }
       break;
 
     case 1:  // WOKE_UP
-      wake_target_ = 1.0f;
+      wake_target_      = 1.0f;
       wake_start_level_ = wake_level_;
-      wake_start_ms_ = millis();
-      wake_duration_ms_ = WAKE_DURATION_MS;
+      wake_start_ms_    = millis();
+      wake_duration_ms_ = WAKE_MS;
       setExpression(EXPR_NEUTRAL, 2);
       break;
 
     case 2:  // LISTENING
-      wake_target_ = 1.0f;
+      wake_target_      = 1.0f;
       wake_start_level_ = wake_level_;
-      wake_start_ms_ = millis();
+      wake_start_ms_    = millis();
       wake_duration_ms_ = 300;
       setExpression(EXPR_NEUTRAL, 3);
       auto_look_x_ = 0;
@@ -130,35 +129,35 @@ void EyeExpressionEngine::setSystemStatus(uint8_t status) {
       break;
 
     case 3:  // PROCESSING
-      wake_target_ = 1.0f;
+      wake_target_      = 1.0f;
       wake_start_level_ = wake_level_;
-      wake_start_ms_ = millis();
+      wake_start_ms_    = millis();
       wake_duration_ms_ = 300;
       setExpression(EXPR_NEUTRAL, 2);
       break;
 
     case 4:  // SPEAKING
-      wake_target_ = 1.0f;
+      wake_target_      = 1.0f;
       wake_start_level_ = wake_level_;
-      wake_start_ms_ = millis();
+      wake_start_ms_    = millis();
       wake_duration_ms_ = 300;
       break;
 
     case 5:  // GOING_IDLE
-      wake_target_ = 0.0f;
+      wake_target_      = 0.0f;
       wake_start_level_ = wake_level_;
-      wake_start_ms_ = millis();
-      wake_duration_ms_ = SLEEP_DURATION_MS;
+      wake_start_ms_    = millis();
+      wake_duration_ms_ = SLEEP_MS;
       setExpression(EXPR_SLEEPY, 3);
       break;
   }
 }
 
-uint8_t EyeExpressionEngine::getSystemStatus()  { return system_status_; }
-float   EyeExpressionEngine::getWakeLevel()      { return wake_level_; }
-uint8_t EyeExpressionEngine::getCurrentExpression() { return current_expression_; }
-uint8_t EyeExpressionEngine::getCurrentIntensity()  { return current_intensity_; }
-bool    EyeExpressionEngine::isBlinking()            { return blink_state_.active; }
+uint8_t EyeExpressionEngine::getSystemStatus()        { return system_status_; }
+float   EyeExpressionEngine::getWakeLevel()           { return wake_level_; }
+uint8_t EyeExpressionEngine::getCurrentExpression()   { return current_expression_; }
+uint8_t EyeExpressionEngine::getCurrentIntensity()    { return current_intensity_; }
+bool    EyeExpressionEngine::isBlinking()             { return blink_state_.active; }
 
 // ============================================================================
 // Expression Control
@@ -167,10 +166,10 @@ bool    EyeExpressionEngine::isBlinking()            { return blink_state_.activ
 void EyeExpressionEngine::setExpression(uint8_t type, uint8_t intensity) {
   if (type >= EXPR_COUNT || intensity < 1 || intensity > 5) return;
 
-  bool changed = (type != current_expression_);
+  bool changed      = (type != current_expression_);
   target_expression_ = type;
-  target_intensity_ = intensity;
-  target_params_ = calculateExpressionParams(type, intensity);
+  target_intensity_  = intensity;
+  target_params_     = calculateExpressionParams(type, intensity);
   transition_progress_ = 0.0f;
 
   if (changed && !blink_state_.active && wake_level_ > 0.8f) {
@@ -188,14 +187,14 @@ void EyeExpressionEngine::triggerBlink() {
 
   uint16_t dur;
   switch (current_expression_) {
-    case EXPR_SURPRISED: dur = 180 + random(20); break;
-    case EXPR_SLEEPY:    dur = 300 + random(50); break;
+    case EXPR_SURPRISED: dur = 160 + random(20); break;
+    case EXPR_SLEEPY:    dur = 320 + random(50); break;
     default:             dur = 200 + random(30); break;
   }
 
-  blink_state_.active = true;
+  blink_state_.active       = true;
   blink_state_.start_millis = millis();
-  blink_state_.duration_ms = dur;
+  blink_state_.duration_ms  = dur;
 }
 
 // ============================================================================
@@ -205,7 +204,7 @@ void EyeExpressionEngine::triggerBlink() {
 uint32_t EyeExpressionEngine::update() {
   driver_->startFrameTiming();
 
-  uint32_t now = millis();
+  uint32_t now      = millis();
   uint32_t delta_ms = now - last_update_millis_;
   last_update_millis_ = now;
 
@@ -214,21 +213,21 @@ uint32_t EyeExpressionEngine::update() {
 
   // Expression transition
   if (transition_progress_ < 1.0f) {
-    transition_progress_ += (float)delta_ms / TRANSITION_DURATION_MS;
+    transition_progress_ += (float)delta_ms / TRANSITION_MS;
     if (transition_progress_ >= 1.0f) {
       transition_progress_ = 1.0f;
-      current_expression_ = target_expression_;
-      current_intensity_ = target_intensity_;
-      current_params_ = target_params_;
+      current_expression_  = target_expression_;
+      current_intensity_   = target_intensity_;
+      current_params_      = target_params_;
       next_blink_interval_ms_ = calculateNextBlinkInterval();
-      last_blink_millis_ = now;
+      last_blink_millis_   = now;
     } else {
       if (blink_state_.active) {
         float bp = (float)(millis() - blink_state_.start_millis) / blink_state_.duration_ms;
         if (bp >= 0.4f && bp < 0.6f) {
-          current_expression_ = target_expression_;
-          current_intensity_ = target_intensity_;
-          current_params_ = target_params_;
+          current_expression_  = target_expression_;
+          current_intensity_   = target_intensity_;
+          current_params_      = target_params_;
           transition_progress_ = 1.0f;
         }
       } else {
@@ -242,12 +241,12 @@ uint32_t EyeExpressionEngine::update() {
       (now - last_blink_millis_ >= next_blink_interval_ms_)) {
     if (double_blink_pending_) {
       triggerBlink();
-      double_blink_pending_ = false;
+      double_blink_pending_    = false;
       next_blink_interval_ms_ = calculateNextBlinkInterval();
     } else {
       triggerBlink();
       if (random(100) < 20) {
-        double_blink_pending_ = true;
+        double_blink_pending_    = true;
         next_blink_interval_ms_ = 300 + random(200);
       } else {
         next_blink_interval_ms_ = calculateNextBlinkInterval();
@@ -258,7 +257,6 @@ uint32_t EyeExpressionEngine::update() {
 
   if (blink_state_.active) updateBlinkAnimation();
 
-  // Render every frame (sprite makes this flicker-free)
   renderFrame();
 
   driver_->endFrameTiming();
@@ -278,8 +276,8 @@ void EyeExpressionEngine::updateWakeTransition() {
   float t = (float)(millis() - wake_start_ms_) / (float)wake_duration_ms_;
   if (t > 1.0f) t = 1.0f;
 
-  float eased = (wake_target_ > wake_start_level_) ? easeOut(t) : easeInOut(t);
-  wake_level_ = wake_start_level_ + (wake_target_ - wake_start_level_) * eased;
+  float eased  = (wake_target_ > wake_start_level_) ? easeOut(t) : easeInOut(t);
+  wake_level_  = wake_start_level_ + (wake_target_ - wake_start_level_) * eased;
 
   if (t >= 1.0f) {
     wake_level_ = wake_target_;
@@ -290,7 +288,7 @@ void EyeExpressionEngine::updateWakeTransition() {
 }
 
 // ============================================================================
-// Auto-Look (PROCESSING: thinking — pupils drift in figure-8)
+// Auto-Look (PROCESSING: figure-8 drift)
 // ============================================================================
 
 void EyeExpressionEngine::updateAutoLook() {
@@ -299,7 +297,7 @@ void EyeExpressionEngine::updateAutoLook() {
     auto_look_y_ = 0;
     return;
   }
-  float t = millis() / 3000.0f;
+  float t      = millis() / 3000.0f;
   auto_look_x_ = (int8_t)(sinf(t * 2.0f * PI) * 40);
   auto_look_y_ = (int8_t)(sinf(t * 4.0f * PI) * 15);
 }
@@ -312,164 +310,191 @@ float EyeExpressionEngine::computeClosedness() {
   float blink_amount = 0.0f;
   if (blink_state_.active) {
     float p = (float)(millis() - blink_state_.start_millis) / blink_state_.duration_ms;
-    if (p < 0.25f)       blink_amount = p / 0.25f;
-    else if (p < 0.5f)   blink_amount = 1.0f;
-    else if (p < 0.75f)  blink_amount = 1.0f - (p - 0.5f) / 0.25f;
-    else                  blink_amount = 0.0f;
+    if (p < 0.25f)      blink_amount = p / 0.25f;
+    else if (p < 0.5f)  blink_amount = 1.0f;
+    else if (p < 0.75f) blink_amount = 1.0f - (p - 0.5f) / 0.25f;
+    else                blink_amount = 0.0f;
   }
   return fmaxf(blink_amount, 1.0f - wake_level_);
 }
 
 // ============================================================================
-// Sprite-Based Rendering
+// Frame Rendering
 // ============================================================================
 
 void EyeExpressionEngine::renderFrame() {
   float closedness = computeClosedness();
 
-  // Calculate eye position in sprite coordinates
   int16_t total_lx = constrain(look_x_ + auto_look_x_, -100, 100);
   int16_t total_ly = constrain(look_y_ + auto_look_y_, -100, 100);
-  int16_t look_dx = (total_lx * MAX_PUPIL_OFFSET) / 100;
-  int16_t look_dy = -(total_ly * MAX_PUPIL_OFFSET) / 100;
+  int16_t look_dx  = (total_lx * MAX_PUPIL_OFFSET) / 100;
+  int16_t look_dy  = -(total_ly * MAX_PUPIL_OFFSET) / 100;
 
   int16_t eye_x = SPRITE_CENTER + current_params_.pupil_offset_x + look_dx;
   int16_t eye_y = SPRITE_CENTER + current_params_.pupil_offset_y + look_dy;
 
-  // --- Left eye ---
+  // Left eye
   sprite_->fillSprite(TFT_BLACK);
   renderEye(eye_x, eye_y, current_params_.pupil_radius,
             current_params_.eye_shape, closedness, false);
   driver_->selectEye(LEFT);
   sprite_->pushSprite(SPRITE_OFFSET, SPRITE_OFFSET);
 
-  // --- Right eye ---
+  // Right eye
+  sprite_->fillSprite(TFT_BLACK);
   if (current_params_.asymmetric) {
-    sprite_->fillSprite(TFT_BLACK);
     int16_t rx = eye_x + current_params_.right_eye_offset_x;
     int16_t ry = eye_y + current_params_.right_eye_offset_y;
     renderEye(rx, ry, current_params_.right_eye_radius,
               current_params_.right_eye_shape, closedness, true);
+  } else {
+    renderEye(eye_x, eye_y, current_params_.pupil_radius,
+              current_params_.eye_shape, closedness, true);
   }
   driver_->selectEye(RIGHT);
   sprite_->pushSprite(SPRITE_OFFSET, SPRITE_OFFSET);
 }
 
+// ============================================================================
+// Eye Rendering — Layered: Iris → Eyelid mask → Pupil → Highlight
+// ============================================================================
+
 void EyeExpressionEngine::renderEye(int16_t x, int16_t y, uint16_t radius,
                                       EyeShape shape, float closedness,
                                       bool is_right) {
-  // Fully closed → thin line
+  // Fully closed → single thin line
   if (closedness > 0.85f) {
     drawClosedLine(x, y, radius);
     return;
   }
 
-  float height_scale = 1.0f - (closedness * 0.875f);
+  // Wink → always closed
+  if (shape == SHAPE_WINK) {
+    drawClosedLine(x, y, radius);
+    return;
+  }
 
-  switch (shape) {
-    case SHAPE_ROUNDED_RECT: drawRoundedRect(x, y, radius, height_scale); break;
-    case SHAPE_CIRCLE:       drawCircle(x, y, radius, height_scale);      break;
-    case SHAPE_HAPPY_ARC:    drawHappyArc(x, y, radius, height_scale);    break;
-    case SHAPE_SAD_ARC:      drawSadArc(x, y, radius, height_scale);      break;
-    case SHAPE_ANGRY_V:      drawAngryV(x, y, radius, height_scale, is_right); break;
-    case SHAPE_SLEEPY_LINE:  drawSleepyLine(x, y, radius, height_scale);  break;
-    case SHAPE_WINK:         drawClosedLine(x, y, radius);                break;
-    default:                 drawRoundedRect(x, y, radius, height_scale); break;
+  float hs = 1.0f - (closedness * 0.875f);  // height scale (1.0 = fully open)
+
+  // Layer 1: Colored iris
+  drawIrisCircle(x, y, radius, hs);
+
+  // Layer 2: Eyelid mask in black
+  applyEyelidMask(x, y, radius, shape, hs, is_right);
+
+  // Layer 3: Pupil (dark circle — visible only on NEUTRAL/CIRCLE/ANGRY shapes)
+  bool has_pupil = (shape != SHAPE_HAPPY && shape != SHAPE_SLEEPY);
+  if (has_pupil) {
+    uint16_t pr = (uint16_t)(radius * 0.40f);
+    if (pr >= 4) {
+      int16_t py = y + (int16_t)(radius * 0.05f);  // Slightly below center
+      sprite_->fillCircle(x, py, pr, TFT_BLACK);
+    }
+  }
+
+  // Layer 4: Specular highlight dot (top-right of pupil center)
+  if (shape != SHAPE_WINK && hs > 0.35f) {
+    uint16_t hr = max(3, (int)(radius * 0.15f));
+    int16_t  hx = x + (int16_t)(radius * 0.26f);
+    int16_t  hy = y - (int16_t)(radius * 0.28f);
+    sprite_->fillCircle(hx, hy, hr, HIGHLIGHT_COLOR);
   }
 }
 
 // ============================================================================
-// Shape Primitives — all draw to sprite_ in white
+// Layer 1: Iris Circle (height-clipped for blink/wake)
+// ============================================================================
+
+void EyeExpressionEngine::drawIrisCircle(int16_t x, int16_t y,
+                                           uint16_t r, float hs) {
+  int16_t clipped_h = (int16_t)(r * hs);
+  for (int16_t dy = -clipped_h; dy <= clipped_h; dy++) {
+    float norm = (float)dy / (float)r;          // Use full r for round shape
+    if (fabsf(norm) >= 1.0f) continue;
+    int16_t dx = (int16_t)(sqrtf(1.0f - norm * norm) * r);
+    sprite_->drawFastHLine(x - dx, y + dy, dx * 2 + 1, IRIS_COLOR);
+  }
+}
+
+// ============================================================================
+// Layer 2: Eyelid Mask (black overlay, expression-specific)
+// ============================================================================
+
+void EyeExpressionEngine::applyEyelidMask(int16_t x, int16_t y, uint16_t r,
+                                            EyeShape shape, float hs,
+                                            bool is_right) {
+  int16_t top    = y - (int16_t)(r * hs);      // Top edge of iris
+  int16_t width  = (int16_t)(r * 2) + 4;       // Full iris width + margin
+
+  switch (shape) {
+
+    case SHAPE_HAPPY: {
+      // Cover top 50% → only bottom arc visible (squinting smile)
+      int16_t cut = (int16_t)(r * hs);          // 50% of full height
+      sprite_->fillRect(x - r - 2, top, width, cut, TFT_BLACK);
+      break;
+    }
+
+    case SHAPE_SAD: {
+      // Drooping inner corner eyelid — inner side pulled much lower
+      // Left eye (is_right=false): inner = right edge (t=1.0)
+      // Right eye (is_right=true): inner = left edge  (t=0.0)
+      float outer_frac = 0.12f;   // 12% covered at outer edge
+      float inner_frac = 0.58f;   // 58% covered at inner edge
+      for (int16_t col = 0; col < (int16_t)(r * 2); col++) {
+        float t    = (float)col / (float)(r * 2);
+        float frac = is_right
+                       ? (inner_frac + (outer_frac - inner_frac) * t)
+                       : (outer_frac + (inner_frac - outer_frac) * t);
+        int16_t drop = (int16_t)(frac * 2.0f * r * hs);
+        sprite_->drawFastVLine(x - r + col, top, drop, TFT_BLACK);
+      }
+      break;
+    }
+
+    case SHAPE_ANGRY: {
+      // V-brow: inner corner pulled far down, outer side barely cut
+      float outer_frac = 0.05f;   // 5% at outer edge
+      float inner_frac = 0.68f;   // 68% at inner edge
+      for (int16_t col = 0; col < (int16_t)(r * 2); col++) {
+        float t    = (float)col / (float)(r * 2);
+        float frac = is_right
+                       ? (inner_frac + (outer_frac - inner_frac) * t)
+                       : (outer_frac + (inner_frac - outer_frac) * t);
+        int16_t cut = (int16_t)(frac * 2.0f * r * hs);
+        sprite_->drawFastVLine(x - r + col, top, cut, TFT_BLACK);
+      }
+      break;
+    }
+
+    case SHAPE_SLEEPY: {
+      // Heavy top eyelid — covers 65% from top
+      int16_t cut = (int16_t)(r * hs * 1.3f);  // 65% of visible height
+      sprite_->fillRect(x - r - 2, top, width, cut, TFT_BLACK);
+      break;
+    }
+
+    case SHAPE_NEUTRAL: {
+      // Slight top lid (8%) — natural relaxed look
+      int16_t cut = (int16_t)(r * hs * 0.16f);
+      sprite_->fillRect(x - r - 2, top, width, cut, TFT_BLACK);
+      break;
+    }
+
+    case SHAPE_CIRCLE:
+    default:
+      // No mask — fully open (surprised / wide awake)
+      break;
+  }
+}
+
+// ============================================================================
+// Closed Line (blink / wink / fully asleep)
 // ============================================================================
 
 void EyeExpressionEngine::drawClosedLine(int16_t x, int16_t y, uint16_t radius) {
   int16_t w = (int16_t)(radius * 1.8f);
-  sprite_->fillRoundRect(x - w / 2, y - 2, w, 5, 2, EYE_COLOR);
-}
-
-void EyeExpressionEngine::drawRoundedRect(int16_t x, int16_t y,
-                                            uint16_t radius, float hs) {
-  int16_t w = radius * 2;
-  int16_t h = (int16_t)(radius * 2 * hs);
-  uint8_t cr = radius / 3;
-  sprite_->fillRoundRect(x - radius, y - h / 2, w, h, cr, EYE_COLOR);
-}
-
-void EyeExpressionEngine::drawCircle(int16_t x, int16_t y,
-                                      uint16_t radius, float hs) {
-  if (hs > 0.95f) {
-    sprite_->fillCircle(x, y, radius, EYE_COLOR);
-  } else {
-    int16_t eh = (int16_t)(radius * hs);
-    for (int16_t dy = -eh; dy <= eh; dy++) {
-      float ratio = (float)dy / (float)eh;
-      int16_t dx = (int16_t)(sqrtf(1.0f - ratio * ratio) * radius);
-      sprite_->drawFastHLine(x - dx, y + dy, dx * 2, EYE_COLOR);
-    }
-  }
-}
-
-void EyeExpressionEngine::drawHappyArc(int16_t x, int16_t y,
-                                         uint16_t radius, float hs) {
-  int16_t arc_w = (int16_t)(radius * 2.2f);
-  int16_t arc_h = (int16_t)(radius * 1.0f * hs);
-  int16_t thick = max(6, (int)(radius / 3));
-
-  for (int16_t dy = 0; dy < arc_h; dy++) {
-    float t = (float)dy / arc_h;
-    float curve = sqrtf(1.0f - t * t);
-    int16_t hw = (int16_t)(arc_w * 0.5f * curve);
-    for (int16_t th = 0; th < thick; th++) {
-      sprite_->drawFastHLine(x - hw, y + dy + th, hw * 2, EYE_COLOR);
-    }
-  }
-}
-
-void EyeExpressionEngine::drawSadArc(int16_t x, int16_t y,
-                                       uint16_t radius, float hs) {
-  int16_t arc_w = (int16_t)(radius * 2.2f);
-  int16_t arc_h = (int16_t)(radius * 1.0f * hs);
-  int16_t thick = max(6, (int)(radius / 3));
-
-  for (int16_t dy = 0; dy < arc_h; dy++) {
-    float t = (float)dy / arc_h;
-    float curve = sqrtf(1.0f - (1.0f - t) * (1.0f - t));
-    int16_t hw = (int16_t)(arc_w * 0.5f * curve);
-    for (int16_t th = 0; th < thick; th++) {
-      sprite_->drawFastHLine(x - hw, y - dy - th, hw * 2, EYE_COLOR);
-    }
-  }
-}
-
-void EyeExpressionEngine::drawAngryV(int16_t x, int16_t y,
-                                       uint16_t radius, float hs,
-                                       bool is_right) {
-  int16_t v_w = (int16_t)(radius * 1.6f);
-  int16_t v_h = (int16_t)(radius * 0.7f * hs);
-  int16_t thick = max(4, (int)(radius / 4));
-  int16_t dir = is_right ? 1 : -1;
-
-  // V-shaped brow
-  for (int16_t th = 0; th < thick; th++) {
-    for (int16_t dx = 0; dx < v_w; dx++) {
-      int16_t dy = (v_h * dx / v_w) * dir;
-      sprite_->drawPixel(x - v_w / 2 + dx, y - v_h / 2 + dy + th, EYE_COLOR);
-    }
-  }
-
-  // Pupil below
-  int16_t py = y + v_h / 2 + radius / 3;
-  int16_t pr = (int16_t)(radius * 0.45f * hs);
-  if (pr > 3) sprite_->fillCircle(x, py, pr, EYE_COLOR);
-}
-
-void EyeExpressionEngine::drawSleepyLine(int16_t x, int16_t y,
-                                           uint16_t radius, float hs) {
-  int16_t w = (int16_t)(radius * 1.8f);
-  int16_t h = max(6, (int)(radius / 2.5f));
-  h = (int16_t)(h * hs);
-  if (h < 4) h = 4;
-  sprite_->fillRoundRect(x - w / 2, y - h / 2, w, h, 3, EYE_COLOR);
+  sprite_->fillRoundRect(x - w / 2, y - 3, w, 6, 3, IRIS_COLOR);
 }
 
 // ============================================================================
@@ -479,58 +504,65 @@ void EyeExpressionEngine::drawSleepyLine(int16_t x, int16_t y,
 ExpressionParams EyeExpressionEngine::calculateExpressionParams(
     uint8_t type, uint8_t intensity) {
   ExpressionParams p = {};
-  p.pupil_radius = BASE_PUPIL_RADIUS;
-  p.eye_shape = SHAPE_ROUNDED_RECT;
-  p.asymmetric = false;
-  p.right_eye_radius = BASE_PUPIL_RADIUS;
-  p.right_eye_shape = SHAPE_ROUNDED_RECT;
+  p.pupil_radius    = BASE_IRIS_RADIUS;
+  p.eye_shape       = SHAPE_NEUTRAL;
+  p.asymmetric      = false;
+  p.right_eye_radius = BASE_IRIS_RADIUS;
+  p.right_eye_shape  = SHAPE_NEUTRAL;
 
-  float f = 0.5f + (intensity * 0.3f);  // intensity factor
+  float f = 0.5f + (intensity * 0.3f);  // Intensity scale factor
 
   switch (type) {
     case EXPR_NEUTRAL:
       break;
 
     case EXPR_HAPPY:
-      p.pupil_radius = BASE_PUPIL_RADIUS + (int16_t)(10 * f);
-      p.eye_shape = SHAPE_HAPPY_ARC;
-      p.pupil_offset_y = (int16_t)(-4 * f);
+      p.pupil_radius    = BASE_IRIS_RADIUS + (int16_t)(8 * f);
+      p.eye_shape       = SHAPE_HAPPY;
+      p.pupil_offset_y  = (int16_t)(-5 * f);
       break;
 
     case EXPR_SAD:
-      p.pupil_radius = BASE_PUPIL_RADIUS - (int16_t)(5 * f);
-      if (p.pupil_radius < MIN_PUPIL_RADIUS) p.pupil_radius = MIN_PUPIL_RADIUS;
-      p.eye_shape = SHAPE_SAD_ARC;
-      p.pupil_offset_y = (int16_t)(10 * f);
+      p.pupil_radius    = BASE_IRIS_RADIUS - (int16_t)(8 * f);
+      if (p.pupil_radius < MIN_IRIS_RADIUS) p.pupil_radius = MIN_IRIS_RADIUS;
+      p.eye_shape       = SHAPE_SAD;
+      p.pupil_offset_y  = (int16_t)(8 * f);
       break;
 
     case EXPR_SURPRISED:
-      p.pupil_radius = BASE_PUPIL_RADIUS + (int16_t)(20 * f);
-      if (p.pupil_radius > MAX_PUPIL_RADIUS) p.pupil_radius = MAX_PUPIL_RADIUS;
-      p.eye_shape = SHAPE_CIRCLE;
+      p.pupil_radius    = BASE_IRIS_RADIUS + (int16_t)(22 * f);
+      if (p.pupil_radius > MAX_IRIS_RADIUS) p.pupil_radius = MAX_IRIS_RADIUS;
+      p.eye_shape       = SHAPE_CIRCLE;
       break;
 
     case EXPR_ANGRY:
-      p.pupil_radius = BASE_PUPIL_RADIUS - (int16_t)(5 * f);
-      p.eye_shape = SHAPE_ANGRY_V;
-      p.pupil_offset_y = (int16_t)(6 * f);
-      p.asymmetric = true;
+      p.pupil_radius    = BASE_IRIS_RADIUS - (int16_t)(6 * f);
+      p.eye_shape       = SHAPE_ANGRY;
+      p.pupil_offset_y  = (int16_t)(8 * f);
+      p.asymmetric      = true;
       p.right_eye_radius = p.pupil_radius;
-      p.right_eye_shape = SHAPE_ANGRY_V;
+      p.right_eye_shape  = SHAPE_ANGRY;
       break;
 
     case EXPR_SLEEPY:
-      p.pupil_radius = BASE_PUPIL_RADIUS - (int16_t)(12 * f);
-      if (p.pupil_radius < MIN_PUPIL_RADIUS) p.pupil_radius = MIN_PUPIL_RADIUS;
-      p.eye_shape = SHAPE_SLEEPY_LINE;
-      p.pupil_offset_y = (int16_t)(10 * f);
+      p.pupil_radius    = BASE_IRIS_RADIUS - (int16_t)(10 * f);
+      if (p.pupil_radius < MIN_IRIS_RADIUS) p.pupil_radius = MIN_IRIS_RADIUS;
+      p.eye_shape       = SHAPE_SLEEPY;
+      p.pupil_offset_y  = (int16_t)(10 * f);
       break;
 
     case EXPR_WINK:
-      p.eye_shape = SHAPE_HAPPY_ARC;
-      p.asymmetric = true;
-      p.right_eye_shape = SHAPE_WINK;
+      p.eye_shape        = SHAPE_HAPPY;
+      p.asymmetric       = true;
+      p.right_eye_shape  = SHAPE_WINK;
+      p.right_eye_radius = p.pupil_radius;
       break;
+  }
+
+  // Mirror right eye params when not already asymmetric
+  if (!p.asymmetric) {
+    p.right_eye_radius = p.pupil_radius;
+    p.right_eye_shape  = p.eye_shape;
   }
 
   return p;
@@ -544,21 +576,21 @@ void EyeExpressionEngine::interpolateParams(float progress) {
   ExpressionParams& c = current_params_;
   ExpressionParams& t = target_params_;
 
-  c.pupil_radius += (int16_t)((t.pupil_radius - c.pupil_radius) * progress);
-  c.pupil_offset_x += (int16_t)((t.pupil_offset_x - c.pupil_offset_x) * progress);
-  c.pupil_offset_y += (int16_t)((t.pupil_offset_y - c.pupil_offset_y) * progress);
+  c.pupil_radius    += (int16_t)((t.pupil_radius    - c.pupil_radius)    * progress);
+  c.pupil_offset_x  += (int16_t)((t.pupil_offset_x  - c.pupil_offset_x)  * progress);
+  c.pupil_offset_y  += (int16_t)((t.pupil_offset_y  - c.pupil_offset_y)  * progress);
 
   if (progress > 0.5f) {
     c.eye_shape = t.eye_shape;
   }
 
   if (t.asymmetric) {
-    c.asymmetric = true;
+    c.asymmetric          = true;
     c.right_eye_offset_x += (int16_t)((t.right_eye_offset_x - c.right_eye_offset_x) * progress);
     c.right_eye_offset_y += (int16_t)((t.right_eye_offset_y - c.right_eye_offset_y) * progress);
-    c.right_eye_radius += (int16_t)((t.right_eye_radius - c.right_eye_radius) * progress);
+    c.right_eye_radius   += (int16_t)((t.right_eye_radius   - c.right_eye_radius)   * progress);
   } else {
-    c.asymmetric = false;
+    c.asymmetric       = false;
     c.right_eye_radius = c.pupil_radius;
   }
 }
@@ -577,14 +609,14 @@ uint32_t EyeExpressionEngine::calculateNextBlinkInterval() {
   uint32_t base = 5000, vary = 2500;
   switch (current_expression_) {
     case EXPR_HAPPY:     base = 4000; vary = 2000; break;
-    case EXPR_SAD:       base = 6000; vary = 2000; break;
-    case EXPR_SURPRISED: base = 3000; vary = 1500; break;
+    case EXPR_SAD:       base = 6500; vary = 2000; break;
+    case EXPR_SURPRISED: base = 2800; vary = 1200; break;
     case EXPR_ANGRY:     base = 4000; vary = 1500; break;
-    case EXPR_SLEEPY:    base = 3000; vary = 1000; break;
+    case EXPR_SLEEPY:    base = 2500; vary = 800;  break;
     case EXPR_WINK:      base = 4000; vary = 2000; break;
     default: break;
   }
   float f = 1.4f - (current_intensity_ * 0.08f);
   base = (uint32_t)(base * f);
-  return constrain(base + random(-vary, vary), 1200UL, 8000UL);
+  return constrain(base + random(-(int32_t)vary, (int32_t)vary), 1200UL, 8000UL);
 }

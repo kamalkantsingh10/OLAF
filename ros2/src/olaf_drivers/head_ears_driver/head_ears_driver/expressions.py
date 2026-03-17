@@ -1,8 +1,9 @@
 """Ear expression presets for OLAF.
 
 Each preset defines angles in degrees for all 4 ear servos.
-Pan: 0 = center (straight up), positive = outward (max 90).
-Tilt: 0 = center, negative = backward, positive = forward (-90 to +110).
+Pan: 0 = center (straight up), positive = outward (max 90°).
+Tilt: 0 = center, negative = backward, positive = forward.
+Hardware limits: left_tilt [-90,+20], right_tilt [-7,+110], right_pan [0,70].
 
 Intensity (0.0-1.0) scales all angles proportionally.
 """
@@ -15,32 +16,43 @@ EMOTION_THINKING = 3
 EMOTION_CONFUSED = 4
 EMOTION_SAD = 5
 EMOTION_EXCITED = 6
+EMOTION_ANGRY = 7
+EMOTION_SURPRISED = 8
+EMOTION_SLEEPY = 9
 
-# Doberman-style ear presets.
+# Doberman-style ear presets inspired by animated dog expression reference.
 # Pan: outward splay (0=straight up, +90=full airplane).
 # Tilt: forward/back pitch (+=forward, -=backward).
-# Hardware limits: left_tilt [-90,+20], right_tilt [-7,+110], right_pan [0,70].
 PRESETS: dict[int, dict[str, float]] = {
-    EMOTION_NEUTRAL: {
+    EMOTION_NEUTRAL: {  # Ears straight up, calm and relaxed
         "left_pan": 0, "left_tilt": 0, "right_pan": 0, "right_tilt": 0,
     },
-    EMOTION_HAPPY: {  # Doberman greeting: ears pulled back + wide splay
-        "left_pan": 50, "left_tilt": -7, "right_pan": 50, "right_tilt": -7,
+    EMOTION_HAPPY: {  # Both ears perked forward — joyful greeting
+        "left_pan": 20, "left_tilt": 18, "right_pan": 20, "right_tilt": 18,
     },
-    EMOTION_CURIOUS: {  # Asymmetric, tilted forward, one ear cocked
-        "left_pan": 15, "left_tilt": 20, "right_pan": 35, "right_tilt": 20,
+    EMOTION_CURIOUS: {  # Asymmetric: left ear up + forward, right cocked wide out
+        "left_pan": 5, "left_tilt": 20, "right_pan": 55, "right_tilt": 12,
     },
-    EMOTION_THINKING: {  # Subtle asymmetric forward scan
-        "left_pan": 10, "left_tilt": 15, "right_pan": 25, "right_tilt": 10,
+    EMOTION_THINKING: {  # Both ears up and scanning forward, attentive
+        "left_pan": 8, "left_tilt": 18, "right_pan": 12, "right_tilt": 12,
     },
-    EMOTION_CONFUSED: {  # Strong asymmetry — one up, one way out
-        "left_pan": 5, "left_tilt": -7, "right_pan": 65, "right_tilt": 20,
+    EMOTION_CONFUSED: {  # Strong asymmetry — one fully up, one completely splayed out
+        "left_pan": 0, "left_tilt": 20, "right_pan": 55, "right_tilt": 5,
     },
-    EMOTION_SAD: {  # Full airplane droop — wide splay, backward where possible
-        "left_pan": 70, "left_tilt": -40, "right_pan": 65, "right_tilt": -7,
+    EMOTION_SAD: {  # Full airplane droop — both ears hanging wide and down
+        "left_pan": 80, "left_tilt": -70, "right_pan": 55, "right_tilt": -7,
     },
-    EMOTION_EXCITED: {  # Perked forward + moderate splay, ready to play
-        "left_pan": 30, "left_tilt": 20, "right_pan": 30, "right_tilt": 20,
+    EMOTION_EXCITED: {  # Both ears fully forward, high energy ready-to-play
+        "left_pan": 15, "left_tilt": 20, "right_pan": 15, "right_tilt": 20,
+    },
+    EMOTION_ANGRY: {  # Ears pinned flat back against head — aggressive
+        "left_pan": 15, "left_tilt": -80, "right_pan": 10, "right_tilt": -7,
+    },
+    EMOTION_SURPRISED: {  # Ears swept back wide — startled
+        "left_pan": 55, "left_tilt": -50, "right_pan": 50, "right_tilt": -7,
+    },
+    EMOTION_SLEEPY: {  # Heavy droop — airplane with backward tilt
+        "left_pan": 65, "left_tilt": -50, "right_pan": 50, "right_tilt": -7,
     },
 }
 
@@ -53,6 +65,9 @@ PRESET_NAMES: dict[str, int] = {
     "confused": EMOTION_CONFUSED,
     "sad": EMOTION_SAD,
     "excited": EMOTION_EXCITED,
+    "angry": EMOTION_ANGRY,
+    "surprised": EMOTION_SURPRISED,
+    "sleepy": EMOTION_SLEEPY,
 }
 
 

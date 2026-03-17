@@ -101,7 +101,7 @@ SCENES = [
         "title": "Stir",
         "desc": "A faint sound. Ears twitch, head shifts slightly.",
         "actions": lambda o: [
-            o.ear_angles(left_pan=40, left_tilt=-30, right_pan=50, right_tilt=-7,
+            o.ear_angles(left_pan=40, left_tilt=20, right_pan=50, right_tilt=20,
                          speed_pct=-0.2),
             o.neck_pose(pan=3, tilt=-6, speed=150),
             time.sleep(1.5),
@@ -274,7 +274,57 @@ SCENES = [
     },
 
     # ══════════════════════════════════════════════════════════════
-    # ACT 4: EMOTIONS — HAPPY ARC  (~22 s)
+    # ACT 4: YES / NO  (~16 s)
+    # ══════════════════════════════════════════════════════════════
+    {
+        "title": "Saying Yes",
+        "desc": "Enthusiastic nodding — yes yes yes!",
+        "actions": lambda o: [
+            o.expression("happy", 4),
+            o.ear_preset("happy"),
+            o.neck_pose(pan=0, tilt=5, speed=2000),
+            o.look(0, 10),
+            time.sleep(0.3),
+            o.neck_pose(pan=0, tilt=-3, speed=2000),
+            o.look(0, -5),
+            time.sleep(0.3),
+            o.neck_pose(pan=0, tilt=5, speed=2000),
+            o.look(0, 10),
+            time.sleep(0.3),
+            o.neck_pose(pan=0, tilt=-3, speed=2000),
+            o.look(0, -5),
+            time.sleep(0.3),
+            o.neck_pose(pan=0, tilt=4, speed=1500),
+            o.look(0, 5),
+        ],
+        "hold": 3.0,
+    },
+    {
+        "title": "Saying No",
+        "desc": "Firm head shake — nope, not happening.",
+        "actions": lambda o: [
+            o.expression("angry", 3),
+            o.ear_preset("angry", intensity=0.6),
+            o.neck_pose(pan=35, tilt=-2, roll=-3, speed=2500),
+            o.look(-20, 0),
+            time.sleep(0.3),
+            o.neck_pose(pan=-35, tilt=-2, roll=3, speed=2500),
+            o.look(20, 0),
+            time.sleep(0.3),
+            o.neck_pose(pan=30, tilt=-2, roll=-2, speed=2500),
+            o.look(-15, 0),
+            time.sleep(0.3),
+            o.neck_pose(pan=-30, tilt=-2, roll=2, speed=2500),
+            o.look(15, 0),
+            time.sleep(0.3),
+            o.neck_pose(pan=0, tilt=0, speed=1500),
+            o.look(0, 0),
+        ],
+        "hold": 2.5,
+    },
+
+    # ══════════════════════════════════════════════════════════════
+    # ACT 5: EMOTIONS — HAPPY ARC  (~22 s)
     # ══════════════════════════════════════════════════════════════
     {
         "title": "Happy!",
@@ -343,7 +393,7 @@ SCENES = [
     },
 
     # ══════════════════════════════════════════════════════════════
-    # ACT 5: EMOTIONS — NEGATIVE ARC  (~25 s)
+    # ACT 6: EMOTIONS — NEGATIVE ARC  (~25 s)
     # ══════════════════════════════════════════════════════════════
     {
         "title": "Confused",
@@ -419,7 +469,7 @@ SCENES = [
     },
 
     # ══════════════════════════════════════════════════════════════
-    # ACT 6: RECOVERY & WIND DOWN  (~25 s)
+    # ACT 7: RECOVERY & WIND DOWN  (~25 s)
     # ══════════════════════════════════════════════════════════════
     {
         "title": "Deep Breath",

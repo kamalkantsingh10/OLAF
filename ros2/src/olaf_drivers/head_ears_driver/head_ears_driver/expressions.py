@@ -2,7 +2,7 @@
 
 Each preset defines angles in degrees for all 4 ear servos.
 Pan: 0 = center (straight up), positive = outward (max 90°).
-Tilt: 0 = center, negative = backward, positive = forward.
+Tilt: 0 = center, positive = backward, negative = forward.
 Hardware limits: left_tilt [-90,+20], right_tilt [-7,+110], right_pan [0,70].
 
 Intensity (0.0-1.0) scales all angles proportionally.
@@ -40,19 +40,19 @@ PRESETS: dict[int, dict[str, float]] = {
         "left_pan": 0, "left_tilt": 20, "right_pan": 55, "right_tilt": 5,
     },
     EMOTION_SAD: {  # Full airplane droop — both ears hanging wide and down
-        "left_pan": 80, "left_tilt": -70, "right_pan": 55, "right_tilt": -7,
+        "left_pan": 80, "left_tilt": 30, "right_pan": 55, "right_tilt": 30,
     },
     EMOTION_EXCITED: {  # Both ears fully forward, high energy ready-to-play
         "left_pan": 15, "left_tilt": 20, "right_pan": 15, "right_tilt": 20,
     },
-    EMOTION_ANGRY: {  # Ears pinned flat back against head — aggressive
-        "left_pan": 15, "left_tilt": -80, "right_pan": 10, "right_tilt": -7,
+    EMOTION_ANGRY: {  # Ears pinned flat back — aggressive, tilted forward/down
+        "left_pan": 15, "left_tilt": 30, "right_pan": 10, "right_tilt": 30,
     },
-    EMOTION_SURPRISED: {  # Ears swept back wide — startled
-        "left_pan": 55, "left_tilt": -50, "right_pan": 50, "right_tilt": -7,
+    EMOTION_SURPRISED: {  # Ears swept wide — startled, drooping outward
+        "left_pan": 55, "left_tilt": 25, "right_pan": 50, "right_tilt": 25,
     },
-    EMOTION_SLEEPY: {  # Heavy droop — airplane with backward tilt
-        "left_pan": 65, "left_tilt": -50, "right_pan": 50, "right_tilt": -7,
+    EMOTION_SLEEPY: {  # Heavy droop — ears hanging wide and down
+        "left_pan": 65, "left_tilt": 30, "right_pan": 50, "right_tilt": 30,
     },
 }
 

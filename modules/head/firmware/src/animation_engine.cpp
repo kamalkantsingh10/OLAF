@@ -382,8 +382,8 @@ void EyeExpressionEngine::renderEye(int16_t x, int16_t y, uint16_t radius,
   // Layer 2: Eyelid mask in black
   applyEyelidMask(x, y, radius, shape, hs, is_right);
 
-  // Layer 3: Pupil (dark circle — visible only on NEUTRAL/CIRCLE/ANGRY shapes)
-  bool has_pupil = (shape != SHAPE_HAPPY && shape != SHAPE_SLEEPY);
+  // Layer 3: Pupil (dark circle — skip only for SLEEPY which is too narrow)
+  bool has_pupil = (shape != SHAPE_SLEEPY);
   if (has_pupil) {
     uint16_t pr = (uint16_t)(radius * 0.40f);
     if (pr >= 4) {
@@ -392,12 +392,28 @@ void EyeExpressionEngine::renderEye(int16_t x, int16_t y, uint16_t radius,
     }
   }
 
-  // Layer 4: Specular highlight dot (top-right of pupil center)
+  // Layer 4: Double specular highlights (large + small, anime/cartoon style)
   if (shape != SHAPE_WINK && hs > 0.35f) {
-    uint16_t hr = max(3, (int)(radius * 0.15f));
-    int16_t  hx = x + (int16_t)(radius * 0.26f);
-    int16_t  hy = y - (int16_t)(radius * 0.28f);
-    sprite_->fillCircle(hx, hy, hr, HIGHLIGHT_COLOR);
+    uint16_t hr1 = max(4, (int)(radius * 0.20f));   // Primary highlight
+    uint16_t hr2 = max(2, (int)(radius * 0.09f));   // Secondary highlight
+
+    if (shape == SHAPE_HAPPY) {
+      // Happy: bottom is masked — place highlights in visible top arc
+      int16_t hx1 = x + (int16_t)(radius * 0.22f);
+      int16_t hy1 = y - (int16_t)(radius * 0.30f);
+      sprite_->fillCircle(hx1, hy1, hr1, HIGHLIGHT_COLOR);
+      int16_t hx2 = x - (int16_t)(radius * 0.16f);
+      int16_t hy2 = y - (int16_t)(radius * 0.12f);
+      sprite_->fillCircle(hx2, hy2, hr2, HIGHLIGHT_COLOR);
+    } else {
+      // All other expressions: top-right primary, bottom-left secondary
+      int16_t hx1 = x + (int16_t)(radius * 0.24f);
+      int16_t hy1 = y - (int16_t)(radius * 0.26f);
+      sprite_->fillCircle(hx1, hy1, hr1, HIGHLIGHT_COLOR);
+      int16_t hx2 = x - (int16_t)(radius * 0.18f);
+      int16_t hy2 = y + (int16_t)(radius * 0.20f);
+      sprite_->fillCircle(hx2, hy2, hr2, HIGHLIGHT_COLOR);
+    }
   }
 }
 
@@ -429,9 +445,10 @@ void EyeExpressionEngine::applyEyelidMask(int16_t x, int16_t y, uint16_t r,
   switch (shape) {
 
     case SHAPE_HAPPY: {
-      // Cover top 50% → only bottom arc visible (squinting smile)
-      int16_t cut = (int16_t)(r * hs);          // 50% of full height
-      sprite_->fillRect(x - r - 2, top, width, cut, TFT_BLACK);
+      // Cover bottom 50% → top arc visible (^ ^ smiling eyes)
+      int16_t bottom_start = y;                  // Mask from center downward
+      int16_t bottom_end   = y + (int16_t)(r * hs) + 2;
+      sprite_->fillRect(x - r - 2, bottom_start, width, bottom_end - bottom_start, TFT_BLACK);
       break;
     }
 

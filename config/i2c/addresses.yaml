@@ -34,6 +34,6 @@ modules:
     address: 0x0B
     description: "Base Module (self-balancing, ODrive, IMU, power distribution)"
     components:
-      - "MPU6050 6-axis IMU (200Hz update for balancing)"
+      - "BNO085 9-axis AHRS IMU (200Hz, on-chip sensor fusion, I2C 0x4A)"
       - "ODrive v3.6 motor controller (hoverboard wheels)"
       - "Power distribution and battery monitoring"

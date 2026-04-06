@@ -46,7 +46,7 @@ docs/stories/                  # User stories
 | **Head+Ears** | `0x08` | 2× OLED eyes, 2× ear servos, RGBD camera, projector |
 | **Neck** | `0x09` | 3× neck servos, kickstand, 2× mmWave sensors |
 | **Torso** | `0x0A` | Heart LCD, thermal printer, power LEDs |
-| **Base** | `0x0B` | MPU6050 IMU, ODrive motor control |
+| **Base** | `0x0B` | BNO085 AHRS IMU, ODrive motor control |
 
 ---
 

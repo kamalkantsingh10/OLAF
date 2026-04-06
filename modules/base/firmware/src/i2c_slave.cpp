@@ -21,14 +21,14 @@ volatile float I2CSlave::batteryVoltage_ = 0.0;
 I2CSlave i2cSlave;
 
 void I2CSlave::begin() {
-    // Initialize I2C slave on configured pins
-    Wire.begin(kI2CSlaveAddress, kI2CSdaPin, kI2CSclPin, kI2CFrequency);
+    // Initialize I2C slave on Wire1 (separate bus from IMU on Wire/I2C0)
+    Wire1.begin(kI2CSlaveAddress, kI2CSdaPin, kI2CSclPin, kI2CFrequency);
 
     // Register interrupt handlers
-    Wire.onReceive(onReceive);
-    Wire.onRequest(onRequest);
+    Wire1.onReceive(onReceive);
+    Wire1.onRequest(onRequest);
 
-    Serial.println("[I2C] Slave initialized");
+    Serial.println("[I2C] Slave initialized on Wire1");
     Serial.printf("[I2C] Address: 0x%02X, SDA: GPIO%d, SCL: GPIO%d\n",
                   kI2CSlaveAddress, kI2CSdaPin, kI2CSclPin);
 }
@@ -80,14 +80,14 @@ void I2CSlave::onReceive(int numBytes) {
     if (numBytes < 1) return;
 
     // First byte is always the register address
-    currentRegister_ = Wire.read();
+    currentRegister_ = Wire1.read();
     numBytes--;
 
     // Handle writes based on register
     switch (currentRegister_) {
         case REG_COMMAND:
             if (numBytes >= 1) {
-                commandByte_ = Wire.read();
+                commandByte_ = Wire1.read();
             }
             break;
 
@@ -95,7 +95,7 @@ void I2CSlave::onReceive(int numBytes) {
             if (numBytes >= 4) {
                 uint8_t bytes[4];
                 for (int i = 0; i < 4; i++) {
-                    bytes[i] = Wire.read();
+                    bytes[i] = Wire1.read();
                 }
                 linearVelocity_ = bytesToFloat(bytes);
             }
@@ -105,7 +105,7 @@ void I2CSlave::onReceive(int numBytes) {
             if (numBytes >= 4) {
                 uint8_t bytes[4];
                 for (int i = 0; i < 4; i++) {
-                    bytes[i] = Wire.read();
+                    bytes[i] = Wire1.read();
                 }
                 angularVelocity_ = bytesToFloat(bytes);
             }
@@ -113,8 +113,8 @@ void I2CSlave::onReceive(int numBytes) {
 
         default:
             // Unknown register - discard remaining bytes
-            while (Wire.available()) {
-                Wire.read();
+            while (Wire1.available()) {
+                Wire1.read();
             }
             break;
     }
@@ -129,37 +129,37 @@ void I2CSlave::onRequest() {
 
     switch (currentRegister_) {
         case REG_STATUS:
-            Wire.write(statusByte_);
+            Wire1.write(statusByte_);
             break;
 
         case REG_ODOM_X:
             floatToBytes(odomX_, bytes);
-            Wire.write(bytes, 4);
+            Wire1.write(bytes, 4);
             break;
 
         case REG_ODOM_Y:
             floatToBytes(odomY_, bytes);
-            Wire.write(bytes, 4);
+            Wire1.write(bytes, 4);
             break;
 
         case REG_ODOM_THETA:
             floatToBytes(odomTheta_, bytes);
-            Wire.write(bytes, 4);
+            Wire1.write(bytes, 4);
             break;
 
         case REG_PITCH:
             floatToBytes(pitch_, bytes);
-            Wire.write(bytes, 4);
+            Wire1.write(bytes, 4);
             break;
 
         case REG_BATTERY_VOLTAGE:
             floatToBytes(batteryVoltage_, bytes);
-            Wire.write(bytes, 4);
+            Wire1.write(bytes, 4);
             break;
 
         default:
             // Unknown register - send zeros
-            Wire.write((uint8_t)0x00);
+            Wire1.write((uint8_t)0x00);
             break;
     }
 }

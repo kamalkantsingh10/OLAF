@@ -41,7 +41,7 @@ This guide explains how to set up your PC for OLAF development using a hybrid PC
     ┌───────────────────────────────────────────────┐
     │ Hardware                                      │
     │ • Head ESP32 (0x10) → 2× GC9A01 OLED eyes    │
-    │ • Base ESP32 (0x11) → MPU6050 + ODrive       │
+    │ • Base ESP32 (0x11) → BNO085 + ODrive       │
     │ • Waveshare Neck → 3× STS3215 servos         │
     │ • Waveshare Ears → 4× SCS0009 servos         │
     │ • Fusion HAT → WS2812 LEDs, kickstand PWM    │

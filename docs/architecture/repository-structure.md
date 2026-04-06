@@ -145,7 +145,7 @@ olaf/
 | Module | Controller | Interface | Hardware |
 |--------|------------|-----------|----------|
 | **Head (0x10)** | ESP32 | I2C | 2× OLED eyes (GC9A01, SPI) |
-| **Base (0x11)** | ESP32 | I2C | ODrive (UART), MPU6050 (I2C), self-balancing PID |
+| **Base (0x11)** | ESP32 | I2C | ODrive (UART), BNO085 AHRS (I2C), self-balancing PID |
 | **Neck** | Pi direct | USB Serial (Waveshare) | 3× STS3215 servos (pan/tilt/roll) |
 | **Ears** | Pi direct | USB Serial (Waveshare) | 4× SCS0009 servos (2-DOF × 2 ears) |
 | **Indicator** | Pi direct | Fusion HAT WS2812 | 24 LEDs (3× 8-LED strips) |

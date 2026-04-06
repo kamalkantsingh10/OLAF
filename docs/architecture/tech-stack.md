@@ -20,7 +20,7 @@
 | **Cloud AI Agent** | Claude API | Claude 3.5 Sonnet | Conversational reasoning, personality generation | Best-in-class personality quality, function calling |
 | **Cloud AI Fallback** | OpenAI GPT-4 API | GPT-4 Turbo | Secondary AI provider | Redundancy if Claude unavailable |
 | **Motor Controller** | ODrive v3.6 | 3.6 | BLDC motor control (hoverboard wheels) | Closed-loop velocity control, encoder odometry for SLAM |
-| **IMU Sensor** | MPU6050 | 6-axis | Self-balancing (gyro + accel) on Base ESP32 | $2-5, 200Hz update rate, proven for balancing robots |
+| **IMU Sensor** | BNO085 (GY-BNO085) | 9-axis AHRS | Self-balancing on Base ESP32 with on-chip sensor fusion | On-chip AHRS (Hillcrest SH-2) outputs quaternions/euler directly — no complementary filter needed, 200Hz+ update rate, superior accuracy |
 | **Servo Controller (Neck)** | Waveshare Bus Servo Adapter (A) | USB mode | Controls 3× neck servos via USB serial | Integrated power + control, USB to Pi, no soldering |
 | **Servo Controller (Ears)** | Waveshare Bus Servo Adapter (A) | USB mode | Controls 4× ear servos via USB serial | Integrated power + control, USB to Pi, no soldering |
 | **Neck Servos** | Feetech STS3215 | Serial bus | 3-DOF neck articulation (pan/tilt/roll) | 30 kg·cm torque, daisy-chainable, position feedback |

@@ -82,13 +82,17 @@ Saves calibration to `config/firmware/{module}_servo_cal.json`
 
 ### imu_calibrator.py
 
-Calibrate MPU6050 IMU (accelerometer + gyroscope):
+Calibrate BNO085 IMU (9-axis AHRS with on-chip sensor fusion):
 
 ```bash
 python3 tools/calibration/imu_calibrator.py
 ```
 
-Follow on-screen instructions to place robot in different orientations.
+BNO085 calibration procedure:
+1. Place robot stationary on flat surface for ~30 seconds (accel/gyro auto-calibrate)
+2. Slowly rotate robot in figure-8 pattern for magnetometer calibration
+3. Script saves calibration data to ESP32 flash via `sh2_saveDcdNow()`
+4. Tare sets current upright orientation as pitch=0° reference
 
 ### camera_calibrator.py
 

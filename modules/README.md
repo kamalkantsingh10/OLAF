@@ -19,7 +19,7 @@ Each module is a **self-contained unit** with its own:
 | **[head-ears](head-ears/)** | 0x08 | 2× OLED eyes, 2× articulated ears, floor projector control | In Development |
 | **[neck](neck/)** | 0x09 | 3-DOF servo array, 2× presence sensors | Designed |
 | **[torso](torso/)** | 0x0A | Heart display, thermal printer, battery, Pi housing | In Development |
-| **[base](base/)** | 0x0B | ODrive motors, MPU6050 IMU, self-balancing | Designed |
+| **[base](base/)** | 0x0B | ODrive motors, BNO085 AHRS IMU, self-balancing | Designed |
 
 ## Quick Start
 

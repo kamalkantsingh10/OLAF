@@ -87,7 +87,7 @@ A robot that **feels alive** through coordinated personality expression, **helps
 
 **3. Mobility & Navigation**
 - **Self-Balancing Base**: Two-wheel inverted pendulum with 200Hz PID control on ESP32 Base module (Linux can't guarantee real-time)
-- **MPU6050 IMU**: 200Hz gyro + accelerometer fusion for balancing
+- **BNO085 IMU (GY-BNO085)**: 9-axis AHRS with on-chip sensor fusion — outputs euler angles/quaternions directly at 200Hz, no complementary filter needed
 - **Kickstand System**: Servo-deployed kickstand for stationary mode (RELAXED state) vs. BALANCING state
 - **ODrive Motor Controller**: Closed-loop velocity control of hoverboard BLDC motors via UART from ESP32
 - **RGBD Camera**: Depth sensing for obstacle detection and mapping

@@ -1,8 +1,17 @@
 /**
  * Balancing Controller Implementation
+ *
+ * PID loop using IMU pitch + gyro rate, outputs to MotorController.
+ * Runs at 200Hz (5ms period).
  */
 
 #include "balancing_controller.h"
+#include "imu.h"
+#include "motor_controller.h"
+#include "web_tuner.h"
+
+// Tighter output clamp during auto-tune to prevent violent movements
+constexpr float kAutoTuneOutputMax = 3.0f;  // 3 Amps max during auto-tune
 
 // Global instance
 BalancingController balancer;
@@ -11,13 +20,13 @@ void BalancingController::begin() {
     mode_ = MODE_DISABLED;
     initialized_ = false;
 
-    targetLinearVel_ = 0.0;
-    targetAngularVel_ = 0.0;
+    targetLinearVel_ = 0.0f;
+    targetAngularVel_ = 0.0f;
 
-    lastError_ = 0.0;
-    integral_ = 0.0;
+    lastError_ = 0.0f;
+    integral_ = 0.0f;
     lastUpdateMicros_ = micros();
-    pidOutput_ = 0.0;
+    pidOutput_ = 0.0f;
 
     emergencyTriggered_ = false;
     emergencyStartTime_ = 0;
@@ -40,8 +49,8 @@ void BalancingController::enable() {
     // Reset PID state
     resetPID();
 
-    // Enable motors via ODrive
-    if (!odrive.enableMotors()) {
+    // Enable motors via MotorController
+    if (!motors.enable()) {
         Serial.println("[Balancer] ERROR: Failed to enable motors!");
         return;
     }
@@ -56,9 +65,9 @@ void BalancingController::disable() {
     Serial.println("[Balancer] Disabling balancing mode...");
 
     mode_ = MODE_DISABLED;
-
-    // Stop motors
-    odrive.disableMotors();
+    pidOutput_ = 0.0f;
+    motors.setBalanceCurrent(0.0f);
+    motors.disable();
 
     Serial.println("[Balancer] Balancing DISABLED");
 }
@@ -70,16 +79,16 @@ bool BalancingController::update() {
 
     // Calculate time step
     uint32_t now = micros();
-    float dt = (now - lastUpdateMicros_) / 1000000.0;  // Convert to seconds
+    float dt = (now - lastUpdateMicros_) / 1000000.0f;
     lastUpdateMicros_ = now;
 
-    // Clamp dt to reasonable values
-    if (dt <= 0 || dt > 0.02) {  // Max 20ms (50Hz minimum)
-        dt = 0.005;  // 5ms default (200Hz)
+    // Clamp dt to reasonable range
+    if (dt <= 0.0f || dt > 0.02f) {
+        dt = kPIDIntervalS;
     }
 
     // Get current pitch from IMU
-    float current_pitch = imu.getPitchDeg();
+    float current_pitch = imu.getPitch();
 
     // Check for emergency conditions
     if (checkEmergency(current_pitch)) {
@@ -90,17 +99,17 @@ bool BalancingController::update() {
     // Calculate PID output
     pidOutput_ = calculatePID(current_pitch, dt);
 
-    // Add target velocity from Pi commands
-    // (This allows Pi to command movement while balancing)
-    float combined_linear = pidOutput_ + targetLinearVel_;
-    float combined_angular = targetAngularVel_;
+    // Send balance velocity to motor controller
+    motors.setBalanceCurrent(pidOutput_);
 
-    // Send to motors via differential drive
-    odrive.setDifferentialVelocity(combined_linear, combined_angular);
+    // Apply navigation velocity targets (from Pi, when available)
+    motors.setLinearVelocity(targetLinearVel_);
+    motors.setTurnRate(targetAngularVel_);
 
-    // Debug output (if enabled)
+    // Motor controller handles combining balance + nav + safety in its update()
+
     if (kEnablePIDDebug) {
-        Serial.printf("[PID] Pitch: %.2f°, Error: %.2f°, Output: %.2f rev/s\n",
+        Serial.printf("[PID] Pitch: %.2f, Error: %.2f, Output: %.2f rev/s\n",
                       current_pitch, kTargetPitchDeg - current_pitch, pidOutput_);
     }
 
@@ -110,11 +119,6 @@ bool BalancingController::update() {
 void BalancingController::setTargetVelocity(float linear_mps, float angular_radps) {
     targetLinearVel_ = linear_mps;
     targetAngularVel_ = angular_radps;
-
-    if (kEnableSerialDebug) {
-        Serial.printf("[Balancer] Target velocity: linear=%.2f m/s, angular=%.2f rad/s\n",
-                      linear_mps, angular_radps);
-    }
 }
 
 BalanceMode BalancingController::getMode() {
@@ -126,9 +130,10 @@ bool BalancingController::isEmergency() {
 }
 
 void BalancingController::resetPID() {
-    lastError_ = 0.0;
-    integral_ = 0.0;
-    pidOutput_ = 0.0;
+    lastError_ = 0.0f;
+    integral_ = 0.0f;
+    pidOutput_ = 0.0f;
+    lastUpdateMicros_ = micros();
 
     Serial.println("[Balancer] PID state reset");
 }
@@ -138,73 +143,51 @@ float BalancingController::getPIDOutput() {
 }
 
 float BalancingController::calculatePID(float current_pitch, float dt) {
-    // Calculate error (target - current)
-    float error = kTargetPitchDeg - current_pitch;
+    // Use live-tunable gains from web UI
+    // Positive pitch = leaning backward. Target ~5° = CG offset.
+    // When pitch > target (leaning too far back), error is negative → negative output → drives backward to catch
+    float error = tuneTarget - current_pitch;
 
-    // Check if within deadband (ignore tiny errors)
-    if (abs(error) < kBalanceDeadbandDeg) {
-        error = 0.0;
-    }
+    // P term
+    float p_term = tuneKp * error;
 
-    // Proportional term
-    float p_term = kPitchKp * error;
-
-    // Integral term (accumulate error over time)
+    // I term with anti-windup
     integral_ += error * dt;
+    integral_ = constrain(integral_, -kMaxIntegral, kMaxIntegral);
+    float i_term = tuneKi * integral_;
 
-    // Anti-windup: Clamp integral to prevent runaway
-    float max_integral = 10.0;  // Arbitrary limit (tune as needed)
-    integral_ = constrain(integral_, -max_integral, max_integral);
-
-    float i_term = kPitchKi * integral_;
-
-    // Derivative term (rate of change of error)
-    // Use gyro rate directly for better noise rejection
-    float pitch_rate = imu.getPitchRateDegPerSec();
-    float d_term = kPitchKd * (-pitch_rate);  // Negative because we want to oppose rate
-
-    // Alternative: calculate derivative from error change
-    // float derivative = (error - lastError_) / dt;
-    // float d_term = kPitchKd * derivative;
+    // D term — opposes rate of tilt change
+    float gyro_rate = imu.getGyroY();  // rad/s
+    float d_term = tuneKd * (-gyro_rate);
 
     lastError_ = error;
 
-    // Sum all terms
+    // Sum and clamp — tighter limit during auto-tune
     float output = p_term + i_term + d_term;
-
-    // Clamp output to motor limits
-    output = constrain(output, kPIDOutputMin, kPIDOutputMax);
+    float limit = webTuner.isAutoTuning() ? kAutoTuneOutputMax : kPIDOutputMax;
+    output = constrain(output, -limit, limit);
 
     return output;
 }
 
 bool BalancingController::checkEmergency(float pitch) {
-    // Check if tilt exceeds safe threshold
-    if (abs(pitch) > kMaxTiltDeg) {
+    if (fabsf(pitch) > kMaxTiltDeg) {
         if (!emergencyTriggered_) {
             emergencyStartTime_ = millis();
             emergencyTriggered_ = true;
         }
         return true;
     }
-
-    // TODO: Add battery voltage check
-    // TODO: Add watchdog timeout check
-
     return false;
 }
 
 void BalancingController::handleEmergency() {
     if (mode_ != MODE_EMERGENCY_STOP) {
-        Serial.println("[Balancer] ⚠ EMERGENCY STOP TRIGGERED!");
-        Serial.printf("[Balancer] Pitch: %.2f° (max: %.2f°)\n",
-                      imu.getPitchDeg(), kMaxTiltDeg);
+        Serial.printf("[Balancer] EMERGENCY STOP — pitch=%.1f (max=%.0f)\n",
+                      imu.getPitch(), kMaxTiltDeg);
 
         mode_ = MODE_EMERGENCY_STOP;
-
-        // Emergency stop motors
-        odrive.emergencyStop();
-
-        // TODO: Deploy kickstand (if implemented)
+        pidOutput_ = 0.0f;
+        motors.emergencyStop();
     }
 }

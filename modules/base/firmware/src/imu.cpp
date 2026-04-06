@@ -1,5 +1,8 @@
 /**
- * IMU Driver Implementation - Raw register access
+ * BNO085 IMU Driver Implementation
+ *
+ * Uses Adafruit_BNO08x library for on-chip AHRS sensor fusion.
+ * Outputs euler angles directly — no complementary filter needed.
  */
 
 #include "imu.h"
@@ -7,87 +10,125 @@
 // Global instance
 IMU imu;
 
-bool IMU::begin(uint8_t sda, uint8_t scl) {
-    Wire.begin(sda, scl);
-    Wire.setClock(50000);  // 50kHz - very slow for 10K pull-ups
+// Static instance pointer for ISR
+IMU* IMU::instance_ = nullptr;
 
-    // Check if MPU is present
-    Wire.beginTransmission(MPU_ADDR);
-    if (Wire.endTransmission() != 0) {
+void IRAM_ATTR IMU::isrHandler() {
+    if (instance_) {
+        instance_->data_ready_ = true;
+    }
+}
+
+bool IMU::begin(int8_t int_pin, int8_t rst_pin) {
+    instance_ = this;
+    int_pin_ = int_pin;
+
+    // Initialize BNO085 on default Wire bus (must be initialized already)
+    if (!bno_.begin_I2C(0x4A, &Wire, 0)) {
+        Serial.println("[ERROR] Base IMU: BNO085 not found at 0x4A");
         return false;
     }
 
-    // Read WHO_AM_I
-    Wire.beginTransmission(MPU_ADDR);
-    Wire.write(0x75);
-    Wire.endTransmission(false);
-    Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)1);
-    if (Wire.available()) {
-        whoami = Wire.read();
+    Serial.println("[INFO] Base IMU: BNO085 found at 0x4A");
+
+    if (!enableReports()) {
+        Serial.println("[ERROR] Base IMU: Failed to enable sensor reports");
+        return false;
     }
 
-    // Wake up MPU (clear sleep bit)
-    Wire.beginTransmission(MPU_ADDR);
-    Wire.write(PWR_MGMT_1);
-    Wire.write(0x00);
-    Wire.endTransmission();
-    delay(100);
+    Serial.println("[INFO] Base IMU: Rotation vector + gyro reports enabled at 200Hz");
 
-    // Enable I2C bypass to access magnetometer
-    Wire.beginTransmission(MPU_ADDR);
-    Wire.write(INT_PIN_CFG);
-    Wire.write(0x02);
-    Wire.endTransmission();
-    delay(10);
-
-    // Check for magnetometer (AK8963)
-    Wire.beginTransmission(AK8963_ADDR);
-    if (Wire.endTransmission() == 0) {
-        hasMag = true;
-
-        // Set continuous measurement mode (16-bit, 100Hz)
-        Wire.beginTransmission(AK8963_ADDR);
-        Wire.write(AK8963_CNTL1);
-        Wire.write(0x16);
-        Wire.endTransmission();
+    // Attach data-ready interrupt if INT pin specified
+    if (int_pin_ >= 0) {
+        attachInterrupt();
     }
 
     return true;
 }
 
-bool IMU::update() {
-    // Read accel + gyro (14 bytes)
-    Wire.beginTransmission(MPU_ADDR);
-    Wire.write(ACCEL_XOUT_H);
-    if (Wire.endTransmission(false) != 0) {
+bool IMU::enableReports() {
+    // Game rotation vector at 200Hz (5000µs interval) — no magnetometer needed
+    // Better for balancing: lower latency, unaffected by motor magnetic interference
+    if (!bno_.enableReport(SH2_GAME_ROTATION_VECTOR, 5000)) {
+        Serial.println("[WARN] Base IMU: Could not enable game rotation vector report");
         return false;
     }
 
-    if (Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)14) != 14) {
-        return false;
+    // Gyro (calibrated) at 200Hz — for PID D-term (cleaner than differentiating position)
+    if (!bno_.enableReport(SH2_GYROSCOPE_CALIBRATED, 5000)) {
+        Serial.println("[WARN] Base IMU: Could not enable gyro report");
+        // Non-fatal — PID can use position differentiation as fallback
     }
 
-    ax = (Wire.read() << 8) | Wire.read();
-    ay = (Wire.read() << 8) | Wire.read();
-    az = (Wire.read() << 8) | Wire.read();
-    Wire.read(); Wire.read();  // Skip temp
-    gx = (Wire.read() << 8) | Wire.read();
-    gy = (Wire.read() << 8) | Wire.read();
-    gz = (Wire.read() << 8) | Wire.read();
-
-    // Read magnetometer if present
-    if (hasMag) {
-        Wire.beginTransmission(AK8963_ADDR);
-        Wire.write(AK8963_HXL);
-        Wire.endTransmission(false);
-        Wire.requestFrom((uint8_t)AK8963_ADDR, (uint8_t)7);
-
-        mx = Wire.read() | (Wire.read() << 8);  // Little-endian
-        my = Wire.read() | (Wire.read() << 8);
-        mz = Wire.read() | (Wire.read() << 8);
-        Wire.read();  // Status2
-    }
-
-    delay(500);
     return true;
+}
+
+void IMU::attachInterrupt() {
+    if (int_pin_ < 0) return;
+
+    pinMode(int_pin_, INPUT_PULLUP);
+    ::attachInterrupt(digitalPinToInterrupt(int_pin_), isrHandler, FALLING);
+    Serial.printf("[INFO] Base IMU: Data-ready interrupt on GPIO %d\n", int_pin_);
+}
+
+bool IMU::update() {
+    bool got_data = false;
+
+    // Read all available sensor events
+    while (bno_.getSensorEvent(&sensor_value_)) {
+        switch (sensor_value_.sensorId) {
+            case SH2_GAME_ROTATION_VECTOR:
+                qr_ = sensor_value_.un.gameRotationVector.real;
+                qi_ = sensor_value_.un.gameRotationVector.i;
+                qj_ = sensor_value_.un.gameRotationVector.j;
+                qk_ = sensor_value_.un.gameRotationVector.k;
+                accuracy_ = sensor_value_.status & 0x03;
+                quaternionToEuler();
+                got_data = true;
+                break;
+
+            case SH2_GYROSCOPE_CALIBRATED:
+                gyro_x_ = sensor_value_.un.gyroscope.x;
+                gyro_y_ = sensor_value_.un.gyroscope.y;
+                gyro_z_ = sensor_value_.un.gyroscope.z;
+                break;
+        }
+    }
+
+    data_ready_ = false;
+    return got_data;
+}
+
+void IMU::quaternionToEuler() {
+    // Quaternion to euler (ZYX convention)
+    // Pitch (Y-axis rotation) — primary axis for balancing
+    float sinp = 2.0f * (qr_ * qj_ - qk_ * qi_);
+    if (fabsf(sinp) >= 1.0f) {
+        pitch_deg_ = copysignf(90.0f, sinp);  // Gimbal lock
+    } else {
+        pitch_deg_ = asinf(sinp) * RAD_TO_DEG;
+    }
+
+    // Roll (X-axis rotation)
+    float sinr_cosp = 2.0f * (qr_ * qi_ + qj_ * qk_);
+    float cosr_cosp = 1.0f - 2.0f * (qi_ * qi_ + qj_ * qj_);
+    roll_deg_ = atan2f(sinr_cosp, cosr_cosp) * RAD_TO_DEG;
+
+    // Yaw (Z-axis rotation)
+    float siny_cosp = 2.0f * (qr_ * qk_ + qi_ * qj_);
+    float cosy_cosp = 1.0f - 2.0f * (qj_ * qj_ + qk_ * qk_);
+    yaw_deg_ = atan2f(siny_cosp, cosy_cosp) * RAD_TO_DEG;
+}
+
+void IMU::saveCalibration() {
+    // Save Dynamic Calibration Data to BNO085 flash
+    // Call after calibration accuracy reaches 3 (high)
+    sh2_saveDcdNow();
+    Serial.println("[INFO] Base IMU: Calibration saved to BNO085 flash");
+}
+
+void IMU::tare() {
+    // Set current orientation as zero reference
+    sh2_setTareNow(SH2_TARE_X | SH2_TARE_Y | SH2_TARE_Z, SH2_TARE_BASIS_GAMING_ROTATION_VECTOR);
+    Serial.println("[INFO] Base IMU: Tare set — current orientation is now zero");
 }

@@ -22,7 +22,7 @@ ESP32-S3-DevKitC-1 (N16R8) controlling:
         │         ─── [5]  [6] ─── GPIO5                GPIO44 RX  [5]  [6] ─── GPIO2 ──►│── Left Eye CS
         │         ─── [7]  [8] ─── GPIO6                GPIO42 ─── [7]  [8] ─── GPIO41 ─►│── RST (shared)
         │         ─── [9] [10] ─── GPIO7                GPIO41 ─── [9] [10] ─── GPIO40 ─►│── DC (shared)
-        │        ─── [11] [12] ─── GPIO8 ◄── I2C SDA    GPIO40 ── [11] [12] ─── GPIO39 ─►│── MOSI (shared)
+        │        ─── [11] [12] ─── GPIO8 ◄── I2C Scc    GPIO40 ── [11] [12] ─── GPIO39 ─►│── MOSI (shared)
         │        ─── [13] [14] ─── GPIO3                GPIO39 ── [13] [14] ─── GPIO38 ─►│── SCLK (shared)
         │        ─── [15] [16] ─── GPIO9 ◄── I2C SCL    GPIO38 ── [15] [16] ─── GPIO37   │
         │        ─── [17] [18] ─── GPIO10               GPIO37 ── [17] [18] ─── GPIO36   │

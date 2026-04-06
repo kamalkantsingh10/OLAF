@@ -43,7 +43,7 @@ This architecture achieves <3s AI response latency, supports 2-4 hour battery ru
 
 **FR1**: Head module (ESP32, I2C 0x10) must drive 2× GC9A01 round OLED displays (240×240, SPI) at 30-60 FPS for expressive eye animations.
 
-**FR2**: Base module (ESP32, I2C 0x11) must implement 200Hz PID self-balancing loop using MPU6050 IMU and ODrive motor control via UART.
+**FR2**: Base module (ESP32, I2C 0x11) must implement 200Hz PID self-balancing loop using BNO085 IMU (on-chip AHRS) and ODrive motor control via UART.
 
 **FR3**: Neck module must be controllable via USB serial (Waveshare Bus Servo Adapter A) with 3× Feetech STS3215 servos providing pan/tilt/roll articulation.
 
@@ -95,7 +95,7 @@ This architecture achieves <3s AI response latency, supports 2-4 hour battery ru
 
 **Module Layer (2× ESP32 only):**
 - **Head ESP32** (I2C 0x10): Controls 2× GC9A01 OLED eyes via SPI
-- **Base ESP32** (I2C 0x11): 200Hz balancing PID, MPU6050 IMU, ODrive UART
+- **Base ESP32** (I2C 0x11): 200Hz balancing PID, BNO085 IMU (on-chip AHRS), ODrive UART
 
 **Direct Pi Control (via HAT/USB):**
 - **Neck**: 3× STS3215 servos via Waveshare USB adapter
@@ -143,7 +143,7 @@ This architecture achieves <3s AI response latency, supports 2-4 hour battery ru
 **Module Firmware:**
 - **Framework**: Arduino/ESP-IDF (PlatformIO)
 - **Language**: C++17
-- **Libraries**: Wire (I2C slave), TFT_eSPI or GC9A01 driver, MPU6050, ODriveArduino
+- **Libraries**: Wire (I2C slave), TFT_eSPI or GC9A01 driver, Adafruit_BNO08x, ODriveArduino
 
 ### ROS2 Node Topology
 
@@ -166,7 +166,7 @@ Establish ROS2 Jazzy workspace on Raspberry Pi 5 with Ubuntu 24.04, Fusion HAT c
 Complete Head module (ESP32, I2C 0x10) with 2× GC9A01 round OLED eyes, ESP32 firmware for 60 FPS animations, and ROS2 driver node.
 
 **Epic 2: Base Module Build**
-Complete Base module (ESP32, I2C 0x11) with hoverboard platform (36V battery, BLDC motors), ODrive, MPU6050 IMU, 200Hz PID balancing, power distribution, and ROS2 driver node.
+Complete Base module (ESP32, I2C 0x11) with hoverboard platform (36V battery, BLDC motors), ODrive, BNO085 IMU (on-chip AHRS), 200Hz PID balancing, power distribution, and ROS2 driver node.
 
 **Epic 3: Neck Module Build**
 Complete Neck module with 3× STS3215 servos (pan/tilt/roll) via Waveshare USB adapter, 3D printed mounts, and ROS2 driver node.
@@ -337,7 +337,7 @@ Create and execute demo script validating all modules via ROS2 with coordinated 
 
 ## Epic 2: Base Module Build
 
-**Goal**: Complete the Base module (ESP32, I2C 0x11) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors), ODrive motor controller, MPU6050 IMU, 200Hz PID control loop, and power distribution system.
+**Goal**: Complete the Base module (ESP32, I2C 0x11) with self-balancing two-wheel platform using hoverboard components (36V battery, BLDC motors), ODrive motor controller, BNO085 IMU (on-chip AHRS), 200Hz PID control loop, and power distribution system.
 
 ### Story 2.1: Source and Disassemble Hoverboard for Parts
 
@@ -360,7 +360,7 @@ Create and execute demo script validating all modules via ROS2 with coordinated 
 
 **Acceptance Criteria:**
 1. ESP32-S3-DevKitC-1 connected to breadboard with power
-2. MPU6050 IMU wired (I2C) and providing readings at 200Hz
+2. BNO085 IMU (on-chip AHRS) wired (I2C) and providing readings at 200Hz
 3. ODrive connected to 36V battery via power switch and fuse
 4. Motor connected to ODrive and responding to commands
 5. UART connection established between ESP32 and ODrive
@@ -416,7 +416,7 @@ Create and execute demo script validating all modules via ROS2 with coordinated 
 **Acceptance Criteria:**
 1. PlatformIO project created in `modules/base/firmware/`
 2. I2C slave interface implemented at address 0x11
-3. MPU6050 driver reads at 200Hz using hardware timer
+3. BNO085 driver reads at 200Hz using hardware timer
 4. Complementary filter for angle estimation
 5. PID controller outputs motor velocity commands
 6. ODrive UART driver sends commands at 200Hz

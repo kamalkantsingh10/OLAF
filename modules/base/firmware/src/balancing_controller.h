@@ -22,8 +22,6 @@
 
 #include <Arduino.h>
 #include "config.h"
-#include "imu_fusion.h"
-#include "odrive_uart.h"
 
 enum BalanceMode {
     MODE_DISABLED,      // Motors off, no balancing

@@ -60,27 +60,42 @@ def main():
     odrv.axis1.motor.error = 0
     odrv.axis1.encoder.error = 0
 
-    # Configure both axes
+    # Configure both axes (values from Stijn's balancing robot guide)
+    torque_constant = 8.27 / 16  # ~0.517 for hoverboard motors (KV=16)
+    cpr = 90  # pole_pairs(15) × 6
+
     for i in [0, 1]:
         axis = getattr(odrv, f'axis{i}')
 
         # Motor config
         axis.motor.config.pole_pairs = 15
-        axis.motor.config.current_lim = 20
-        axis.motor.config.requested_current_range = 60
+        axis.motor.config.motor_type = MOTOR_TYPE_PMSM_CURRENT_CONTROL
+        axis.motor.config.current_lim = 25
+        axis.motor.config.requested_current_range = 25
         axis.motor.config.calibration_current = 10
-        axis.motor.config.resistance_calib_max_voltage = 12  # Critical for low-resistance motors
+        axis.motor.config.resistance_calib_max_voltage = 4  # Low — hoverboard motors have ~0.25Ω
+        axis.motor.config.current_control_bandwidth = 100
+        axis.motor.config.torque_constant = torque_constant
 
-        # Encoder config
+        # Encoder config — hall sensors
         axis.encoder.config.mode = ENCODER_MODE_HALL
-        axis.encoder.config.cpr = 90
+        axis.encoder.config.cpr = cpr
+        axis.encoder.config.calib_scan_distance = 150
         axis.encoder.config.bandwidth = 100
 
-        # Controller config
+        # Controller config — velocity mode for balancing
         axis.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL
         axis.controller.config.vel_limit = 10
+        axis.controller.config.pos_gain = 1.0
+        axis.controller.config.vel_gain = 0.02 * torque_constant * cpr          # ~0.93
+        axis.controller.config.vel_integrator_gain = 0.1 * torque_constant * cpr  # ~4.65
+
+        # Clear pre_calibrated so calibration runs fresh
+        axis.motor.config.pre_calibrated = False
+        axis.encoder.config.pre_calibrated = False
 
     print(f"      ✓ Configuration applied")
+    print(f"        torque_constant={torque_constant:.4f}, vel_gain={0.02*torque_constant*cpr:.3f}, vel_int_gain={0.1*torque_constant*cpr:.3f}")
 
     # Step 4: Test motor phase wires
     print("\n[4/6] Testing motor phase wire connections...")
@@ -192,19 +207,28 @@ def main():
     else:
         print(f"      ⚠ Axis 1 velocity tracking poor")
 
+    # Mark pre-calibrated so ODrive skips calibration on future power-ups
+    print("\n[7/8] Setting pre_calibrated flags...")
+    for i in [0, 1]:
+        axis = getattr(odrv, f'axis{i}')
+        axis.motor.config.pre_calibrated = True
+        axis.encoder.config.pre_calibrated = True
+    print(f"      ✓ Both axes marked pre_calibrated")
+
     # Save configuration
-    print("\n[7/7] Saving configuration...")
+    print("\n[8/8] Saving configuration...")
     odrv.save_configuration()
     print(f"      ✓ Configuration saved to ODrive")
 
     # Final summary
     print("\n" + "="*60)
-    print("  ✅ SUCCESS! ODrive Setup Complete")
+    print("  SUCCESS! ODrive Setup Complete")
     print("="*60)
     print("\n  Summary:")
     print(f"    • Axis 0 (Left):  {odrv.axis0.motor.config.phase_resistance:.3f}Ω, Hall ready")
     print(f"    • Axis 1 (Right): {odrv.axis1.motor.config.phase_resistance:.3f}Ω, Hall ready")
     print(f"    • Velocity control: Working")
+    print(f"    • Pre-calibrated: Yes (skip cal on boot)")
     print(f"    • Configuration: Saved")
 
 if __name__ == "__main__":

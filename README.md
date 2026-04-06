@@ -117,7 +117,7 @@ Each module owns its domain exclusively—no cross-dependencies. **Hybrid contro
 - **Why ESP32:** 60 FPS animations require dedicated real-time control
 
 **2. BASE Module (ESP32, I2C 0x11)**
-- **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive v3.6 (UART), MPU6050 IMU (200Hz)
+- **Hardware:** Two-wheel inverted pendulum, hoverboard BLDC motors, ODrive v3.6 (UART), BNO085 9-axis AHRS (200Hz, on-chip sensor fusion)
 - **Control:** 200Hz PID balancing loop (real-time guarantee on ESP32, Linux can't do this)
 - **Mobility:** SLAM navigation, follow-me mode, obstacle avoidance
 - **Why ESP32:** Self-balancing requires hard real-time guarantees

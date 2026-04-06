@@ -1,68 +1,91 @@
 /**
- * IMU Driver - Raw register access for MPU-6500/9250/9265
+ * BNO085 IMU Driver — On-chip AHRS (Hillcrest SH-2)
  *
- * Reads accel, gyro, and magnetometer (if present) via I2C.
- * No external library dependencies.
+ * Outputs euler angles and quaternions directly — no complementary filter needed.
+ * I2C address: 0x4A on I2C0 (GPIO 4/5).
+ * INT pin (GPIO 6) signals data-ready for 200Hz operation.
+ * RST pin (GPIO 7) for hardware reset recovery.
+ *
+ * Library: Adafruit_BNO08x
  */
 
 #pragma once
 
 #include <Arduino.h>
-#include <Wire.h>
+#include <Adafruit_BNO08x.h>
 
 class IMU {
 public:
     /**
-     * Initialize IMU on specified I2C pins
-     * @return true if sensor found and initialized
+     * Initialize BNO085 on I2C bus (must call Wire.begin() first).
+     * @param int_pin GPIO for data-ready interrupt (active low), -1 to disable
+     * @param rst_pin GPIO for hardware reset (active low), -1 to disable
+     * @return true if sensor found and rotation vector report enabled
      */
-    bool begin(uint8_t sda, uint8_t scl);
+    bool begin(int8_t int_pin = BNO085_INT, int8_t rst_pin = BNO085_RST);
 
     /**
-     * Read all sensor data
-     * @return true if read successful
+     * Check for new sensor data and update euler angles.
+     * @return true if new data was available and read
      */
     bool update();
 
-    // Accelerometer (g)
-    float getAccX() { return ax * acc_scale; }
-    float getAccY() { return ay * acc_scale; }
-    float getAccZ() { return az * acc_scale; }
+    // Euler angles from on-chip AHRS (degrees)
+    float getPitch() const { return pitch_deg_; }
+    float getRoll() const { return roll_deg_; }
+    float getYaw() const { return yaw_deg_; }
 
-    // Gyroscope (deg/s)
-    float getGyroX() { return gx * gyro_scale; }
-    float getGyroY() { return gy * gyro_scale; }
-    float getGyroZ() { return gz * gyro_scale; }
+    // Gyro rate (rad/s) — useful for PID D-term
+    float getGyroX() const { return gyro_x_; }
+    float getGyroY() const { return gyro_y_; }
+    float getGyroZ() const { return gyro_z_; }
 
-    // Magnetometer (raw counts, only if hasMag)
-    int16_t getMagX() { return mx; }
-    int16_t getMagY() { return my; }
-    int16_t getMagZ() { return mz; }
+    // Quaternion (if needed)
+    float getQR() const { return qr_; }
+    float getQI() const { return qi_; }
+    float getQJ() const { return qj_; }
+    float getQK() const { return qk_; }
 
-    bool hasMagnetometer() { return hasMag; }
-    uint8_t getWhoAmI() { return whoami; }
+    // Calibration accuracy (0=unreliable, 1=low, 2=medium, 3=high)
+    uint8_t getAccuracy() const { return accuracy_; }
+
+    // Save current calibration to BNO085 flash
+    void saveCalibration();
+
+    // Tare — set current orientation as zero reference
+    void tare();
+
+    // True if data-ready interrupt fired (cleared after update)
+    volatile bool dataReady() const { return data_ready_; }
+
+    // Attach ISR to INT pin for interrupt-driven reads
+    void attachInterrupt();
 
 private:
-    // Raw sensor data
-    int16_t ax = 0, ay = 0, az = 0;
-    int16_t gx = 0, gy = 0, gz = 0;
-    int16_t mx = 0, my = 0, mz = 0;
+    Adafruit_BNO08x bno_;
+    sh2_SensorValue_t sensor_value_;
 
-    // Conversion scales (default: ±2g, ±250°/s)
-    const float acc_scale = 2.0 / 32768.0;
-    const float gyro_scale = 250.0 / 32768.0;
+    // Euler angles (degrees)
+    float pitch_deg_ = 0.0f;
+    float roll_deg_ = 0.0f;
+    float yaw_deg_ = 0.0f;
 
-    bool hasMag = false;
-    uint8_t whoami = 0;
+    // Quaternion components
+    float qr_ = 1.0f, qi_ = 0.0f, qj_ = 0.0f, qk_ = 0.0f;
 
-    // Register addresses
-    static constexpr uint8_t MPU_ADDR = 0x68;
-    static constexpr uint8_t PWR_MGMT_1 = 0x6B;
-    static constexpr uint8_t INT_PIN_CFG = 0x37;
-    static constexpr uint8_t ACCEL_XOUT_H = 0x3B;
-    static constexpr uint8_t AK8963_ADDR = 0x0C;
-    static constexpr uint8_t AK8963_CNTL1 = 0x0A;
-    static constexpr uint8_t AK8963_HXL = 0x03;
+    // Gyro rates (rad/s)
+    float gyro_x_ = 0.0f, gyro_y_ = 0.0f, gyro_z_ = 0.0f;
+
+    uint8_t accuracy_ = 0;
+    int8_t int_pin_ = -1;
+
+    volatile bool data_ready_ = false;
+
+    bool enableReports();
+    void quaternionToEuler();
+
+    static void IRAM_ATTR isrHandler();
+    static IMU* instance_;  // For ISR callback
 };
 
 // Global instance

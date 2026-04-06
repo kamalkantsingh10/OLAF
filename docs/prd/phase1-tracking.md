@@ -80,7 +80,7 @@
 
 **Key Components:**
 - [ ] ESP32-S3-DevKitC-1 (N16R8)
-- [ ] MPU6050 IMU
+- [ ] BNO085 IMU (GY-BNO085)
 - [ ] ODrive v3.6 motor controller
 - [ ] 36V hoverboard battery (10S Li-ion)
 - [ ] 2× hoverboard BLDC motors (350W each)
@@ -236,7 +236,7 @@
 | Landing Gear Servos (2×) | | | | |
 | WS2812 LED Strips | | | | |
 | ODrive v3.6 | | | | |
-| MPU6050 IMU | | | | |
+| BNO085 IMU (GY-BNO085) | | | | |
 | Buck Converters | | | | |
 | Skateboard Suspension | | | | |
 | 3D Printing Filament | | | | |

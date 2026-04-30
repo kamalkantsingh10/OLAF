@@ -2,8 +2,7 @@
 
 **An open-source AI companion robot. Built in public.**
 
-
-
+[![OLAF — Pi 5 as the brain of an embodied AI agent](https://img.youtube.com/vi/qg81DIB4Nmw/hqdefault.jpg)](https://www.youtube.com/shorts/qg81DIB4Nmw)
 
 ## The Journey: 20 Weeks and Counting
 

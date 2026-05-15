@@ -1,27 +1,31 @@
 from setuptools import setup
+import os
+from glob import glob
 
-package_name = 'head_ears_driver'
+package_name = 'expression_engine'
 
 setup(
     name=package_name,
     version='0.1.0',
-    packages=[package_name, 'scservo_sdk'],
+    packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # Renderer mapping + service config (populated in Epic 6)
+        (os.path.join('share', package_name, 'config'), glob('config/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Kamal Kant Singh',
     maintainer_email='kamalkantsingh10@gmail.com',
-    description='OLAF Head+Ears hardware logic (I2C 0x08). Servo/I2C drivers '
-               'and expression presets, imported in-process by the expression '
-               'engine. ROS-node wrappers archived 2026-05-15 (Phase 2 SCP).',
+    description='OLAF expression engine — renders the companion pipeline\'s '
+                '4 canonical topics onto the body. See the Phase 2 SCP.',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'expression_engine_node = expression_engine.node:main',
         ],
     },
 )

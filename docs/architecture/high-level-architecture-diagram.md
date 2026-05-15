@@ -1,24 +1,26 @@
 # High Level Architecture Diagram
 
+> **Phase 2 redirect (2026-05-15).** The "Intelligence Layer" and the personality/AI bullets in the Pi block below now live in the sibling `olaf_companion` pipeline, which publishes 4 canonical ROS 2 topics (`mood`, `activity`, `speech_emotion`, `vocalization`, schema_version=3). This repo's Pi role is the **expression engine**: subscribe to those topics and render on the body. See `docs/sprint-change-proposal-2026-05-15.md`.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              INTELLIGENCE LAYER (Hybrid AI)                     │
-│  Local: Whisper STT (Hailo) | Cloud: Agent (Claude/GPT-4)      │
-│  • Speech Recognition (Hailo-accelerated, local <200ms)         │
-│  • Agent Reasoning & Tool Use (cloud, WiFi)                     │
-│  • Multi-step Planning & Context Management                     │
+│      olaf_companion VOICE-AGENT PIPELINE (separate project)     │
+│  STT · agent reasoning · personality · mood/activity/emotion    │
+│  Publishes 4 canonical ROS 2 topics (std_msgs/String, schema 3):│
+│   /olaf/mood  /olaf/activity  /olaf/speech_emotion              │
+│                                /olaf/vocalization               │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
-                       │ HTTPS/REST (WiFi - Cloud Only)
+                       │ ROS 2 / DDS (subscribe-only; same or LAN host)
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
 │       ORCHESTRATION LAYER (Pi 5 + Fusion HAT+ + AI HAT)         │
 │                   Powered by 2000mAh 7.4V Battery               │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │ RASPBERRY PI 5 16GB                                        │ │
-│  │  • ROS2 Humble (5 driver nodes)                            │ │
-│  │  • Personality Coordination  • State Management            │ │
-│  │  • SLAM Navigation          • AI Integration               │ │
+│  │  • ROS2 Jazzy (driver packages)                            │ │
+│  │  • Expression Engine (subscribes to olaf_companion)        │ │
+│  │  • Renders pose/LED/eye/heart from expression_map.yaml     │ │
 │  │  • I2C Master (GPIO2/3)     • OTA Server                   │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │  ┌─────────────────┐ ┌─────────────────┐ ┌──────────────────┐   │
@@ -139,11 +141,11 @@
 │  └──────────────┘  └──────────────┘  └───────────────────────┘  │
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │ olaf_neck    │  │ olaf_ears    │  │ olaf_personality      │  │
-│  │ USB Serial   │  │ USB Serial   │  │ AI Integration        │  │
-│  │              │  │              │  │                       │  │
-│  │ /neck/pose   │  │ /ears/emote  │  │ /speech/text          │  │
-│  │ /neck/lookat │  │ /ears/perk   │  │ /ai/response          │  │
+│  │ neck_driver  │  │ head_ears_drv│  │ expression_engine     │  │
+│  │ USB Serial   │  │ USB Serial   │  │ subscribes to         │  │
+│  │ (in-process) │  │ (in-process) │  │ olaf_companion's wire │  │
+│  │              │  │              │  │ /olaf/mood /activity  │  │
+│  │              │  │              │  │ /speech_emotion /voc. │  │
 │  └──────────────┘  └──────────────┘  └───────────────────────┘  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘

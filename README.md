@@ -60,9 +60,11 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
 
 ### The Three-Layer Design
 
+> **Repo scope (Phase 2, 2026-05-15).** This repository is the **OLAF body / expression engine** — the Orchestration + Module layers below. The Intelligence Layer (STT, reasoning, personality, mood/emotion decisions) is a **separate sibling project, `olaf_companion`**, which publishes 4 canonical ROS 2 topics (`mood`, `activity`, `speech_emotion`, `vocalization`). This repo subscribes to those and renders them on the body. The "personality-first" vision is unchanged at the *system* level; it's just split across two repos. See `docs/sprint-change-proposal-2026-05-15.md`.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              INTELLIGENCE LAYER (Hybrid AI)                     │
+│   INTELLIGENCE LAYER (Hybrid AI) — sibling repo olaf_companion  │
 │                                                                 │
 │  Local AI (Hailo-accelerated):                                 │
 │    • Whisper STT (<200ms latency)                              │
@@ -81,9 +83,9 @@ AI assistants (Alexa, Siri, ChatGPT, Claude) have impressive reasoning but remai
 │      Raspberry Pi 5 16GB + Fusion HAT+ + Hailo AI Kit          │
 │               Ubuntu 24.04 • ROS2 Jazzy                         │
 │                                                                 │
-│  • Personality Coordinator (sync eyes/ears/neck/heart/LEDs)    │
-│  • AI Agent Orchestration (tool routing, context management)   │
-│  • SLAM Navigation (Cartographer)                              │
+│  • Expression Engine (subscribes to olaf_companion's 4 topics) │
+│  • Renders pose/LED/eye/heart from expression_map.yaml         │
+│  • SLAM Navigation (Cartographer) — deferred                   │
 │  • Direct Hardware Control (servos, LEDs, kickstand via HAT)   │
 │  • I2C Master for ESP32 modules                                │
 │                                                                 │
@@ -229,8 +231,8 @@ This is a work-in-progress build. The journey from sketch to functioning robot c
 - 🔨 ROS2 Jazzy integration layer
 
 **Not Yet Started:**
-- ⏳ AI intelligence layer integration (Hailo Whisper STT)
-- ⏳ Personality coordinator (coordinated expression across modules)
+- ⏳ AI intelligence layer (now the sibling `olaf_companion` pipeline)
+- ⏳ Expression engine (Phase 2: renders olaf_companion's 4 canonical topics)
 - ⏳ SLAM navigation
 - ⏳ Self-balancing base with PID tuning
 - ⏳ WS2812 indicator animations
@@ -269,9 +271,9 @@ modules/
 **ROS2 lives separately:**
 ```
 ros2/src/
-├── olaf_drivers/      # 5 driver nodes (head, base, neck, ears, indicator)
-├── olaf_personality/  # Expression coordination
-└── olaf_ai/           # AI integration
+├── olaf_drivers/       # Driver logic (head_ears, neck, base, torso)
+├── expression_engine/  # Phase 2: renders olaf_companion's 4 canonical topics
+└── olaf_ai/            # (deferred) STT/agents now in olaf_companion
 ```
 
 **Why this structure?**

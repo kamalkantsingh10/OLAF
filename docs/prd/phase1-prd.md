@@ -34,6 +34,7 @@ This architecture achieves <3s AI response latency, supports 2-4 hour battery ru
 |------|---------|-------------|--------|
 | 2025-12-16 | v1.0 | Initial Phase 1 PRD | Kamal Singh |
 | 2026-01-31 | v2.0 | Complete rewrite for Fusion HAT architecture (4 ESP32 → 2 ESP32) | Kamal Singh |
+| 2026-05-15 | v2.1 | Phase 2 redirected to consume the canonical 4-topic schema-3 contract from `olaf_companion`; per-module expression surface retired. Phase 1 scope unchanged. See `docs/sprint-change-proposal-2026-05-15.md` and `docs/prd/phase2-prd.md`. | Kamal Singh |
 
 ---
 
@@ -73,7 +74,7 @@ This architecture achieves <3s AI response latency, supports 2-4 hour battery ru
 
 **NFR2**: Comprehensive documentation must be created including per-module wiring diagrams (pin assignments, circuits), assembly instructions (step-by-step with photos), and troubleshooting guides.
 
-**NFR3**: Phase 1 must NOT include AI integration, personality coordination, or SLAM navigation—those are explicitly scoped for Phase 2.
+**NFR3**: Phase 1 must NOT include AI integration, personality coordination, or SLAM navigation—those are explicitly scoped for Phase 2. _(Phase 2 was redirected on 2026-05-15: AI/personality now live in the sibling `olaf_companion` pipeline; this repo's Phase 2 scope is the subscribe-only expression engine. See `docs/prd/phase2-prd.md` and `docs/sprint-change-proposal-2026-05-15.md`.)_
 
 **NFR4**: All code must follow the module-first repository structure with firmware in `modules/{module}/firmware/`, ROS2 drivers in `ros2/src/olaf_{module}/`.
 
@@ -715,6 +716,8 @@ Create and execute demo script validating all modules via ROS2 with coordinated 
 ## Next Steps
 
 ### Phase 2 Preview: Middleware & Intelligence
+
+> **⚠️ Superseded 2026-05-15.** This preview predates the Phase 2 re-scope. AI/personality/state-machine now live in the sibling `olaf_companion` pipeline; this repo's Phase 2 is the subscribe-only **expression engine**. The bullets below are historical — the authoritative Phase 2 scope is `docs/prd/phase2-prd.md` and `docs/sprint-change-proposal-2026-05-15.md`.
 
 Once Phase 1 is complete, Phase 2 will focus on:
 

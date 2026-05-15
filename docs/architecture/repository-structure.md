@@ -6,6 +6,8 @@
 
 **Organization Principle:** Module-first architecture with hybrid control topology. ESP32 modules (Head, Base) contain firmware for real-time tasks, while Pi-controlled modules (Neck, Ears, Indicator) are driver-only packages managed directly via Fusion HAT interfaces.
 
+> **Phase 2 note (2026-05-15).** The `ros2/src` tree below is partly aspirational and predates the Phase 2 re-scope. Actual driver packages are `head_ears_driver`, `neck_driver`, `base_driver`, `torso_driver` (not the idealized `olaf_head`/`olaf_base`/… names shown). `olaf_personality` was removed and replaced by `expression_engine` (subscribe-only renderer of `olaf_companion`'s 4-topic schema-3 contract). Authoritative Phase 2 structure: `docs/sprint-change-proposal-2026-05-15.md` §5.
+
 ```
 olaf/
 ├── modules/                    # All 5 modules (physical subsystems)
@@ -89,9 +91,11 @@ olaf/
 │       │   ├── olaf_neck/      # USB serial → Waveshare (neck servos)
 │       │   ├── olaf_ears/      # USB serial → Waveshare (ear servos)
 │       │   └── olaf_indicator/ # Fusion HAT → WS2812 (LED strips)
-│       ├── olaf_personality/   # Personality coordination
-│       ├── olaf_ai/            # AI integration (Whisper, agents)
-│       └── olaf_navigation/    # SLAM, navigation stack
+│       ├── expression_engine/  # Phase 2: subscribes to olaf_companion's 4
+│       │                       #   canonical topics, renders on the body
+│       │                       #   (replaced olaf_personality — Phase 2 SCP)
+│       ├── olaf_ai/            # (deferred) STT/agents now in olaf_companion
+│       └── olaf_navigation/    # SLAM, navigation stack (deferred)
 │
 ├── scripts/                    # System-wide automation
 │   ├── setup/                  # Environment setup

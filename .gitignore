@@ -7,8 +7,17 @@
 # Ignore content drafts (LinkedIn posts, videos, etc.)
 .content/
 
-# Archive folder for old project files
-archive/
+# Archive folder for old project files (ad-hoc scratch — ignored).
+# archive/ros2/ ALSO holds a pre-existing prior workspace (build/install/log/src)
+# which must stay ignored. So we ignore contents level-by-level and re-include
+# ONLY the three subtrees the Phase 2 re-scope intentionally archived.
+# See docs/sprint-change-proposal-2026-05-15.md.
+archive/*
+!archive/ros2/
+archive/ros2/*
+!archive/ros2/olaf_interfaces/
+!archive/ros2/olaf_drivers/
+!archive/ros2/olaf_bringup/
 
 # Python
 __pycache__/

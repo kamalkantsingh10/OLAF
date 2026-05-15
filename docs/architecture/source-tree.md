@@ -16,10 +16,12 @@ modules/{module}/wiring.md     # Wiring diagrams and pin assignments
 
 ### ROS2 Development
 ```
-ros2/src/olaf_drivers/         # Hardware driver nodes
+ros2/src/olaf_drivers/         # Hardware driver logic (head_ears/neck/base/torso)
 ros2/src/olaf_bringup/         # Launch files
-ros2/src/olaf_personality/     # Personality coordination
-ros2/src/olaf_ai/              # AI integration
+ros2/src/expression_engine/    # Phase 2: subscribes to olaf_companion's 4
+                               #   canonical topics, renders on the body
+                               #   (replaced olaf_personality — Phase 2 SCP)
+ros2/src/olaf_ai/              # (deferred) STT/agents now in olaf_companion
 ```
 
 ### System Tools

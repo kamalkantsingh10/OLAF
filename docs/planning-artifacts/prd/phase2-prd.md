@@ -15,7 +15,7 @@ Phase 2 makes the OLAF **avatar** visibly alive by rendering the companion AI's 
 
 ### Background Context
 
-The sibling project `olaf_companion` finalized its publisher contract at `schema_version=3` on 2026-05-10, moving all renderer mapping out of the publisher and onto the body side, and collapsing the AI→body interface to four typed ROS 2 topics (`mood`, `activity`, `speech_emotion`, `vocalization`). OLAF's pre-existing per-module expression surface predated that contract and was retired via the approved **Sprint Change Proposal 2026-05-15** (`docs/sprint-change-proposal-2026-05-15.md`).
+The sibling project `olaf_companion` finalized its publisher contract at `schema_version=3` on 2026-05-10, moving all renderer mapping out of the publisher and onto the body side, and collapsing the AI→body interface to four typed ROS 2 topics (`mood`, `activity`, `speech_emotion`, `vocalization`). OLAF's pre-existing per-module expression surface predated that contract and was retired via the approved **Sprint Change Proposal 2026-05-15** (`docs/planning-artifacts/sprint-change-proposal-2026-05-15.md`).
 
 Phase 1 (hardware foundation, drivers, firmware, calibration) is **complete and unchanged**. Phase 2 is the body's consumer side of the wire. The architectural posture is **producer-agnostic and subscribe-only**: the engine consumes typed events on a configurable DDS domain, runs entirely on its own hardware loop, and never reaches back into the pipeline. The line between the two projects is the wire (`schema_version=3`, `EventEnvelope` + four typed payloads), authoritatively documented in the companion's `olaf-embodiment-brief.md` (Appendix A).
 
@@ -275,9 +275,9 @@ As the maintainer, I want the engine to run as a robust long-lived service.
 
 ## Next Steps / Handoff
 
-1. **Architecture doc (Architect):** `docs/architecture/phase2-expression-engine.md` — adapter Protocol shapes, animation tick & easing model, idle FSM, map schema spec, startup-validation sequence, layering/composition model. Incorporates companion brief Appendix B.
+1. **Architecture doc (Architect):** `docs/planning-artifacts/architecture/phase2-expression-engine.md` — adapter Protocol shapes, animation tick & easing model, idle FSM, map schema spec, startup-validation sequence, layering/composition model. Incorporates companion brief Appendix B.
 2. **Story drafting (SM):** expand Epics 6–8 stories via `create-next-story`; Story 5.3 first (it gates everything).
 3. **Implementation (Dev):** Epic 5.3 gate → 6 → 7 → 8.
 4. **Schema pin:** record the exact `olaf_companion` tag this PRD's canonical-vocabulary assumptions are pinned to before Epic 6.2.
 
-*Authoritative inputs: `docs/sprint-change-proposal-2026-05-15.md` and the companion's `olaf-embodiment-brief.md` (wire contract, Appendix A/B).*
+*Authoritative inputs: `docs/planning-artifacts/sprint-change-proposal-2026-05-15.md` and the companion's `olaf-embodiment-brief.md` (wire contract, Appendix A/B).*

@@ -1,0 +1,81 @@
+# generated: 2026-05-16T00:24:25
+# last_updated: 2026-05-16T00:24:25
+# project: OLAF
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: docs/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# PROJECT NOTES (OLAF Phase 2):
+# - Epic 5 is a HARD GATE. Stories 5.1 + 5.2 were executed during SCP approval
+#   (2026-05-15) and are recorded 'done'. Story 5.3 (per-driver hardware
+#   verification) is the open gate — Epics 6, 7, 8 MUST NOT start until 5.3 is done.
+# - Sequencing is strictly linear: Epic 5 → 6 → 7 → 8.
+
+generated: 2026-05-16T00:24:25
+last_updated: 2026-05-16T00:48:00
+project: OLAF
+project_key: NOKEY
+tracking_system: file-system
+story_location: docs/implementation-artifacts
+
+development_status:
+  # ── Epic 5: Restructure & Driver Verification (hard gate) ──
+  epic-5: in-progress
+  5-1-execute-restructure: done
+  5-2-documentation-redirect: done
+  5-3-per-driver-hardware-verification: in-progress
+  epic-5-retrospective: optional
+
+  # ── Epic 6: Expression Engine ──
+  epic-6: in-progress
+  6-1-subscriber-schema-3-envelope-validation: ready-for-dev
+  6-2-map-loader-vocabulary-completeness: ready-for-dev
+  6-3-animation-loop: ready-for-dev
+  6-4-reference-expression-end-to-end-freezes-the-schema: ready-for-dev
+  6-5-idle-behaviour: ready-for-dev
+  6-6-real-led-adapter-breath-led: ready-for-dev
+  6-7-service-hardening: ready-for-dev
+  epic-6-retrospective: optional
+
+  # ── Epic 7: Expression Authoring & Finalization ──
+  epic-7: backlog
+  7-1-author-finalize-the-speech-emotions: backlog
+  7-2-author-finalize-the-vocalizations-layered-actions: backlog
+  7-3-activity-to-posture-mapping: backlog
+  7-4-mood-to-subtle-ambient-modifier: backlog
+  7-5-locked-expression-regression-harness: backlog
+  epic-7-retrospective: optional
+
+  # ── Epic 8: Heart Display Animation ──
+  epic-8: backlog
+  8-1-mood-activity-driven-heart: backlog
+  epic-8-retrospective: optional

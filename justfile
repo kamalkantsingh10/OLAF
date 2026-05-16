@@ -1,0 +1,101 @@
+# OLAF Build System - just task runner (migrated from Makefile)
+#
+# Convenience wrapper for ROS2 and firmware build commands, abstracting
+# away the details of working across multiple subsystems.
+#
+# Usage:   just <command>      (bare `just` shows this help)
+# Example: just ros-build
+
+# Show available commands (default)
+help:
+    @echo "OLAF Build System"
+    @echo "================="
+    @echo ""
+    @echo "ROS2 Orchestration Layer:"
+    @echo "  just ros-build        Build all ROS2 packages"
+    @echo "  just ros-launch       Launch full OLAF system"
+    @echo "  just ros-test         Run ROS2 tests"
+    @echo "  just ros-clean        Clean ROS2 build artifacts"
+    @echo ""
+    @echo "Firmware Layer (ESP32):"
+    @echo "  just firmware-head    Build and upload head module firmware"
+    @echo "  just firmware-all     Build all module firmware"
+    @echo ""
+    @echo "Testing:"
+    @echo "  just test             Run all tests (ROS2 + firmware)"
+    @echo ""
+    @echo "Cleanup:"
+    @echo "  just clean            Clean all build artifacts"
+
+# ==============================================================================
+# ROS2 Commands
+# ==============================================================================
+
+# Build all ROS2 packages
+ros-build:
+    @echo "Building ROS2 packages..."
+    cd ros2 && colcon build --symlink-install
+
+# Launch the full OLAF system
+ros-launch:
+    #!/usr/bin/env bash
+    echo "Launching OLAF full system..."
+    cd ros2 && source install/setup.bash && \
+        ros2 launch orchestrator olaf_full.launch.py
+
+# Run ROS2 tests
+ros-test:
+    @echo "Running ROS2 tests..."
+    cd ros2 && colcon test
+
+# Clean ROS2 build artifacts
+ros-clean:
+    @echo "Cleaning ROS2 build artifacts..."
+    rm -rf ros2/build ros2/install ros2/log
+
+# ==============================================================================
+# Firmware Commands
+# ==============================================================================
+
+# Build and upload head module firmware
+firmware-head:
+    @echo "Building and uploading head module firmware..."
+    cd firmware/head && pio run -t upload
+
+# Build all module firmware
+firmware-all:
+    #!/usr/bin/env bash
+    echo "Building all module firmware..."
+    for module in head ears-neck body base; do
+        if [ -f firmware/$module/platformio.ini ]; then
+            echo "Building $module..."
+            (cd firmware/$module && pio run)
+        else
+            echo "Skipping $module (no platformio.ini found)"
+        fi
+    done
+
+# ==============================================================================
+# Testing Commands
+# ==============================================================================
+
+# Run all tests (ROS2 + firmware)
+test: ros-test
+    @echo "✅ All tests complete"
+    @echo "Note: Firmware tests not yet implemented"
+
+# ==============================================================================
+# Cleanup Commands
+# ==============================================================================
+
+# Clean all build artifacts (ROS2 + firmware)
+clean: ros-clean
+    #!/usr/bin/env bash
+    echo "Cleaning firmware build artifacts..."
+    for module in head ears-neck body base; do
+        if [ -d firmware/$module/.pio ]; then
+            echo "Cleaning $module/.pio..."
+            rm -rf firmware/$module/.pio
+        fi
+    done
+    echo "✅ All build artifacts cleaned"

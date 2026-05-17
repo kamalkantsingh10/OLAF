@@ -88,12 +88,17 @@ def run_sequence(
     sequence: list[tuple[str, dict]] | None = None,
     gap_s: float = 1.0,
     hold_s: float = 4.0,
+    manage_rclpy: bool = True,
 ) -> None:
     """Publish ``sequence`` once on the configured topics, then hold.
 
     Used by the AC#1 end-to-end hardware run. ``hold_s`` keeps the
     process (and its latched mood/activity) alive so the engine's
     render loop has time to ease into the target on real servos.
+
+    ``manage_rclpy=False`` when embedded alongside an engine that
+    already owns the rclpy context (the harness): skip init/shutdown
+    so we don't double-init or tear down the engine's context.
     """
     import rclpy
     from rclpy.node import Node
@@ -107,7 +112,8 @@ def run_sequence(
     }
     sequence = sequence or HAPPY_REFERENCE_SEQUENCE
 
-    rclpy.init()
+    if manage_rclpy:
+        rclpy.init()
     node = Node("mock_companion_publisher")
     pubs = {
         key: node.create_publisher(String, name, _qos(key))
@@ -129,7 +135,7 @@ def run_sequence(
             rclpy.spin_once(node, timeout_sec=0.1)
     finally:
         node.destroy_node()
-        if rclpy.ok():
+        if manage_rclpy and rclpy.ok():
             rclpy.shutdown()
 
 

@@ -79,7 +79,8 @@ def main() -> None:
     pub = threading.Thread(
         target=run_sequence,
         kwargs={"sequence": HAPPY_REFERENCE_SEQUENCE,
-                "gap_s": 1.0, "hold_s": 8.0},
+                "gap_s": 1.0, "hold_s": 8.0,
+                "manage_rclpy": False},  # engine owns the rclpy context
         daemon=True,
     )
     pub.start()

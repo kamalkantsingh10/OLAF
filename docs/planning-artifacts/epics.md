@@ -109,9 +109,14 @@ Populate and lock the full emotional vocabulary against the frozen schema, seede
 Add the secondary heart surface once core body language is finalized: mood/activity-driven heart on the 4" Pi display.
 **FRs covered:** FR12.
 
+### Epic 9: Hardening
+
+Cross-cutting robustness epic. Collects reliability defects surfaced during execution that are out of scope for the linear feature epics. First entry: the Pi/ESP32 I2C boot-order race discovered during Story 5.3 (the head ESP32 is absent from the bus until it finishes its independent boot, so any command sent before then is silently lost).
+**FRs covered:** none (robustness); relates NFR11.
+
 ### Sequencing & Dependencies
 
-Strictly linear: 5 -> 6 -> 7 -> 8. Story 5.3 is a hard gate blocking Epics 6-8. No dependency on the companion's implementation — develop against schema-3 with the FR14 mock publisher.
+Strictly linear: 5 -> 6 -> 7 -> 8. Story 5.3 is a hard gate blocking Epics 6-8. No dependency on the companion's implementation — develop against schema-3 with the FR14 mock publisher. **Epic 9 (Hardening) is NOT on the linear critical path** — it is a non-blocking backlog epic; its stories are scheduled independently and recommended before production but do not gate feature epics.
 
 ## Epic 5: Restructure & Driver Verification (hard gate)
 
@@ -484,3 +489,34 @@ So that the secondary surface reinforces the body's emotional state.
 **Given** finalized heart states
 **When** the regression harness runs
 **Then** heart output is asserted alongside pose/LED/eye (NFR10, AR14).
+
+## Epic 9: Hardening
+
+Cross-cutting robustness epic for reliability defects discovered during execution that fall outside the linear feature epics. Non-blocking backlog — does not gate Epics 6-8. Stories are added here as systemic issues are surfaced and scheduled independently.
+
+### Story 9.1: Harmonize boot of all interfaces and ESP32s
+
+As the maintainer,
+I want the engine/drivers to wait for every ESP32 and I2C interface to be ready before commanding it,
+So that the avatar does not silently lose commands when the Pi and an ESP32 boot independently.
+
+**Context:** Discovered in Story 5.3. The Pi and each ESP32 power on and boot independently. If the Pi opens the I2C bus and sends commands before an ESP32 has registered as a slave, the device is absent from the bus (e.g. head `0x08` missing from `i2cdetect`; writes return Errno 121) and every command is silently lost with no error surfaced to the engine. The 5.3 workaround was a manual re-scan after the ESP32 finished booting — not acceptable for an always-on avatar.
+
+**Acceptance Criteria:**
+
+**Given** the Pi has booted but an ESP32 has not yet registered on the I2C bus
+**When** a driver/adapter attempts its first command
+**Then** it waits for and detects device readiness (presence/handshake) rather than silently losing the write
+**And** it surfaces a clear, logged error if a device never appears within a bounded timeout.
+
+**Given** all ESP32s and I2C interfaces (head, and any future ESP32 such as base)
+**When** the engine starts
+**Then** a single reusable readiness/handshake mechanism gates commanding for every interface, not a head-only special case.
+
+**Given** an ESP32 that reboots or drops off the bus mid-session
+**When** it returns
+**Then** the driver re-establishes readiness and resumes commanding without a full engine restart.
+
+**Given** the boot-handshake mechanism
+**When** the head/eye, neck, and ears paths are exercised from a cold, simultaneous Pi+ESP32 power-on
+**Then** observable correct output is produced with no manual re-scan step.

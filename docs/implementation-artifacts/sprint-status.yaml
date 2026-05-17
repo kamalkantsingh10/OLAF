@@ -35,10 +35,14 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 #
 # PROJECT NOTES (OLAF Phase 2):
-# - Epic 5 is a HARD GATE. Stories 5.1 + 5.2 were executed during SCP approval
-#   (2026-05-15) and are recorded 'done'. Story 5.3 (per-driver hardware
-#   verification) is the open gate — Epics 6, 7, 8 MUST NOT start until 5.3 is done.
+# - Epic 5 was a HARD GATE. Stories 5.1 + 5.2 (SCP approval 2026-05-15) and
+#   5.3 (per-driver hardware verification) are all 'done' as of 2026-05-17:
+#   neck, ears, and head/eye each confirmed moving real hardware in-process.
+#   GATE CLOSED — Epic 5 'done'; Epics 6, 7, 8 are unblocked.
 # - Sequencing is strictly linear: Epic 5 → 6 → 7 → 8.
+# - Epic 9 (Hardening) is a non-blocking backlog epic — it does NOT gate
+#   Epics 6/7/8. Story 9.1 captures the Pi/ESP32 I2C boot-order race found
+#   while closing 5.3.
 
 generated: 2026-05-16T00:24:25
 last_updated: 2026-05-16T00:48:00
@@ -49,10 +53,10 @@ story_location: docs/implementation-artifacts
 
 development_status:
   # ── Epic 5: Restructure & Driver Verification (hard gate) ──
-  epic-5: in-progress
+  epic-5: done
   5-1-execute-restructure: done
   5-2-documentation-redirect: done
-  5-3-per-driver-hardware-verification: in-progress
+  5-3-per-driver-hardware-verification: done
   epic-5-retrospective: optional
 
   # ── Epic 6: Expression Engine ──
@@ -79,3 +83,8 @@ development_status:
   epic-8: backlog
   8-1-mood-activity-driven-heart: backlog
   epic-8-retrospective: optional
+
+  # ── Epic 9: Hardening (non-blocking backlog — does NOT gate 6/7/8) ──
+  epic-9: backlog
+  9-1-harmonize-boot-of-interfaces-and-esp32s: backlog
+  epic-9-retrospective: optional

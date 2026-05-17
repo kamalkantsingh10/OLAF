@@ -1,0 +1,9 @@
+# Webcam capture convention (Epic 7 expression verification).
+# Stills are tracked (small, useful as authoring evidence).
+# Video is NOT tracked (multi-MB/sec → git bloat); it stays here
+# locally for review and frame-extraction but is git-ignored.
+*.avi
+*.mp4
+*.mkv
+*.mov
+bot_*.jpg

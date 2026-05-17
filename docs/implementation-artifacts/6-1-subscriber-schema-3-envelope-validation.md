@@ -1,6 +1,6 @@
 # Story 6.1: Subscriber + schema-3 envelope validation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

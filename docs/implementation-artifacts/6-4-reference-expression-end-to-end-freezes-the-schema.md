@@ -1,6 +1,6 @@
 # Story 6.4: Reference expression end-to-end (freezes the schema)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -181,3 +181,4 @@ _Adversarial code review 2026-05-17 (Blind Hunter + Edge Case Hunter + Acceptanc
 ### Change Log (review)
 
 - 2026-05-17 — Adversarial code review (Blind + Edge + Acceptance, Opus) of `dce46a7^..b62fbec`. 14 patch findings applied (commit `7f7939e`), 1 decision-needed deferred to Story 6.5 (speech-overlay/mood decay), 2 deferred (test-harness), ~6 dismissed. 116 tests green (15 new hardening regressions), production E/F/W clean. **Status held at `review` (NOT auto-`done`): the patches modified the hardware-proven path (§9 order, neck clamp, eye-wake-now-fatal, anticipatory floor, gesture release) — Story 6.4's AC#1 was proven at `0f43dfa`, before these. A short hardware re-verify of the reference `happy` run is required before this story is `done`, to keep the freeze honest.**
+- 2026-05-17 — **Post-hardening hardware re-verify PASSED @ `68a71a7`** (Kamal-confirmed: reference `happy` renders identically to the proven baseline — neck 16°, ears = EMOTION_HAPPY, eyes happy, no spurious clamp). The re-verify caught one integration regression (the §9 refactor left `e2e_reference_run.py` not calling `wire_subscriptions()`; fixed `68a71a7`) — exactly why status was held. 14 review patches confirmed non-regressing. **Story 6.4 → `done`; the §4/§5.2 freeze stands.**

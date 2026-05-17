@@ -69,7 +69,16 @@ class EyeAdapter:
     def connect(self) -> None:
         self._client = self._factory()
         self._client.open()
-        log_event(logging.INFO, "eye_adapter_connected")
+        # The Head ESP32 BOOTS ASLEEP and ignores set_expression until
+        # explicitly woken (REG_SYSTEM_STATUS "woke_up"; known Pi/ESP32
+        # boot-order gotcha). Without this the eyes stay closed.
+        # Activity-driven sleep/wake mapping is Story 7.3; here we just
+        # ensure the device is responsive for rendering.
+        woke = False
+        set_status = getattr(self._client, "set_system_status", None)
+        if callable(set_status):
+            woke = bool(set_status("woke_up"))
+        log_event(logging.INFO, "eye_adapter_connected", woke_up=woke)
 
     def close(self) -> None:
         if self._client is not None:

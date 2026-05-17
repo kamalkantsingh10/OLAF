@@ -1,8 +1,11 @@
-"""Adapter Protocols — Story 6.3 Task 1 (architecture §4).
+"""Adapter Protocols — architecture §4.
 
-⚠️ PROPOSED here, FROZEN by Story 6.4. Verbatim from architecture §4.
-Concrete adapters wrap the real Phase-1 driver classes (6.4/6.6/8.1);
-this story only needs the structural surface + test doubles.
+🔒 FROZEN — 2026-05-17, Story 6.4, proven on real hardware @ commit
+`0f43dfa` (reference `happy` rendered end-to-end on neck + ears +
+eyes). These signatures are LOCKED: Epic 7 authors expression content
+only and adds NO Protocol changes. Any change is a documented
+architecture amendment (§4) with re-proof on hardware. Proposed in
+Story 6.3; concrete adapters (neck/ears/eye) added + proven in 6.4.
 
 The defining distinction (AR1, §2):
   - Continuous (neck, ears): the engine interpolates per tick and

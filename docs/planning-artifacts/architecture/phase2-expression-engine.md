@@ -75,6 +75,8 @@ Inspection of the Phase 1 drivers (grounding, not assumption) yields two adapter
 
 ## 4. Adapter Protocols (the contract that freezes in Story 6.4)
 
+> 🔒 **FROZEN — 2026-05-17, Story 6.4, proven on real hardware @ commit `0f43dfa`.** The three Protocols (`ContinuousAdapter`, `DelegatingAdapter`, `SurfaceAdapter`) + `SurfaceFrame` in `ros2/src/expression_engine/expression_engine/adapters/base.py` are LOCKED. Concrete `neck`/`ears`/`eye` adapters were instantiated and the reference `happy` expression rendered end-to-end on neck + ears + eyes (mock publisher → engine → real drivers). **Epic 7 authors expression *content* only — no Protocol signature changes.** Any post-freeze change is a documented amendment with re-proof on hardware.
+
 `adapters/base.py` — structural `typing.Protocol`s. Concrete adapters wrap the real Phase 1 driver classes; signatures below are grounded in the actual driver APIs.
 
 ```python
@@ -150,6 +152,8 @@ ACTIVITY  → base posture (held)            e.g. listening = upright
 Disambiguation is **by topic, not by name** — `mood.happy` and `speech_emotion.happy` are different keys with different renders (brief #4). The render loop resolves: `target = compose(activity_base, mood_bias, speech_overlay, active_vocalization)`.
 
 ### 5.2 Schema (frozen by Story 6.4 — Epic 7 authors against this, no schema changes)
+
+> 🔒 **FROZEN — 2026-05-17, Story 6.4, proven on real hardware @ commit `0f43dfa`.** The `expression_map.yaml` key structure (pose `neck`/`ears`; `eye`; `led`/`heart`; `mood` lean/led bias; `activity` incl. nested `working`; `speech_emotion`; `vocalization`= `{visible_only}`; `defaults`) and the §5.1 layering/composition order are LOCKED, AS AMENDED in §5.2-Amendment below. The reference `speech_emotion: happy` (seeded from `EMOTION_HAPPY`) composed correctly across activity+mood+speech layers and rendered on hardware. **Epic 7 authors *content* (entry values) only — no key-structure changes.** `schema_version` stays `1`. Timing/values in `expression_engine.toml` are NOT part of this freeze (tunable, NFR3). Post-freeze structural change = documented amendment + hardware re-proof.
 
 ```yaml
 schema_version: 1                  # engine map's own version, independent of pipeline
@@ -305,4 +309,4 @@ Single Pi 5, co-located with the pipeline over loopback DDS (NFR9). systemd unit
 
 ---
 
-*Next: SM expands Epic 6 stories against §3–§9; Dev implements after the Epic 5.3 gate. The Protocols (§4) and map schema (§5) are the freeze points — change them only via a documented amendment. **Pre-freeze reconciliation applied 2026-05-17** (see §5.2-Amendment + the §4 `SurfaceFrame` note); Story 6.4 freezes §4 and §5.2 **as amended**.*
+*Next: SM expands Epic 6 stories against §3–§9; Dev implements after the Epic 5.3 gate. The Protocols (§4) and map schema (§5) are the freeze points — change them only via a documented amendment. **Pre-freeze reconciliation applied 2026-05-17** (see §5.2-Amendment + the §4 `SurfaceFrame` note). **🔒 FROZEN 2026-05-17 — Story 6.4 proved the reference `happy` expression end-to-end on real hardware @ commit `0f43dfa`; §4 Protocols and §5.2 schema (as amended) are LOCKED. Epic 7 = content only.***

@@ -67,6 +67,7 @@ def _envelope(payload: dict, version: int = 3) -> str:
 class TestSubscriptions:  # AC #1
     def test_creates_exactly_four_subscriptions(self, ros):
         node = ExpressionEngineNode(CFG, MAP)
+        node.wire_subscriptions()  # §9: subscriptions created post-connect
         try:
             names = {
                 s.topic_name for s in node._subscriptions_held
@@ -80,6 +81,7 @@ class TestSubscriptions:  # AC #1
 class TestSubscribeOnlyInvariant:  # AC #4 — FR3
     def test_no_publisher_on_the_four_topics(self, ros):
         node = ExpressionEngineNode(CFG, MAP)
+        node.wire_subscriptions()  # §9: subscriptions created post-connect
         try:
             pubs = node.get_publisher_names_and_types_by_node(
                 node.get_name(), node.get_namespace()
@@ -99,6 +101,7 @@ class TestValidEventReachesState:  # AC #2 (integration, DDS loopback)
     def test_valid_mood_event_lands_in_state(self, ros):
         """A valid schema-3 mood event round-trips into EngineState."""
         node = ExpressionEngineNode(CFG, MAP)
+        node.wire_subscriptions()  # §9: subscriptions created post-connect
         pub_node = rclpy.create_node("test_pub")
         latched = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -152,6 +155,7 @@ class TestSchemaVersionExitsNonZero:  # AC #3
             emap = load_expression_map(_default_map_path())
             rclpy.init()
             node = ExpressionEngineNode(cfg, emap)
+            node.wire_subscriptions()
             pub_node = rclpy.create_node("bad_pub")
             qos = QoSProfile(reliability=ReliabilityPolicy.RELIABLE,
                              durability=DurabilityPolicy.TRANSIENT_LOCAL,

@@ -74,11 +74,23 @@ class EyeAdapter:
         # boot-order gotcha). Without this the eyes stay closed.
         # Activity-driven sleep/wake mapping is Story 7.3; here we just
         # ensure the device is responsive for rendering.
-        woke = False
+        # Code review 2026-05-17: a failed/absent wake is a CONNECT
+        # FAILURE, not an INFO. An unwoken head silently renders no
+        # eyes — NFR7 says connect failure is fatal, so escalate
+        # (raises out of node.connect_adapters → §9 step 5 fatal →
+        # systemd restart) rather than starting blind.
         set_status = getattr(self._client, "set_system_status", None)
-        if callable(set_status):
-            woke = bool(set_status("woke_up"))
-        log_event(logging.INFO, "eye_adapter_connected", woke_up=woke)
+        if not callable(set_status):
+            raise RuntimeError(
+                "eye client has no set_system_status — cannot wake the "
+                "Head ESP32 (it boots asleep and ignores set_expression)"
+            )
+        if not set_status("woke_up"):
+            raise RuntimeError(
+                "Head ESP32 wake (set_system_status 'woke_up') failed — "
+                "the eyes would stay closed; failing fast (NFR7)"
+            )
+        log_event(logging.INFO, "eye_adapter_connected", woke_up=True)
 
     def close(self) -> None:
         if self._client is not None:

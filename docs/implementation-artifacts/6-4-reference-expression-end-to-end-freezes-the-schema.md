@@ -140,3 +140,40 @@ Amelia (bmad-dev-story) · claude-opus-4-7[1m] — with Winston (architect) for 
 ### Change Log
 
 - 2026-05-17 — Story 6.4: reference `happy` expression proven end-to-end on real hardware (neck+ears+eyes); `expression_map.yaml` schema (as amended) and `adapters/base.py` Protocols **FROZEN** @ commit `0f43dfa`. Added FR14 mock publisher, real neck/ears/eye adapters (+AR10 table, +ESP32 wake), e2e harness; node refactored for injectable adapters + §9 connect/close. Two defects found & fixed via the hardware run (rclpy double-init; ESP32 boots-asleep). 101 tests green. Epic 7 may now author content against the frozen schema.
+
+## Review Findings
+
+_Adversarial code review 2026-05-17 (Blind Hunter + Edge Case Hunter + Acceptance Auditor, all Opus) of commits `dce46a7^..b62fbec`, Stories 6.1–6.4. Core happy-path is sound (101 tests + hardware proof); findings are robustness/safety hardening + one scope decision._
+
+### Decision-needed (resolved)
+
+- [x] [Review][Defer→6.5] **Speech-overlay / mood TTL decay not implemented** — §3/§5.1 specify the overlay "decays to base after 3s silence"; `state.py` last-write-wins holds the last emotion's posture through silence. **Resolved 2026-05-17: deferred to Story 6.5 (idle).** Reason: this is the idle/return-to-neutral concern — `[idle] return_to_neutral_after_seconds=3.0` is literally Story 6.5's config, and Story 6.3 deliberately left an ambient-target seam for the idle FSM to substitute; architecturally coherent there, not a 6.3 gap. [render_loop.py `_compose`; state.py] (src: blind+auditor+edge)
+
+### Patch
+
+- [ ] [Review][Patch] **connect_adapters() partial failure leaks open serial/I2C handles** — neck connects (serial port open in ctor) then ears.connect() raises → main() except branch does destroy_node()+exit(1) but never close_adapters() → leaked port, systemd restart loop. The expected NFR7 fatal path is the one that leaks. [node.py:~119,~177-189] (blind+edge, High)
+- [ ] [Review][Patch] **map_loader validates key presence only, not value types/shapes** — non-numeric pose/`eye.intensity`, non-dict nested `pose`/`eye`, non-dict mood/speech/working entries, duplicate YAML keys (silent last-wins) all pass startup, then crash every 100Hz tick. Critical before Epic 7 hand-authors this file. [map_loader.py:~135-191] (edge, High)
+- [ ] [Review][Patch] **render tick: persistent exception → unbounded 100Hz log flood, zombie engine** — `_run` catches per-tick but a deterministic failure repeats forever with no circuit-breaker; journald rate-limits away the diagnostic. Add consecutive-failure escalation→fatal (NFR7). [render_loop.py:~411-419] (blind+edge, Med)
+- [ ] [Review][Patch] **Neck adapter has no range clamp (ears does)** — composed activity+mood+speech + stacked gestures (nod±14/shake±16) can command unsafe neck angles; ears clamp, neck forwards raw. Add defensive clamp + warn. [neck_adapter.py:~54-63] (edge, Med/High safety)
+- [ ] [Review][Patch] **Anticipatory: past/stale audio anchor → 1ms smooth_time → snap** — `(deadline-now)` negative → clamp 1e-3 → neck/ears snap (NFR3 "never snap" violated), no missed-window log. Floor to `_SPEECH_EASE_S` + WARN. [render_loop.py:~297-305] (blind+edge, Med)
+- [ ] [Review][Patch] **Gesture `shake` does not settle to zero → discontinuous neck-pan release** — `amp *= sin(e/attack_s·π)` keeps oscillating through the settle window; terminal offset ≠ 0, vanishes on expiry → visible neck snap. [render_loop.py:~618-632] (blind, Med)
+- [ ] [Review][Patch] **assert_schema_version: missing `schema_version` key accepted as v3** — unversioned/legacy publisher silently treated as schema-3, defeating the FR4 fail-fast intent for that contract-breach. Require field present. [schema.py:~251] (blind+edge, Med)
+- [ ] [Review][Patch] **eye_adapter: failed/false ESP32 wake is non-fatal** — `set_system_status` returning False or absent → connect "succeeds", eyes stay closed, only an INFO line; NFR7 says connect failure is fatal. Escalate failed wake. [eye_adapter.py:~77-81] (edge, Med)
+- [ ] [Review][Patch] **§9 startup order inverted** — subscriptions created in `ExpressionEngineNode.__init__` before `connect_adapters()`; frozen-doc §9 orders adapter.connect (step 5) before DDS subscribe (step 6). Reorder. [node.py:~119,~330,~410] (auditor, Med)
+- [ ] [Review][Patch] **_changed identity check → spurious eye re-fire + wake re-arm** — latched re-delivery makes a new EventEnvelope instance; `is not` treats it as change. Compare by value (frozen models support `==`). [render_loop.py:~738-743] (blind, Low)
+- [ ] [Review][Patch] **config NFR7 robustness** — `domain_id` accepts negative/>232; `servo_tick_hz` tiny→engine dead / huge→busy-spin (only `<=0` rejected); mistyped `[section]` silently all-defaults. Add bounds + warn. [config.py:~91-150] (edge, Low/Med)
+- [ ] [Review][Patch] **schema_version `"3"` string → fatal exit-loop; `3.0` float silently OK** — inconsistent; a stringly-typed version crashes the engine. Normalize numeric compare / treat type-mismatch as malformed not version-fatal. [schema.py:~252] (edge, Low)
+- [ ] [Review][Patch] **`working` submode path bypasses resolve() → no `expression.unmapped_activity` WARN** — FR13 observability gap for the working path only. [render_loop.py:~233-238] (edge, Low)
+- [ ] [Review][Patch] **_packaged_config swallows all exceptions → misleading FileNotFound** — broken/unreadable colcon install falls back to source-tree path; operator sees wrong path. Narrow except / better message. [node.py:~58-65] (blind+edge, Low)
+
+### Deferred
+
+- [x] [Review][Defer] **mock_publisher manage_rclpy=False teardown on dead context** [test/mock_publisher.py] — deferred: manual e2e hardware harness, not a production path; teardown edge only when engine hit FR4 fatal mid-run.
+- [x] [Review][Defer] **mock_publisher latched depth-1 late-join misses `waking`** [test/mock_publisher.py] — deferred: DDS semantics of the test harness; engine subscribes before publish in practice; relevant to future live-pipeline integration, not the FR14 substitute.
+
+### Dismissed (noise / false-positive / already covered)
+
+- `smooth_damp` overshoot guard "broken" — it IS the canonical Unity/Game-Programming-Gems guard; `test_smooth_damp` (no-overshoot, monotonic, 2000 iters) passes; reviewer self-acknowledged "accidentally correct".
+- SchemaVersionError propagation through `SingleThreadedExecutor.spin()` "unverified" — empirically covered: `test_subscribe_only.py::test_bad_version_message_exits_process_nonzero` is a subprocess test asserting exit 1 via the real executor on Jazzy, and it passes.
+- Blind self-withdrawn items (#2 EngineState trust, #8 os._exit ordering, #13 base envelope, #14 led_bias dead-for-now, #16 first-tick dt) — by-design / not live bugs.
+- `neutral()` all-zero vs "center_all()" — auditor explicitly confirmed functionally equivalent (drivers define centre as 0° calibrated), not a violation.

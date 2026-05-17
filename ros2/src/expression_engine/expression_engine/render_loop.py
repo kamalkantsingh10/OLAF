@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import threading
 import time
 from dataclasses import dataclass, field
@@ -41,6 +42,11 @@ _SPEECH_EASE_S = 0.15
 # Wake short-circuit: first motion must begin within 100ms (NFR1).
 _WAKE_FAST_EASE_S = 0.06
 _WAKE_WINDOW_S = 0.10
+# Circuit breaker: a deterministic per-tick failure (e.g. a bad map
+# value that slipped through) must not become an unbounded 100Hz log
+# flood + zombie engine. After this many CONSECUTIVE tick failures,
+# escalate to fatal (NFR7 — systemd restarts) instead of looping.
+_MAX_CONSECUTIVE_TICK_FAILURES = 100
 # Empirically, critically-damped smooth_damp reaches ~98% of a step in
 # ≈2.9 × smooth_time. To make the pose *arrive* (~98%) at the
 # anticipatory deadline we size smooth_time = (deadline-now)/this.
@@ -142,6 +148,9 @@ class _Gesture:
         "nod": ("tilt", 14.0),     # head nod = neck tilt
         "shake": ("pan", 16.0),    # head shake = neck pan
     }
+    #: shake oscillation count over the whole gesture (integer →
+    #: sin() is exactly 0 at total_s, so release is continuous).
+    _SHAKE_OSC = 3
 
     def __init__(self, tag: str, start: float, attack_s: float, settle_s: float):
         self.tag = tag
@@ -163,8 +172,12 @@ class _Gesture:
         else:
             amp = self.peak * (1.0 - (e - self.attack_s) / self.settle_s)
         # shake oscillates around 0; nod is a single dip-and-return.
+        # Code review 2026-05-17: the oscillator must reach EXACTLY 0
+        # at total_s or the gesture release is a discontinuous neck
+        # snap. sin(N·π·e/total_s) is 0 at e=total_s for integer N,
+        # and the linear envelope is also 0 there → continuous release.
         if self.tag == "shake":
-            amp *= math.sin(e / self.attack_s * math.pi)
+            amp *= math.sin(self._SHAKE_OSC * math.pi * e / self.total_s)
         return {self.joint: amp}
 
     def expired(self, now: float) -> bool:
@@ -231,9 +244,18 @@ class RenderLoop:
         if act is not None:
             p = act.payload
             if p.state == "working":
-                entry = self._map.activity.get("working", {}).get(
-                    p.working_submode, self._map.defaults
-                )
+                working = self._map.activity.get("working", {})
+                entry = working.get(p.working_submode)
+                if entry is None:
+                    # Mirror resolve()'s FR13 observability for the
+                    # working-submode path (code review 2026-05-17).
+                    log_event(
+                        logging.WARNING,
+                        "expression.unmapped_activity",
+                        topic="activity",
+                        name=f"working.{p.working_submode}",
+                    )
+                    entry = self._map.defaults
             else:
                 entry = self._map.resolve("activity", p.state)
             pose = entry.get("pose", {})
@@ -275,8 +297,15 @@ class RenderLoop:
     # ── per-event side effects (fire-on-change) ────────────────────
 
     def _changed(self, snap: dict, topic: str) -> object | None:
+        # Compare by VALUE, not identity (code review 2026-05-17):
+        # a latched topic re-delivered on DDS re-match is a new
+        # EventEnvelope instance with identical content — identity
+        # would spuriously re-fire the eye and re-arm the wake
+        # short-circuit. Frozen pydantic models support ==; equal
+        # content (same correlation_id/timestamp) is NOT a change,
+        # two genuinely distinct events still differ.
         evt = snap.get(topic)
-        if evt is not None and evt is not self._last_evt.get(topic):
+        if evt is not None and evt != self._last_evt.get(topic):
             self._last_evt[topic] = evt
             return evt
         return None
@@ -296,13 +325,26 @@ class RenderLoop:
                 if anchor is not None:
                     lead = self._anim.emotion_anticipatory_ms / 1000.0
                     deadline = anchor - lead
-                    # Size the ease so the pose ~arrives (≈98%) AT the
-                    # deadline → it lands `lead` ms before the audio
-                    # anchor (NFR2 anticipatory window).
-                    self._speech_smooth_s = max(
-                        1e-3,
-                        (deadline - now) / _SMOOTHDAMP_SETTLE_RATIO,
-                    )
+                    sized = (deadline - now) / _SMOOTHDAMP_SETTLE_RATIO
+                    if sized < _SPEECH_EASE_S:
+                        # Code review 2026-05-17: a stale/late anchor
+                        # (deadline already near/past) would clamp to a
+                        # ~1ms smooth_time → instant neck/ears SNAP
+                        # (NFR3 "never snap" violation) with no signal.
+                        # Floor to the normal short speech ease and log
+                        # the missed window instead of snapping.
+                        log_event(
+                            logging.WARNING,
+                            "expression.anticipatory_window_missed",
+                            audio_frame_id=fid,
+                            deadline_in_s=round(deadline - now, 4),
+                        )
+                        self._speech_smooth_s = _SPEECH_EASE_S
+                    else:
+                        # Size the ease so the pose ~arrives (≈98%) AT
+                        # the deadline → lands `lead` ms before the
+                        # audio anchor (NFR2 anticipatory window).
+                        self._speech_smooth_s = sized
 
         # activity: wake short-circuit (sleeping→waking, NFR1).
         act = self._changed(snap, "activity")
@@ -406,17 +448,35 @@ class RenderLoop:
     def _run(self) -> None:
         period = 1.0 / self._anim.servo_tick_hz
         next_t = self._clock()
+        consecutive_failures = 0
         while not self._stop.is_set():
             now = self._clock()
             try:
                 self.tick(now)
+                consecutive_failures = 0
             except Exception as exc:  # a tick must never kill the loop
+                consecutive_failures += 1
                 log_event(
                     logging.ERROR,
                     "render_tick_error",
                     error=type(exc).__name__,
                     detail=str(exc),
+                    consecutive=consecutive_failures,
                 )
+                if consecutive_failures >= _MAX_CONSECUTIVE_TICK_FAILURES:
+                    # Deterministic, unrecoverable failure — fail fast
+                    # rather than zombie (NFR7). os._exit so systemd
+                    # restarts the unit (same posture as node.main's
+                    # fatal paths); a daemon-thread raise would just be
+                    # swallowed and leave the engine alive-but-frozen.
+                    log_event(
+                        logging.CRITICAL,
+                        "render_loop_fatal",
+                        consecutive=consecutive_failures,
+                        error=type(exc).__name__,
+                        detail=str(exc),
+                    )
+                    os._exit(1)
             next_t += period
             sleep = next_t - self._clock()
             if sleep > 0:

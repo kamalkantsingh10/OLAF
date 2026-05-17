@@ -26,7 +26,10 @@ import sys
 from pathlib import Path
 
 import rclpy
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import (
+    PackageNotFoundError,
+    get_package_share_directory,
+)
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 
@@ -60,8 +63,20 @@ def _packaged_config(basename: str) -> Path:
         candidate = Path(share) / "config" / basename
         if candidate.is_file():
             return candidate
-    except Exception:  # not built/installed — dev source-tree run
-        pass
+    except PackageNotFoundError:
+        pass  # expected on a dev source-tree run (not colcon-installed)
+    except Exception as exc:
+        # A real, unexpected resolution problem (e.g. unreadable share
+        # dir) — surface it instead of silently masking it behind a
+        # misleading source-tree FileNotFoundError later (code review
+        # 2026-05-17).
+        log_event(
+            logging.WARNING,
+            "packaged_config_lookup_failed",
+            basename=basename,
+            error=type(exc).__name__,
+            detail=str(exc),
+        )
     return Path(__file__).resolve().parents[1] / "config" / basename
 
 
@@ -95,10 +110,12 @@ class ExpressionEngineNode(Node):
         # (Story 6.3) consumes it. Held here, not yet rendered.
         self.expression_map = expression_map
         self.state = EngineState()
-        # Retain handles so subscriptions are not GC'd.
-        self._subscriptions_held = create_subscriptions(
-            self, config, self.state
-        )
+        # §9 ORDER (code review 2026-05-17): subscriptions are created
+        # in `wire_subscriptions()` AFTER `connect_adapters()`, NOT in
+        # __init__. Architecture §9 puts adapter.connect (step 5)
+        # before DDS subscribe (step 6) so the engine never accepts a
+        # wire event it cannot physically render.
+        self._subscriptions_held = None
         # Adapters are injectable (Story 6.4). Default = NULL
         # placeholders so a plain `main()` is hardware-safe; the
         # end-to-end harness injects the real neck/ears/eye adapters.
@@ -116,11 +133,41 @@ class ExpressionEngineNode(Node):
             eye=self._eye,
         )
 
+    def wire_subscriptions(self) -> None:
+        """§9 step 6 — create the four subscriptions (after connect).
+
+        Idempotent; retains handles so subscriptions are not GC'd.
+        """
+        if self._subscriptions_held is None:
+            self._subscriptions_held = create_subscriptions(
+                self, self.config, self.state
+            )
+
     def connect_adapters(self) -> None:
-        """§9 step 5 — connect every adapter in sequence (fatal NFR7)."""
-        self._neck.connect()
-        self._ears.connect()
-        self._eye.connect()
+        """§9 step 5 — connect every adapter in sequence (fatal NFR7).
+
+        Rolls back on partial failure (code review 2026-05-17): if a
+        later adapter's connect raises, the already-connected ones are
+        closed before re-raising, so the fatal NFR7 path never leaks an
+        open serial/I2C handle (which would block the systemd restart).
+        """
+        connected = []
+        for adapter in (self._neck, self._ears, self._eye):
+            try:
+                adapter.connect()
+            except Exception:
+                for done in reversed(connected):
+                    try:
+                        done.close()
+                    except Exception as exc:
+                        log_event(
+                            logging.ERROR,
+                            "adapter_rollback_close_error",
+                            adapter=type(done).__name__,
+                            detail=str(exc),
+                        )
+                raise
+            connected.append(adapter)
 
     def close_adapters(self) -> None:
         """Best-effort adapter teardown (always neutral-safe in finally)."""
@@ -174,6 +221,8 @@ def main(args=None) -> None:
         topics=list(config.topics.values()),
     )
     # §9 step 5 — adapter.connect() in sequence, fatal on failure.
+    # connect_adapters() rolls back already-connected adapters; we
+    # also close defensively here so the fatal path leaks nothing.
     try:
         node.connect_adapters()
     except Exception as exc:
@@ -183,10 +232,14 @@ def main(args=None) -> None:
             error=type(exc).__name__,
             detail=str(exc),
         )
+        node.close_adapters()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
         sys.exit(1)
+
+    # §9 step 6 — subscribe to the four topics AFTER adapters are up.
+    node.wire_subscriptions()
 
     executor = SingleThreadedExecutor()
     executor.add_node(node)

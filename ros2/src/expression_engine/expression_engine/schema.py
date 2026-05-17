@@ -237,19 +237,46 @@ EVENT_MODELS: dict[str, type[EventEnvelope]] = {
 }
 
 
+_MISSING = object()
+
+
 def assert_schema_version(data: dict) -> None:
-    """Fail fast if ``data['schema_version']`` is present and not 3.
+    """Fail fast unless ``data['schema_version']`` is exactly int ``3``.
 
     Checked on the raw dict *before* typed validation so a version
-    mismatch surfaces as :class:`SchemaVersionError` (the FR4 fatal
-    path) rather than a generic pydantic error. Absent/short envelopes
-    fall through to typed validation, which rejects them (Task 5).
+    problem surfaces as :class:`SchemaVersionError` (the FR4 fatal
+    path) rather than a generic pydantic error.
+
+    Hardened (code review 2026-05-17):
+      - **Absent** ``schema_version`` is fatal. The companion always
+        sends all five envelope fields (brief §A.3); a missing version
+        is a contract breach, not a v3 default (the model default
+        exists only for standalone construction). Previously a
+        version-less publisher was silently accepted as v3 — exactly
+        the FR4 silent-drift case.
+      - A **non-int** version (e.g. the string ``"3"``) is fatal, not
+        a crash elsewhere; ``3.0`` is accepted (JSON number that
+        equals 3).
 
     Raises:
-        SchemaVersionError: ``schema_version`` is present and != 3.
+        SchemaVersionError: ``schema_version`` absent, wrong type, or
+            not equal to 3.
     """
-    version = data.get("schema_version", SUPPORTED_SCHEMA_VERSION)
-    if version != SUPPORTED_SCHEMA_VERSION:
+    version = data.get("schema_version", _MISSING)
+    if version is _MISSING:
+        raise SchemaVersionError(
+            found=None,
+            supported=SUPPORTED_SCHEMA_VERSION,
+            source=data.get("source"),
+        )
+    # bool is an int subclass — reject it explicitly. Accept int or a
+    # float that is integer-valued (JSON has no int/float distinction).
+    ok = (
+        isinstance(version, int) and not isinstance(version, bool)
+    ) or (
+        isinstance(version, float) and version.is_integer()
+    )
+    if not ok or int(version) != SUPPORTED_SCHEMA_VERSION:
         raise SchemaVersionError(
             found=version,
             supported=SUPPORTED_SCHEMA_VERSION,

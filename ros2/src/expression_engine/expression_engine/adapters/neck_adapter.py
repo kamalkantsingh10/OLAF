@@ -23,6 +23,33 @@ from expression_engine.logging_setup import log_event
 
 _JOINTS = ("pan", "tilt", "roll")
 
+# Defensive safety envelope (deg). Code review 2026-05-17: the render
+# loop sums activity + mood + speech + stacked gestures (nod ±14 /
+# shake ±16) with no upper bound; the ears adapter clamps, the neck
+# did not. The STS3215 linkage tilt/roll are mechanically limited to
+# ±20° (config/servo-ids.yaml); pan to ±90 (kept ≤80 conservative).
+# The driver also clamps the linkage internally — this is
+# defence-in-depth + an operator-visible warning, mirroring ears.
+_LIMITS = {
+    "pan": (-80.0, 80.0),
+    "tilt": (-20.0, 20.0),
+    "roll": (-15.0, 15.0),
+}
+
+
+def _clamp(joint: str, deg: float) -> float:
+    lo, hi = _LIMITS[joint]
+    c = max(lo, min(hi, deg))
+    if c != deg:
+        log_event(
+            logging.WARNING,
+            "neck_target_clamped",
+            joint=joint,
+            requested=deg,
+            clamped=c,
+        )
+    return c
+
 
 def _default_driver_factory():
     # Lazy import — only when actually connecting to hardware.
@@ -57,9 +84,9 @@ class NeckAdapter:
         # speed_pct is unused for the neck: the loop already eased the
         # per-tick delta; the driver uses its configured default speed.
         self._driver.move_pose(
-            pan=float(targets.get("pan", 0.0)),
-            tilt=float(targets.get("tilt", 0.0)),
-            roll=float(targets.get("roll", 0.0)),
+            pan=_clamp("pan", float(targets.get("pan", 0.0))),
+            tilt=_clamp("tilt", float(targets.get("tilt", 0.0))),
+            roll=_clamp("roll", float(targets.get("roll", 0.0))),
         )
 
     def neutral(self) -> dict[str, float]:

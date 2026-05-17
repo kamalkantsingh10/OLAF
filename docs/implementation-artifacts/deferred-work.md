@@ -1,0 +1,7 @@
+# Deferred Work
+
+## Deferred from: code review of 6-4-reference-expression-end-to-end (2026-05-17)
+
+- **mock_publisher manage_rclpy=False teardown on dead context** (`ros2/src/expression_engine/test/mock_publisher.py`) — when embedded and the engine hits the FR4 fatal path mid-run, the still-running publisher loop spins on a shut-down context; teardown unguarded. Manual e2e hardware harness only, not a production path. Reason: test tooling, low impact, no production exposure.
+- **mock_publisher latched depth-1 late-join misses `waking`** (`ros2/src/expression_engine/test/mock_publisher.py`) — `activity` published TRANSIENT_LOCAL depth 1; a late-joining engine sees only the last sample (`listening`), never `from_state=sleeping,state=waking`, so the NFR1 wake short-circuit can't fire on late-join. Worked in the reference run (engine subscribed before publish). Reason: DDS semantics of the FR14 substitute; revisit at live-pipeline integration.
+- **Speech-overlay / mood decay-to-base (TTL)** (`render_loop.py` `_compose` / `state.py`) — §3/§5.1 specify the speech_emotion overlay decays to base after ~3s silence; current last-write-wins holds it indefinitely. **Deferred to Story 6.5 (idle).** Reason: idle/return-to-neutral concern — `[idle] return_to_neutral_after_seconds=3.0` is 6.5's config; 6.3 left an ambient-target seam for the idle FSM to substitute. Architect to confirm §3/§5.1 wording reads as idle-FSM substitution when 6.5 is built.

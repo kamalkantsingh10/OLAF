@@ -53,6 +53,40 @@ class MapValidationError(ValueError):
     """
 
 
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """SafeLoader that REJECTS duplicate mapping keys.
+
+    Code review 2026-05-17: `yaml.safe_load` silently keeps the last
+    of duplicate keys. Epic 7 hand-authors this file; a fat-fingered
+    duplicate `happy:` would silently drop the carefully-tuned entry
+    and still pass the completeness check. Strict-at-startup (NFR5)
+    must cover the file humans edit most.
+    """
+
+
+def _no_duplicate_keys(loader, node, deep=False):  # type: ignore[no-untyped-def]
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise MapValidationError(
+                f"expression_map.yaml: duplicate key {key!r} "
+                f"(line {key_node.start_mark.line + 1}) — a duplicate "
+                f"silently drops the earlier entry; fix the map."
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeySafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicate_keys
+)
+
+
+def _is_number(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
 @dataclass(frozen=True)
 class ExpressionMap:
     """Validated, queryable map data + the FR13 fallback resolver."""
@@ -109,6 +143,104 @@ def _assert_complete(
     )
 
 
+def _check_pose(entry: dict, where: str) -> None:
+    """A `pose` block (if present) must be neck/ears dicts of numbers.
+
+    The render loop indexes `pose.neck.*` / `pose.ears.*` and feeds the
+    values straight into easing math — a string/bool/null there crashes
+    every 100Hz tick. Catch it at startup (NFR5/NFR7).
+    """
+    pose = entry.get("pose")
+    if pose is None:
+        return
+    _require(isinstance(pose, dict), f"{where}: 'pose' must be a mapping")
+    for part in ("neck", "ears"):
+        sub = pose.get(part)
+        if sub is None:
+            continue
+        _require(
+            isinstance(sub, dict),
+            f"{where}: 'pose.{part}' must be a mapping",
+        )
+        for joint, val in sub.items():
+            _require(
+                _is_number(val),
+                f"{where}: 'pose.{part}.{joint}' must be a number, "
+                f"got {val!r}",
+            )
+
+
+def _check_eye(entry: dict, where: str) -> None:
+    eye = entry.get("eye")
+    if eye is None:
+        return
+    _require(isinstance(eye, dict), f"{where}: 'eye' must be a mapping")
+    if "intensity" in eye:
+        _require(
+            _is_number(eye["intensity"]),
+            f"{where}: 'eye.intensity' must be a number, "
+            f"got {eye['intensity']!r}",
+        )
+    if "expression" in eye:
+        _require(
+            isinstance(eye["expression"], str),
+            f"{where}: 'eye.expression' must be a string",
+        )
+
+
+def _check_entries(block: dict, topic: str) -> None:
+    for name, entry in block.items():
+        where = f"expression_map.yaml: {topic}.{name}"
+        _require(isinstance(entry, dict), f"{where} must be a mapping")
+        if topic == "mood":
+            if "lean_bias" in entry:
+                _require(
+                    _is_number(entry["lean_bias"]),
+                    f"{where}: 'lean_bias' must be a number, "
+                    f"got {entry['lean_bias']!r}",
+                )
+            if "led_bias" in entry:
+                _require(
+                    isinstance(entry["led_bias"], dict),
+                    f"{where}: 'led_bias' must be a mapping",
+                )
+        else:
+            _check_pose(entry, where)
+            _check_eye(entry, where)
+
+
+def _check_defaults(defaults: dict, path: Path) -> None:
+    """`defaults` is the FR13 runtime safety-net — validate it hardest.
+
+    Every unmapped name renders this; a degenerate `defaults` would
+    silently zero the whole body with no signal.
+    """
+    w = f"{path}: defaults"
+    pose = defaults.get("pose")
+    _require(isinstance(pose, dict), f"{w}.pose must be a mapping")
+    for part in ("neck", "ears"):
+        _require(
+            isinstance(pose.get(part), dict),
+            f"{w}.pose.{part} must be a mapping",
+        )
+        for joint, val in pose[part].items():
+            _require(
+                _is_number(val),
+                f"{w}.pose.{part}.{joint} must be a number, got {val!r}",
+            )
+    eye = defaults.get("eye")
+    _require(
+        isinstance(eye, dict) and isinstance(eye.get("expression"), str)
+        and _is_number(eye.get("intensity")),
+        f"{w}.eye must have a string 'expression' and numeric 'intensity'",
+    )
+    for k in ("led", "heart"):
+        _require(
+            isinstance(defaults.get(k), dict),
+            f"{w}.{k} must be a mapping",
+        )
+
+
 def load_expression_map(path: str | Path) -> ExpressionMap:
     """Load + fully validate the map; fail fast on any startup defect.
 
@@ -124,7 +256,9 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
 
     try:
         with path.open() as fh:
-            raw = yaml.safe_load(fh)
+            raw = yaml.load(fh, Loader=_UniqueKeySafeLoader)
+    except MapValidationError:
+        raise  # duplicate-key error — already specific
     except yaml.YAMLError as exc:
         raise MapValidationError(f"invalid YAML in {path}: {exc}") from exc
 
@@ -168,6 +302,27 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
     _assert_complete(
         raw["vocalization"], schema.VOCALIZATION_TAGS, "vocalization"
     )
+
+    # Value/shape validation (code review 2026-05-17) — completeness
+    # alone let a hand-edited string/bool/null pass startup then crash
+    # every tick. Validate the FR13 safety-net + every entry's shape.
+    _check_defaults(raw["defaults"], path)
+    _check_entries(raw["mood"], "mood")
+    for state_name, entry in activity.items():
+        if state_name == "working":
+            _require(
+                isinstance(entry, dict),
+                "expression_map.yaml: activity.working must be a mapping",
+            )
+            _check_entries(entry, "activity.working")
+        else:
+            _check_entries({state_name: entry}, "activity")
+    _check_entries(raw["speech_emotion"], "speech_emotion")
+    for name, entry in raw["vocalization"].items():
+        _require(
+            isinstance(entry, dict),
+            f"expression_map.yaml: vocalization.{name} must be a mapping",
+        )
 
     # FR7 / AR8 step 4 — gesture cues are silent: visible_only MUST be
     # present AND exactly True.

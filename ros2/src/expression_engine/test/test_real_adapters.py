@@ -70,6 +70,10 @@ class FakeEyeClient:
     def close(self):
         self.closed = True
 
+    def set_system_status(self, status):
+        self.status = status  # real HeadI2CClient has this; wake = woke_up
+        return True
+
     def set_expression(self, expr, intensity=3):
         self.expressions.append((expr, intensity))
         return True

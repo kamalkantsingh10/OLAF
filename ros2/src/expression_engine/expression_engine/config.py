@@ -16,8 +16,11 @@ subscribers / state) are unchanged.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
+
+from expression_engine.logging_setup import log_event
 
 try:  # Python 3.11+ (Jazzy / Ubuntu 24.04 runs 3.12)
     import tomllib
@@ -93,6 +96,14 @@ def load_config(path: str | Path) -> EngineConfig:
         raise ValueError(
             f"{path}: [dds].domain_id must be an int, got {domain_id!r}"
         )
+    # DDS domain IDs are 0..232 (code review 2026-05-17). An
+    # out-of-range value otherwise surfaces as an obscure rmw error or
+    # — worse — the engine silently joins no domain and hears nothing
+    # while looking alive. Fail fast (NFR7).
+    if not 0 <= domain_id <= 232:
+        raise ValueError(
+            f"{path}: [dds].domain_id must be 0..232, got {domain_id}"
+        )
 
     topics_section = raw.get("topics")
     if not isinstance(topics_section, dict):
@@ -107,11 +118,34 @@ def load_config(path: str | Path) -> EngineConfig:
             )
         topics[key] = name
 
+    # NFR7 — surface a mistyped section/key (e.g. [animatoin]) rather
+    # than silently running on defaults (code review 2026-05-17).
+    unknown = sorted(set(raw) - _KNOWN_TOP_LEVEL)
+    if unknown:
+        log_event(
+            logging.WARNING,
+            "config_unknown_top_level_keys",
+            keys=unknown,
+            hint="typo? these tables/keys are ignored",
+        )
+
     return EngineConfig(
         domain_id=domain_id,
         topics=topics,
         animation=_parse_animation(raw.get("animation")),
     )
+
+
+#: Recognised top-level toml keys (architecture §8). Anything else is
+#: likely a typo and is warned about (NFR7 no-silent-misconfig).
+_KNOWN_TOP_LEVEL = {
+    "schema_version",
+    "dds",
+    "topics",
+    "hardware",
+    "animation",
+    "idle",
+}
 
 
 def _parse_animation(section: object) -> AnimationConfig:
@@ -147,5 +181,26 @@ def _parse_animation(section: object) -> AnimationConfig:
             raise ValueError(
                 f"[animation].{field_name} must be > 0, got {raw_val!r}"
             )
+        # Sane upper bounds (code review 2026-05-17). Without these,
+        # servo_tick_hz=0.001 → ~1000s/tick (engine alive but frozen)
+        # and servo_tick_hz=1e5 → busy-spin at 100% CPU. The most
+        # safety-relevant tunable must be range-checked (NFR7).
+        lo, hi = _ANIM_BOUNDS[field_name]
+        if not lo <= raw_val <= hi:
+            raise ValueError(
+                f"[animation].{field_name} must be in [{lo}, {hi}], "
+                f"got {raw_val!r}"
+            )
         values[field_name] = float(raw_val)
     return AnimationConfig(**values)
+
+
+#: Sane operating ranges for the tunable timing values.
+_ANIM_BOUNDS = {
+    "servo_tick_hz": (1.0, 1000.0),
+    "led_tick_hz": (1.0, 240.0),
+    "mood_ease_seconds": (0.05, 60.0),
+    "emotion_anticipatory_ms": (0.0, 1000.0),
+    "gesture_attack_ms": (1.0, 5000.0),
+    "gesture_settle_ms": (1.0, 10000.0),
+}

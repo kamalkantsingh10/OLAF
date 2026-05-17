@@ -45,7 +45,7 @@
 #   while closing 5.3.
 
 generated: 2026-05-16T00:24:25
-last_updated: 2026-05-17T08:30:00
+last_updated: 2026-05-17T09:00:00
 project: OLAF
 project_key: NOKEY
 tracking_system: file-system
@@ -71,8 +71,8 @@ development_status:
   epic-6-retrospective: optional
 
   # ── Epic 7: Expression Authoring & Finalization ──
-  epic-7: backlog
-  7-1-author-finalize-the-speech-emotions: backlog
+  epic-7: in-progress
+  7-1-author-finalize-the-speech-emotions: ready-for-dev
   7-2-author-finalize-the-vocalizations-layered-actions: backlog
   7-3-activity-to-posture-mapping: backlog
   7-4-mood-to-subtle-ambient-modifier: backlog

@@ -69,8 +69,9 @@ def main() -> None:
         ears=EarsAdapter(),
         eye=EyeAdapter(),
     )
-    node.connect_adapters()
-    node.render_loop.start()
+    node.connect_adapters()      # §9 step 5
+    node.wire_subscriptions()    # §9 step 6 (after connect — must not skip)
+    node.render_loop.start()     # §9 step 7
     executor = SingleThreadedExecutor()
     executor.add_node(node)
 

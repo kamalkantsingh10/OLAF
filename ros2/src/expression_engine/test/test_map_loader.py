@@ -1,0 +1,249 @@
+"""Story 6.2 — expression_map.yaml loader + vocabulary completeness.
+
+AC#1 loader reads the packaged map. AC#2 incomplete vocabulary vs the
+pinned canonical set is startup-fatal. AC#3 nod/shake must be
+visible_only:true. AC#4/NFR5 a synthetic added entry loads with NO
+code change. AC#5/FR13 an unknown runtime name → WARN + default_*,
+never raises.
+
+Strict-at-startup vs graceful-at-runtime asymmetry IS the design
+(Dev Notes) — these tests pin both halves.
+"""
+
+import logging
+import os
+import subprocess
+import sys
+import textwrap
+from pathlib import Path
+from typing import get_args
+
+import pytest
+import yaml
+
+from expression_engine import schema
+from expression_engine.map_loader import (
+    ExpressionMap,
+    MapValidationError,
+    load_expression_map,
+)
+
+PKG = Path(__file__).resolve().parents[1]
+PACKAGED_MAP = PKG / "config" / "expression_map.yaml"
+
+
+@pytest.fixture()
+def valid_map_dict():
+    with PACKAGED_MAP.open() as fh:
+        return yaml.safe_load(fh)
+
+
+def _write(tmp_path, data) -> Path:
+    p = tmp_path / "expression_map.yaml"
+    p.write_text(yaml.safe_dump(data))
+    return p
+
+
+# ── AC#1 — loads the packaged map ───────────────────────────────────
+
+
+class TestLoadsPackagedMap:
+    def test_returns_expression_map(self):
+        m = load_expression_map(PACKAGED_MAP)
+        assert isinstance(m, ExpressionMap)
+
+    def test_pinned_tag_matches_schema(self):
+        m = load_expression_map(PACKAGED_MAP)
+        assert m.pinned_companion_tag == schema.PINNED_COMPANION_TAG
+
+    def test_defaults_resolved(self):
+        m = load_expression_map(PACKAGED_MAP)
+        for k in ("pose", "eye", "led", "heart"):
+            assert k in m.defaults
+
+    def test_missing_file_raises(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            load_expression_map(tmp_path / "absent.yaml")
+
+    def test_malformed_yaml_raises(self, tmp_path):
+        bad = tmp_path / "expression_map.yaml"
+        bad.write_text("key: : : [unbalanced")
+        with pytest.raises(MapValidationError):
+            load_expression_map(bad)
+
+    def test_missing_top_level_key_fatal(self, tmp_path, valid_map_dict):
+        del valid_map_dict["defaults"]
+        with pytest.raises(MapValidationError):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_pinned_tag_mismatch_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["pinned_companion_tag"] = "v2.9.9"
+        with pytest.raises(MapValidationError):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+
+# ── AC#2 — completeness vs pinned canonical set ─────────────────────
+
+
+class TestCompletenessFatal:
+    def test_all_canonical_names_present_in_packaged_map(self):
+        m = load_expression_map(PACKAGED_MAP)
+        assert set(m.mood) >= set(get_args(schema.Mood))
+        assert set(m.activity) >= set(get_args(schema.ActivityState))
+        assert set(m.activity["working"]) >= set(get_args(schema.WorkingSubmode))
+        assert set(m.speech_emotion) >= set(schema.SPEECH_EMOTION_CANONICAL)
+        assert set(m.vocalization) >= set(schema.VOCALIZATION_TAGS)
+
+    def test_missing_mood_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["mood"].pop("grumpy")
+        with pytest.raises(MapValidationError, match="grumpy"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_missing_activity_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["activity"].pop("waking")
+        with pytest.raises(MapValidationError, match="waking"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_missing_working_submode_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["activity"]["working"].pop("thinking")
+        with pytest.raises(MapValidationError, match="thinking"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_missing_speech_emotion_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["speech_emotion"].pop("melancholic")
+        with pytest.raises(MapValidationError, match="melancholic"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_missing_vocalization_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"].pop("gasp")
+        with pytest.raises(MapValidationError, match="gasp"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+
+# ── AC#3 — visible_only invariant on nod & shake (FR7) ──────────────
+
+
+class TestVisibleOnlyInvariant:
+    def test_nod_missing_visible_only_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["nod"] = {}
+        with pytest.raises(MapValidationError, match="nod"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_shake_visible_only_false_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["shake"] = {"visible_only": False}
+        with pytest.raises(MapValidationError, match="shake"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_packaged_nod_shake_visible_only_true(self):
+        m = load_expression_map(PACKAGED_MAP)
+        assert m.vocalization["nod"]["visible_only"] is True
+        assert m.vocalization["shake"]["visible_only"] is True
+
+
+# ── AC#4 / NFR5 — synthetic added entry, NO code change ─────────────
+
+
+class TestExtensibilityNFR5:
+    def test_synthetic_extra_speech_emotion_loads(self, tmp_path, valid_map_dict):
+        # A name beyond the pinned canonical set is ACCEPTED (forward-
+        # compat); proves vocabulary growth needs no Python change.
+        valid_map_dict["speech_emotion"]["ecstatic"] = {
+            "pose": {"neck": {"tilt": 12}, "ears": {"left_tilt": 20, "right_tilt": 20}},
+            "eye": {"expression": "ecstatic", "intensity": 5},
+            "led_overlay": "bright",
+        }
+        m = load_expression_map(_write(tmp_path, valid_map_dict))
+        assert "ecstatic" in m.speech_emotion
+        assert m.speech_emotion["ecstatic"]["eye"]["expression"] == "ecstatic"
+
+    def test_synthetic_extra_mood_loads(self, tmp_path, valid_map_dict):
+        valid_map_dict["mood"]["zen"] = {
+            "lean_bias": 1,
+            "led_bias": {"color": "#80ffd0", "intensity": 0.2},
+        }
+        m = load_expression_map(_write(tmp_path, valid_map_dict))
+        assert m.mood["zen"]["lean_bias"] == 1
+
+
+# ── AC#5 / FR13 — runtime unknown name → WARN + default, alive ──────
+
+
+class TestRuntimeFallback:
+    def test_known_name_returns_entry(self):
+        m = load_expression_map(PACKAGED_MAP)
+        assert m.resolve("mood", "calm") == m.mood["calm"]
+
+    def test_unknown_name_returns_defaults_no_raise(self):
+        # logging_setup sets propagate=False, so pytest's root-attached
+        # caplog can't see it — attach our own capture handler to the
+        # engine logger instead.
+        records: list[logging.LogRecord] = []
+        sink = logging.Handler()
+        sink.emit = records.append  # type: ignore[method-assign]
+        engine_log = logging.getLogger("expression_engine")
+        engine_log.addHandler(sink)
+        try:
+            m = load_expression_map(PACKAGED_MAP)
+            out = m.resolve("speech_emotion", "no_such_emotion")
+        finally:
+            engine_log.removeHandler(sink)
+        assert out == m.defaults  # FR13: default_* render
+        events = [r.getMessage() for r in records]
+        assert "expression.unmapped_speech_emotion" in events
+
+    def test_unknown_name_does_not_crash_process(self):
+        m = load_expression_map(PACKAGED_MAP)
+        # Many misses in a row must never raise (never freezes/crashes).
+        for i in range(100):
+            assert m.resolve("vocalization", f"bogus_{i}") == m.defaults
+
+    def test_topic_namespacing_preserved(self):
+        # mood.happy and speech_emotion.happy are DISTINCT entries.
+        m = load_expression_map(PACKAGED_MAP)
+        assert m.resolve("mood", "happy") is not m.resolve(
+            "speech_emotion", "happy"
+        )
+        assert "lean_bias" in m.resolve("mood", "happy")
+        assert "eye" in m.resolve("speech_emotion", "happy")
+
+    def test_unknown_topic_raises_keyerror(self):
+        # A bad TOPIC (not a bad name) is a programming error, not a
+        # wire event — fail loudly, not the FR13 graceful path.
+        m = load_expression_map(PACKAGED_MAP)
+        with pytest.raises(KeyError):
+            m.resolve("not_a_topic", "x")
+
+
+class TestNodeStartupFatal:  # AC#2/#3 — §9: incomplete map → exit 1
+    def test_node_main_exits_nonzero_on_incomplete_map(self, tmp_path):
+        # node.main loads + validates the map BEFORE rclpy.init, so an
+        # incomplete map terminates the process non-zero with no ROS
+        # involvement (NFR7/AR8 — identical posture to 6.1's config).
+        with PACKAGED_MAP.open() as fh:
+            data = yaml.safe_load(fh)
+        data["speech_emotion"].pop("scared")  # break completeness
+        bad = tmp_path / "expression_map.yaml"
+        bad.write_text(yaml.safe_dump(data))
+        script = textwrap.dedent(
+            f"""
+            import expression_engine.node as n
+            n._default_map_path = lambda: __import__("pathlib").Path({str(bad)!r})
+            n.main()
+            """
+        )
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(PKG) + os.pathsep + env.get("PYTHONPATH", "")
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=str(PKG.parents[2]),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert proc.returncode == 1, (
+            f"incomplete map must exit 1, got {proc.returncode}\n"
+            f"{proc.stderr}"
+        )
+        assert "expression_map_load_failed" in proc.stderr
+        assert "scared" in proc.stderr

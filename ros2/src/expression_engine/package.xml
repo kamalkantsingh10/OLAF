@@ -13,6 +13,15 @@
   <exec_depend>neck_driver</exec_depend>
   <exec_depend>head_ears_driver</exec_depend>
 
+  <!-- Wire-schema validation (Story 6.1, AR13). pydantic v2 is REQUIRED
+       (companion contract @ v3.0.0 uses ConfigDict / model_validator).
+       The rosdep key `python3-pydantic` is deliberately NOT declared:
+       on Ubuntu 24.04 it resolves to apt python3-pydantic v1.10, which
+       is incompatible. pydantic>=2 is provided via the project poetry
+       environment (pyproject.toml / setup.py install_requires), the
+       same runtime OLAF already uses on the Pi (`~/.local/bin/poetry
+       run`). Revisit as deployment hardening in Story 6.7. -->
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

@@ -1,0 +1,91 @@
+# OLAF expression map — canonical-vocabulary → body render.
+#
+# Schema is architecture §5.2 (FROZEN by Story 6.4 — Epic 7 authors
+# CONTENT against this structure; the structure itself does not change).
+#
+# Disambiguation is BY TOPIC, not by name: mood.happy and
+# speech_emotion.happy are distinct keys with distinct renders
+# (companion brief #4). Composition order (render loop, Story 6.3):
+#   activity_base -> mood_bias -> speech_overlay -> active_vocalization
+#
+# Story 6.2 scope: STRUCTURAL skeleton with minimal-but-valid values
+# for every canonical name so the startup completeness check passes.
+# Real expressive authoring is Epic 7 (speech_emotion seeded from
+# head_ears_driver/expressions.py).
+
+# Engine map's own version — independent of the pipeline wire
+# schema_version (which is 3, enforced by schema.py).
+schema_version: 1
+
+# Canonical vocabulary is validated against THIS companion release.
+# MUST equal schema.PINNED_COMPANION_TAG — mismatch is startup-fatal
+# (the NFR5 lockstep enforcement promised in Story 6.1 / §12.4).
+pinned_companion_tag: "v3.0.0"
+
+# FR13 runtime fallback, returned for any unmapped canonical name.
+defaults:
+  pose:
+    neck: { pan: 0, tilt: 0, roll: 0 }
+    ears: { left_pan: 0, left_tilt: 0, right_pan: 0, right_tilt: 0 }
+  eye: { expression: neutral, intensity: 3 }
+  led: { color: "#404040", intensity: 0.2, pattern: solid }
+  heart: { bpm: 60, intensity: 2, color: "#802020" }
+
+# ALL Mood values (subtle modifier only — low impact, PRD 7.4).
+mood:
+  calm:       { lean_bias: 3, led_bias: { color: "#a0c0ff", intensity: 0.3 } }
+  happy:      { lean_bias: 5, led_bias: { color: "#ffd060", intensity: 0.5 } }
+  playful:    { lean_bias: 6, led_bias: { color: "#ff90c0", intensity: 0.5 } }
+  curious:    { lean_bias: 4, led_bias: { color: "#90e0ff", intensity: 0.4 } }
+  thoughtful: { lean_bias: 2, led_bias: { color: "#b0b0ff", intensity: 0.3 } }
+  sleepy:     { lean_bias: 1, led_bias: { color: "#605080", intensity: 0.2 } }
+  grumpy:     { lean_bias: 2, led_bias: { color: "#c06040", intensity: 0.3 } }
+  excited:    { lean_bias: 7, led_bias: { color: "#ffb030", intensity: 0.6 } }
+
+# ALL ActivityState values — one base posture each. `working` is
+# nested by submode (thinking | delegating).
+activity:
+  starting:       { pose: {}, eye: { expression: boot }, led: { pattern: boot_seq } }
+  sleeping:       { pose: { neck: { tilt: -25 } }, eye: { expression: closed }, led: { pattern: breathe_slow } }
+  waking:         { pose: { neck: { tilt: 0 } }, eye: { expression: waking }, led: { pattern: fade_in } }
+  listening:      { pose: { neck: { tilt: 5 } }, eye: { expression: open }, led: { pattern: ear_breathe } }
+  working:
+    thinking:     { pose: { neck: { pan: -12 } }, eye: { expression: focused }, led: { pattern: pulse_blue } }
+    delegating:   { pose: { neck: { pan: 12 } }, eye: { expression: distant }, led: { pattern: spinner } }
+  speaking:       { pose: { neck: { tilt: 3 } }, eye: { expression: animated }, led: { pattern: warm_active } }
+  going_to_sleep: { pose: { neck: { tilt: -15 } }, eye: { expression: closing }, led: { pattern: fade_out } }
+
+# ALL 12 first-class speech-emotion names — overlay on the mood base.
+# Each carries BOTH a neck bias and an ear pose.
+speech_emotion:
+  neutral:     { pose: { neck: { tilt: 0 },          ears: { left_tilt: 0,   right_tilt: 0 } },   eye: { expression: neutral,     intensity: 3 }, led_overlay: none }
+  content:     { pose: { neck: { tilt: 4 },          ears: { left_tilt: 8,   right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm }
+  excited:     { pose: { neck: { tilt: 8 },          ears: { left_pan: 12,   right_pan: 12 } },   eye: { expression: excited,     intensity: 5 }, led_overlay: bright }
+  sad:         { pose: { neck: { tilt: -10 },        ears: { left_tilt: -12, right_tilt: -12 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool }
+  angry:       { pose: { neck: { tilt: -6, pan: 4 }, ears: { left_tilt: -8,  right_tilt: -8 } },  eye: { expression: angry,       intensity: 4 }, led_overlay: hot }
+  scared:      { pose: { neck: { tilt: -8 },         ears: { left_pan: -10,  right_pan: -10 } },  eye: { expression: scared,      intensity: 4 }, led_overlay: cool }
+  # Story 6.4 REFERENCE expression — ears seeded verbatim from
+  # head_ears_driver/expressions.py EMOTION_HAPPY (left_pan 20,
+  # left_tilt 18, right_pan 20, right_tilt 18; right_pan ≤50 safe).
+  # neck bias is a modest joyful chin-up (authored — preset has no
+  # neck data). Proven end-to-end on hardware in Story 6.4 Task 5.
+  happy:       { pose: { neck: { tilt: 6 },          ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 4 }, led_overlay: warm }
+  curious:     { pose: { neck: { roll: 6, tilt: 3 }, ears: { left_pan: 4,    right_pan: 4 } },    eye: { expression: curious,     intensity: 3 }, led_overlay: none }
+  sympathetic: { pose: { neck: { tilt: 2, roll: 3 }, ears: { left_tilt: 4,   right_tilt: 4 } },   eye: { expression: sympathetic, intensity: 3 }, led_overlay: warm }
+  surprised:   { pose: { neck: { tilt: 10 },         ears: { left_pan: 14,   right_pan: 14 } },   eye: { expression: surprised,   intensity: 5 }, led_overlay: bright }
+  frustrated:  { pose: { neck: { tilt: -4, pan: -4 }, ears: { left_tilt: -6, right_tilt: -6 } },  eye: { expression: frustrated,  intensity: 4 }, led_overlay: hot }
+  melancholic: { pose: { neck: { tilt: -9 },         ears: { left_tilt: -10, right_tilt: -10 } }, eye: { expression: melancholic, intensity: 2 }, led_overlay: cool }
+
+# ALL vocalization tags. DEFERRED: v1 vocalizations will become
+# parametric ANIMATIONS (laugh, yes/no, …) — their render shape is
+# designed in a later story, NOT here. Story 6.2 only needs every tag
+# present (AC#2 completeness) and gesture cues nod/shake flagged
+# visible_only: true (FR7/AC#3 — silent gesture, no audio). No pose/
+# animation content is authored yet.
+vocalization:
+  laughter:      { visible_only: false }
+  sigh:          { visible_only: false }
+  gasp:          { visible_only: false }
+  clears_throat: { visible_only: false }
+  nod:           { visible_only: true }
+  shake:         { visible_only: true }

@@ -1,6 +1,6 @@
 # Story 6.1: Subscriber + schema-3 envelope validation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -21,24 +21,24 @@ so that a contract mismatch surfaces loudly instead of silently corrupting expre
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Package config plumbing (AC: #1)
-  - [ ] Create `ros2/src/expression_engine/config/expression_engine.toml` per architecture §8 (`[dds] domain_id`, `[topics]` four names defaulting to `/olaf/{name}`)
-  - [ ] Implement config load (stdlib `tomllib`, Python 3.11+; if pinned to 3.10 per `pyproject.toml`, use `tomli`) — fail-fast if file missing/invalid (NFR7)
-- [ ] Task 2: `schema.py` — schema-3 models (AC: #2, #3)
-  - [ ] Define `EventEnvelope` + 4 payload pydantic models matching the companion `olaf-embodiment-brief.md` Appendix A JSON shape (re-derived, NOT imported — AR13)
-  - [ ] `assert_schema_version(envelope)` → raise on `schema_version != 3`, log to journald, exit non-zero (FR4)
-  - [ ] Record `pinned_companion_tag` source-of-truth note (full enforcement lands in Story 6.2)
-- [ ] Task 3: `subscribers.py` — four subscriptions (AC: #1, #2)
-  - [ ] Create four `std_msgs/String` subscriptions on configured names/domain, RELIABLE QoS
-  - [ ] Deserialize JSON → `EventEnvelope` → typed payload; hand validated events to `state.py` (state model interface stubbed if 6.x ordering requires — keep this story self-contained)
-- [ ] Task 4: `node.py` — node + subscribe-only invariant (AC: #1, #4)
-  - [ ] `ExpressionEngineNode` (replace the Epic-5.1 stub) wires config → subscribers; single `rclpy` executor thread (AR3)
-  - [ ] NEVER create a publisher on the four topics (FR3)
-- [ ] Task 5: Tests (AC: #2, #3, #4)
-  - [ ] Valid schema-3 payload parses into typed objects
-  - [ ] `schema_version != 3` → raises + non-zero exit (assert process exit, not just exception swallowed)
-  - [ ] Malformed/short envelope rejected
-  - [ ] Assert the node holds zero publishers on the four topics (introspect `node.get_publisher_names_and_types_by_node` or equivalent)
+- [x] Task 1: Package config plumbing (AC: #1)
+  - [x] Create `ros2/src/expression_engine/config/expression_engine.toml` per architecture §8 (`[dds] domain_id`, `[topics]` four names defaulting to `/olaf/{name}`)
+  - [x] Implement config load (stdlib `tomllib`, Python 3.11+; if pinned to 3.10 per `pyproject.toml`, use `tomli`) — fail-fast if file missing/invalid (NFR7)
+- [x] Task 2: `schema.py` — schema-3 models (AC: #2, #3)
+  - [x] Define `EventEnvelope` + 4 payload pydantic models matching the companion `olaf-embodiment-brief.md` Appendix A JSON shape (re-derived, NOT imported — AR13)
+  - [x] `assert_schema_version(envelope)` → raise on `schema_version != 3`, log to journald, exit non-zero (FR4)
+  - [x] Record `pinned_companion_tag` source-of-truth note (full enforcement lands in Story 6.2)
+- [x] Task 3: `subscribers.py` — four subscriptions (AC: #1, #2)
+  - [x] Create four `std_msgs/String` subscriptions on configured names/domain, RELIABLE QoS
+  - [x] Deserialize JSON → `EventEnvelope` → typed payload; hand validated events to `state.py` (state model interface stubbed if 6.x ordering requires — keep this story self-contained)
+- [x] Task 4: `node.py` — node + subscribe-only invariant (AC: #1, #4)
+  - [x] `ExpressionEngineNode` (replace the Epic-5.1 stub) wires config → subscribers; single `rclpy` executor thread (AR3)
+  - [x] NEVER create a publisher on the four topics (FR3)
+- [x] Task 5: Tests (AC: #2, #3, #4)
+  - [x] Valid schema-3 payload parses into typed objects
+  - [x] `schema_version != 3` → raises + non-zero exit (assert process exit, not just exception swallowed)
+  - [x] Malformed/short envelope rejected
+  - [x] Assert the node holds zero publishers on the four topics (introspect `node.get_publisher_names_and_types_by_node` or equivalent)
 
 ## Dev Notes
 
@@ -100,8 +100,45 @@ Aligns with architecture §3 module table. No variance.
 
 ### Agent Model Used
 
+Amelia (bmad-dev-story) · claude-opus-4-7[1m]
+
 ### Debug Log References
+
+- Saved Question 1 **RESOLVED** (was blocking Task 2): companion `olaf-embodiment-brief.md` §Appendix A (lines 112–271) + source modules `src/voice_agent_pipeline/schemas/*_event.py` were made available. **Pinned `olaf_companion` tag: `v3.0.0`** (annotated, commit `321d9f8`). Models re-derived verbatim from that source (AR13 — zero cross-repo build coupling; NOT imported).
+- Env: pydantic **not** installed on system Python (PEP 668 blocks pip); apt `python3-pydantic` is v1.10 (incompatible with the companion's v2 contract). Resolved per Kamal's direction by using the existing project **poetry** env (`/home/kamal/.cache/pypoetry/virtualenvs/olaf-KIMtbiLa-py3.12`, system-site-packages enabled) which already has pydantic 2.12.5 + ROS rclpy. Test invocation: `PYTHONPATH="ros2/src/expression_engine:${PYTHONPATH}" poetry run python -m pytest …` (`poetry run pytest` resolves to system pytest w/o pydantic — use `python -m pytest`; do NOT clobber the ROS overlay `PYTHONPATH`, prepend to it).
+- Exit-code convention confirmed with companion side: `schema_version != 3` → `SchemaVersionError` → structured journald line → `sys.exit(1)` (symmetry with the pipeline's `__main__.py` → 1).
+- Pre-existing UNRELATED failures: `head_ears_driver/test_expressions.py::test_get_preset_happy` & `::test_get_preset_sad` fail on a stale `left_tilt <= 0` assertion superseded by commit `7af9fb6` (head-ears hardware-limit fix). `ros2/src/olaf_drivers/` is untouched by this story — not a Story 6.1 regression, out of scope to fix here.
 
 ### Completion Notes List
 
+- All 4 ACs satisfied; **41/41** expression_engine tests pass (`test_config` 8, `test_schema` 24, `test_state` 4, `test_subscribe_only` 5 incl. DDS-loopback round-trip + subprocess exit-code assertion). Zero regressions introduced (change is purely additive).
+- **AR13 decision (not an oversight):** schema models are hand-re-derived in `expression_engine/schema.py`, NOT imported from `olaf_companion`. Architecture mandates zero cross-repo build coupling for this isolated `ament_python` package; Story 6.2's cross-check against `PINNED_COMPANION_TAG = "v3.0.0"` exists precisely to police hand-mirror drift. `schema.py` docstrings cite the exact companion source module + Appendix A section per mirrored type.
+- **Per-topic QoS** re-derived from brief §A.1/§A.2 (story said "RELIABLE QoS" — the reliability axis): all four RELIABLE; `mood`/`activity` = TRANSIENT_LOCAL depth 1 (latched, late-join replay); `speech_emotion`/`vocalization` = VOLATILE depth 8. This honours both the story task and the canonical contract.
+- **Fail-fast scoping:** `schema_version != 3` is the designated fatal contract breach (AC#3 — propagates out of the executor → `os._exit(1)`; systemd restarts). Other validation errors (malformed/short/invariant) are rejected loudly (structured `event_rejected` log) and dropped — NOT fatal. Runtime unknown-name graceful fallback (FR13) is deliberately left to Story 6.2, not conflated.
+- **Minor structural additions** beyond the §3 module table: `config.py` (config loader) and `logging_setup.py` (NFR8 structured journald JSON, minimal — hardening is Story 6.7). Both are small SRP leaf modules supporting `node.py`'s startup; the §3 core modules (node/schema/subscribers/state) are intact and unchanged in role.
+- **Dependency declared + pinned** per story: `pyproject.toml` (`pydantic = "^2.0"`, conditional `tomli` for <3.11), `setup.py` `install_requires`, `poetry.lock` regenerated (`poetry lock --no-update`, `poetry check` clean). `package.xml` documents why the `python3-pydantic` rosdep key is deliberately omitted (apt v1.10 incompatible) — flagged for Story 6.7 deployment hardening.
+
 ### File List
+
+**New:**
+- `ros2/src/expression_engine/config/expression_engine.toml`
+- `ros2/src/expression_engine/expression_engine/config.py`
+- `ros2/src/expression_engine/expression_engine/schema.py`
+- `ros2/src/expression_engine/expression_engine/state.py`
+- `ros2/src/expression_engine/expression_engine/subscribers.py`
+- `ros2/src/expression_engine/expression_engine/logging_setup.py`
+- `ros2/src/expression_engine/test/test_config.py`
+- `ros2/src/expression_engine/test/test_schema.py`
+- `ros2/src/expression_engine/test/test_state.py`
+- `ros2/src/expression_engine/test/test_subscribe_only.py`
+
+**Modified:**
+- `ros2/src/expression_engine/expression_engine/node.py` (replaced Epic-5.1 stub)
+- `ros2/src/expression_engine/setup.py` (install_requires: pydantic, tomli)
+- `ros2/src/expression_engine/package.xml` (pydantic dependency note)
+- `pyproject.toml` (pydantic + conditional tomli deps)
+- `poetry.lock` (regenerated, no version churn)
+
+### Change Log
+
+- 2026-05-17 — Story 6.1 implemented: subscribe-only engine + schema-3 fail-fast envelope validation. Replaced Epic-5.1 scaffold with real `node.py`; added `config.py`, `schema.py`, `subscribers.py`, `state.py`, `logging_setup.py`, packaged `expression_engine.toml`. Schemas re-derived from `olaf_companion` @ `v3.0.0` (AR13). 41 tests added, all green. Pinned companion tag `v3.0.0` recorded in `schema.py` for the Story 6.2 cross-check.

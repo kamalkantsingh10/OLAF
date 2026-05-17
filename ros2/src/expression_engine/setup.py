@@ -15,7 +15,15 @@ setup(
         # Renderer mapping + service config (populated in Epic 6)
         (os.path.join('share', package_name, 'config'), glob('config/*')),
     ],
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools',
+        # Wire-schema validation (Story 6.1, AR13 — re-derived, NOT
+        # importing olaf_companion). Pinned to pydantic v2 to match the
+        # companion contract @ tag v3.0.0.
+        'pydantic>=2,<3',
+        # tomllib is stdlib on 3.11+; tomli only on the pinned 3.10 floor.
+        'tomli;python_version<"3.11"',
+    ],
     zip_safe=True,
     maintainer='Kamal Kant Singh',
     maintainer_email='kamalkantsingh10@gmail.com',

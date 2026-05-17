@@ -78,6 +78,7 @@ Inspection of the Phase 1 drivers (grounding, not assumption) yields two adapter
 `adapters/base.py` — structural `typing.Protocol`s. Concrete adapters wrap the real Phase 1 driver classes; signatures below are grounded in the actual driver APIs.
 
 ```python
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 @runtime_checkable
@@ -100,13 +101,24 @@ class DelegatingAdapter(Protocol):
     def blink(self) -> None: ...
     def look(self, x: int, y: int) -> None: ...
 
+@dataclass(frozen=True)
+class SurfaceFrame:                # the render() payload — frozen with the Protocols
+    led_color: str = "#404040"
+    led_intensity: float = 0.2
+    led_pattern: str = "solid"
+    heart_bpm: int = 60
+    heart_intensity: int = 2
+    heart_color: str = "#802020"
+
 @runtime_checkable
 class SurfaceAdapter(Protocol):
     """Engine-owned surface (LED strip, heart display)."""
     def connect(self) -> None: ...
     def close(self) -> None: ...
-    def render(self, frame: "SurfaceFrame") -> None: ...   # called per tick (LED) / low-rate (heart)
+    def render(self, frame: SurfaceFrame) -> None: ...   # called per tick (LED) / low-rate (heart)
 ```
+
+`SurfaceFrame` (defined for the freeze — Story 6.3 shipped it in `adapters/base.py`; no real surface adapter consumes it until §6.6/8.1). The three Protocols (`ContinuousAdapter`, `DelegatingAdapter`, `SurfaceAdapter`) are **unchanged** from the original §4 and freeze AS-IS in Story 6.4.
 
 **Concrete mappings (grounded in Phase 1 driver signatures):**
 
@@ -166,20 +178,37 @@ activity:                          # ALL ActivityState values; one base posture 
   starting:       { pose: {},                eye: {expression: boot},    led: {pattern: boot_seq} }
 
 speech_emotion:                    # ALL 12 first-class names; overlay on mood base
-  neutral:  { pose: {}, eye: {expression: neutral, intensity: 3}, led_overlay: none }
-  happy:    { pose: {ears:{left_tilt: 15, right_tilt: 15}}, eye: {expression: happy, intensity: 4}, led_overlay: warm }
+                                   # pose MAY set neck and/or ears partials
+  neutral:  { pose: {neck:{tilt:0}, ears:{left_tilt:0, right_tilt:0}},   eye: {expression: neutral, intensity: 3}, led_overlay: none }
+  happy:    { pose: {neck:{tilt:6}, ears:{left_tilt:15, right_tilt:15}}, eye: {expression: happy,   intensity: 4}, led_overlay: warm }
   # … remaining first-class emotions, seeded from head_ears_driver/expressions.py …
 
-vocalization:                      # ALL tags; gesture cues MUST have visible_only: true
-  laughter:      { gesture: shoulder_bob,  audio_asset: null,       visible_only: false }
-  sigh:          { gesture: shoulder_drop, audio_asset: "sigh.wav", visible_only: false }
-  gasp:          { gesture: head_up_quick, audio_asset: "gasp.wav", visible_only: false }
-  clears_throat: { gesture: head_tilt,     audio_asset: "ahem.wav", visible_only: false }
-  nod:           { gesture: head_nod,      audio_asset: null,       visible_only: true }   # enforced
-  shake:         { gesture: head_shake,    audio_asset: null,       visible_only: true }   # enforced
+vocalization:                      # ALL tags; gesture cues MUST have visible_only: true.
+                                   # v1 FROZEN SHAPE: { visible_only: bool } ONLY.
+                                   # The tag itself selects the code-side parametric
+                                   # trajectory (render_loop._Gesture). No `gesture:`
+                                   # name, no `audio_asset:` — the engine produces NO
+                                   # audio (TTS is the companion's; brief §A.7).
+  laughter:      { visible_only: false }
+  sigh:          { visible_only: false }
+  gasp:          { visible_only: false }
+  clears_throat: { visible_only: false }
+  nod:           { visible_only: true }   # enforced (FR7)
+  shake:         { visible_only: true }   # enforced (FR7)
 ```
 
-`gesture:` names resolve to parametric joint trajectories defined in the engine (attack/settle from config) — keeping the map declarative and the motion code-side. Composition merges partial `pose` dicts; missing joints inherit from the layer below.
+Composition merges partial `pose` dicts; missing joints inherit from the layer below. Gesture *shapes* are parametric joint trajectories defined in engine code (attack/settle from config); the vocalization **tag is the selector** — the map only asserts `visible_only`. A new gesture shape is a code change (rare, safety-sensitive — §12.4 #3).
+
+#### 5.2-Amendment — 2026-05-17 (freeze reconciliation, pre-Story-6.4)
+
+Reconciles §5.2 to the shipped `ros2/src/expression_engine/config/expression_map.yaml` (Stories 6.2/6.3) so Story 6.4 freezes a consistent spec. Two owner-directed changes, both *tightening* toward the architecture's existing intent:
+
+1. **`vocalization` entry shape → `{ visible_only: bool }` only.** Dropped the `gesture:` name and `audio_asset:` from the §5.2 example. Rationale: §12.4 #3 already mandates gesture shapes be parametric engine code and the map stay declarative/unable to express unsafe motion; the v1 tag set is fixed at 6 and the *tag* is a sufficient selector, so the `gesture:` indirection bought nothing v1 needs while leaking motion intent into YAML. `audio_asset:` removed because the engine produces no audio (TTS is the companion's responsibility; gesture cues `nod`/`shake` must be silent — brief §A.7). **`visible_only: true` on `nod`/`shake` remains a startup-fatal invariant (FR7).** Vocalization is **structurally frozen but content-deferred**: richer per-tag animation parameters (when v1 vocalizations become full laugh / yes-no animations) are a *future documented amendment*, **not** Epic 7 authoring. Epic 7 authors `mood` / `activity` / `speech_emotion` content only.
+2. **`speech_emotion.pose` carries `neck` and `ears`.** Not a schema change — `pose` always admitted both (see `defaults.pose`); the prior example was illustratively ears-only. Example updated to be representative.
+
+`schema_version` stays `1` (no structural break for the consumed contract; the example correction + the vocabulary-deferral note do not change the loader's parse). `mood` / `activity` (incl. nested `working`, `starting`) / `defaults` are unchanged and already match the shipped map. `led` / `heart` keys freeze now even though their adapters arrive later (LED §6.6, heart 8.1) — NFR6's one-adapter swap depends on those keys being fixed.
+
+**Story 6.4 freezes §5.2 AS AMENDED HERE** (this subsection + the updated code block above are the authoritative schema).
 
 ---
 
@@ -271,9 +300,9 @@ Single Pi 5, co-located with the pipeline over loopback DDS (NFR9). systemd unit
 
 1. **Eye vocabulary translation → `eye_adapter`.** A name→ESP32-expression-string table lives as data inside `eye_adapter.py`. `expression_map.yaml` stays purely canonical; the hardware-specific eye vocabulary is hidden in the adapter. Swapping the eye display = rewrite that one table (consistent with NFR6).
 2. **`expressions.py` → migrate then retire.** Epic 7.1 lifts the existing emotion→ear-pose preset *data* into `expression_map.yaml` and **deletes `head_ears_driver/expressions.py`**. The map is the single source of expression data (NFR5). *(Implication for SM: add an AC to Story 7.1 — "expressions.py removed; no module imports it.")*
-3. **Gestures → parametric in engine code.** The engine ships a tested library of parametric gesture trajectories (attack/settle from config); `expression_map.yaml` only *names* a gesture (`gesture: head_nod`). The map stays declarative and cannot express unsafe motion. A brand-new gesture *shape* is a code change (acceptable — gesture shapes are rare and safety-sensitive).
+3. **Gestures → parametric in engine code.** The engine ships a tested library of parametric gesture trajectories (attack/settle from config). The vocalization **tag is the selector** (`render_loop._Gesture`); `expression_map.yaml` only asserts `visible_only` per tag (see §5.2-Amendment — the earlier `gesture:`/`audio_asset:` example fields were dropped). The map stays declarative and cannot express unsafe motion. A brand-new gesture *shape* is a code change (acceptable — gesture shapes are rare and safety-sensitive).
 4. **Schema → re-derive from Appendix A.** `schema.py` defines our own pydantic models matching the companion's documented JSON shape. The pinned companion tag is recorded in `expression_map.yaml` (`pinned_companion_tag`) and cross-checked at startup. **Zero cross-repo build coupling.** Envelope drift is caught by FR4 fail-fast + schema tests; on a companion bump we update `schema.py` + re-pin in lockstep (NFR5).
 
 ---
 
-*Next: SM expands Epic 6 stories against §3–§9; Dev implements after the Epic 5.3 gate. The Protocols (§4) and map schema (§5) are the freeze points — change them only via a documented amendment.*
+*Next: SM expands Epic 6 stories against §3–§9; Dev implements after the Epic 5.3 gate. The Protocols (§4) and map schema (§5) are the freeze points — change them only via a documented amendment. **Pre-freeze reconciliation applied 2026-05-17** (see §5.2-Amendment + the §4 `SurfaceFrame` note); Story 6.4 freezes §4 and §5.2 **as amended**.*

@@ -1,6 +1,6 @@
 # Story 6.2: Map loader + vocabulary completeness
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -22,23 +22,23 @@ so that an incomplete map fails before the engine pretends to run.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Seed `expression_map.yaml` skeleton (AC: #1)
-  - [ ] Create `ros2/src/expression_engine/config/expression_map.yaml` with the §5.2 structure: `schema_version`, `pinned_companion_tag`, `defaults` (pose/eye/led/heart), and `mood`/`activity`/`speech_emotion`/`vocalization` blocks (minimal entries OK here; full authoring is Epic 7)
-- [ ] Task 2: `map_loader.py` load + parse (AC: #1)
-  - [ ] Load YAML (`pyyaml`, already a project dep), parse into typed structures keyed **by topic** (mood/activity/speech_emotion/vocalization are distinct namespaces — AR6, brief #4)
-  - [ ] Resolve `defaults.*` for the FR13 fallback
-- [ ] Task 3: Completeness validation vs pinned canonical set (AC: #2)
-  - [ ] Derive the required canonical set from the pinned companion vocabulary (from `schema.py` enums / pinned tag — see Dev Notes)
-  - [ ] Assert every `Mood`, every `ActivityState` (including both `working_submode` values under `working`), every first-class `speech_emotion`, every `vocalization` tag has a map entry; any gap → fatal, clear operator message, non-zero exit (NFR7, AR8 step 3)
-- [ ] Task 4: `visible_only` invariant (AC: #3)
-  - [ ] Assert `nod` and `shake` have `visible_only: true`; missing/false → fatal (AR8 step 4, FR7)
-- [ ] Task 5: Runtime unknown-name fallback (AC: #5)
-  - [ ] On an unmapped canonical name at runtime: log `expression.unmapped_<topic>` at WARN, return the `default_*` render — never raise, never freeze (FR13)
-- [ ] Task 6: Tests (AC: #2, #3, #4, #5)
-  - [ ] Incomplete map (missing one canonical name) → fatal
-  - [ ] `nod`/`shake` missing `visible_only` → fatal
-  - [ ] **Synthetic added entry with NO code change loads cleanly (proves NFR5)** — this is the regression that protects extensibility
-  - [ ] Unknown runtime name → WARN + `default_*`, process stays alive
+- [x] Task 1: Seed `expression_map.yaml` skeleton (AC: #1)
+  - [x] Create `ros2/src/expression_engine/config/expression_map.yaml` with the §5.2 structure: `schema_version`, `pinned_companion_tag`, `defaults` (pose/eye/led/heart), and `mood`/`activity`/`speech_emotion`/`vocalization` blocks (minimal entries OK here; full authoring is Epic 7)
+- [x] Task 2: `map_loader.py` load + parse (AC: #1)
+  - [x] Load YAML (`pyyaml`, already a project dep), parse into typed structures keyed **by topic** (mood/activity/speech_emotion/vocalization are distinct namespaces — AR6, brief #4)
+  - [x] Resolve `defaults.*` for the FR13 fallback
+- [x] Task 3: Completeness validation vs pinned canonical set (AC: #2)
+  - [x] Derive the required canonical set from the pinned companion vocabulary (from `schema.py` enums / pinned tag — see Dev Notes)
+  - [x] Assert every `Mood`, every `ActivityState` (including both `working_submode` values under `working`), every first-class `speech_emotion`, every `vocalization` tag has a map entry; any gap → fatal, clear operator message, non-zero exit (NFR7, AR8 step 3)
+- [x] Task 4: `visible_only` invariant (AC: #3)
+  - [x] Assert `nod` and `shake` have `visible_only: true`; missing/false → fatal (AR8 step 4, FR7)
+- [x] Task 5: Runtime unknown-name fallback (AC: #5)
+  - [x] On an unmapped canonical name at runtime: log `expression.unmapped_<topic>` at WARN, return the `default_*` render — never raise, never freeze (FR13)
+- [x] Task 6: Tests (AC: #2, #3, #4, #5)
+  - [x] Incomplete map (missing one canonical name) → fatal
+  - [x] `nod`/`shake` missing `visible_only` → fatal
+  - [x] **Synthetic added entry with NO code change loads cleanly (proves NFR5)** — this is the regression that protects extensibility
+  - [x] Unknown runtime name → WARN + `default_*`, process stays alive
 
 ## Dev Notes
 
@@ -95,8 +95,41 @@ Config lives in the package `config/` per architecture §5/§8 (mirrors companio
 
 ### Agent Model Used
 
+Amelia (bmad-dev-story) · claude-opus-4-7[1m]
+
 ### Debug Log References
+
+- **Prerequisite note:** Story 6.1 is `review` (not yet `done`) when 6.2 ran — user explicitly directed proceeding. The concrete dependency (`schema.py` canonical enums) exists and is green (6.1: 41 tests). The loader derives its required set *dynamically* from `schema.py` (`get_args` + pinned constants), so it stays correct if a 6.1 review tweaks the enums.
+- **Canonical-set source:** `schema.py` had `Mood`/`ActivityState`/`WorkingSubmode` Literals but `speech_emotion`/`vocalization` are `str` on the wire (forward-compat). Per Dev Notes ("single source of truth, don't re-list by hand") I added pinned tuples `SPEECH_EMOTION_CANONICAL` (12, brief §A.6), `VOCALIZATION_TAGS` (6, §A.7), `VOCALIZATION_GESTURE_CUES` (`nod`,`shake`) to `schema.py` — additive, cited to Appendix A @ `v3.0.0`. Cross-story touch of a `review`-state 6.1 file, justified as the architecture-mandated single vocab source; flag for 6.1 review awareness.
+- **OWNER-DIRECTED SCHEMA DEVIATION (architecture §5.2 conflict — needs Story 6.4 / Winston reconciliation):**
+  - `vocalization` entries are **deferred** — v1 vocalizations will become parametric *animations* (laugh, yes/no). The §5.2 `gesture:`/`audio_asset:` form is rejected by the owner. Story 6.2 keeps `vocalization` at the minimum the ACs require: all 6 tags present (AC#2) + `nod`/`shake` `visible_only:true` (AC#3/FR7). No pose/animation content authored — designed in a later story.
+  - `speech_emotion` entries carry **both** a `neck` bias and `ears` pose (owner directive), not ears-only.
+  - These diverge from architecture §5.2 (Dev Notes called it authoritative/frozen-by-6.4). Shipped `config/expression_map.yaml` is the truth; **the architecture doc and Story 6.4 must reconcile the vocalization shape.**
+- **caplog gotcha:** `logging_setup` sets `propagate=False`, so pytest's root-attached `caplog` cannot capture engine WARNs (the structured line *is* emitted to stderr). Tests attach a capture handler directly to the `expression_engine` logger instead.
+- Pre-existing UNRELATED failures persist (not 6.2): `head_ears_driver/test_expressions.py::test_get_preset_happy|sad` (stale `left_tilt<=0`, commit `7af9fb6`). `ros2/src/olaf_drivers/` untouched by this story.
 
 ### Completion Notes List
 
+- All 5 ACs satisfied. **65/65** expression_engine tests pass (24 new in `test_map_loader.py`; **41 Story 6.1 tests remain green** after the node-signature change — zero regressions).
+- **Strict-startup / graceful-runtime asymmetry implemented (the load-bearing design):** `load_expression_map` is fatal (`MapValidationError ⊂ ValueError`) on missing file, malformed YAML, missing top-level key, pinned-tag mismatch, incomplete canonical vocabulary (FR6), or `nod`/`shake` not `visible_only:true` (FR7). `ExpressionMap.resolve(topic,name)` is graceful — unmapped *name* → WARN `expression.unmapped_<topic>` + `defaults` render, never raises (FR13). An unknown *topic* raises `KeyError` (programming error, not a wire event — deliberately NOT the FR13 path).
+- **NFR5 proven:** extra map entries beyond the pinned set are accepted (loader checks `required ⊆ present`, never forbids extras). `TestExtensibilityNFR5` adds a synthetic `speech_emotion`/`mood` entry with NO Python change and asserts it loads + is queryable.
+- **Lockstep enforced:** map `pinned_companion_tag` must equal `schema.PINNED_COMPANION_TAG` (`v3.0.0`) or startup is fatal — this is the NFR5/§12.4 cross-check Story 6.1 promised.
+- **Topic namespacing preserved (AR6, brief #4):** `mood.happy` ≠ `speech_emotion.happy` — distinct keyed entries, asserted by `test_topic_namespacing_preserved`.
+- **§9 startup wiring:** `node.main` now runs §9 steps 1–4 (toml → map → completeness → visible_only) before `rclpy.init`; `MapValidationError` reuses the Story 6.1 fail-fast handler (structured journald `expression_map_load_failed` + `sys.exit(1)`). `ExpressionEngineNode` holds the validated map for the Story 6.3 render loop (not yet rendered). Story 6.1's `test_subscribe_only.py` updated to the new node constructor.
+- Production modules flake8-clean (E/F/W @ line 99). No new dependency (pyyaml already a project dep).
+
 ### File List
+
+**New:**
+- `ros2/src/expression_engine/config/expression_map.yaml`
+- `ros2/src/expression_engine/expression_engine/map_loader.py`
+- `ros2/src/expression_engine/test/test_map_loader.py`
+
+**Modified:**
+- `ros2/src/expression_engine/expression_engine/schema.py` (added pinned `SPEECH_EMOTION_CANONICAL` / `VOCALIZATION_TAGS` / `VOCALIZATION_GESTURE_CUES` — single vocab source)
+- `ros2/src/expression_engine/expression_engine/node.py` (§9 map-load wiring; `ExpressionEngineNode(config, expression_map)`; `_packaged_config` helper + `_default_map_path`)
+- `ros2/src/expression_engine/test/test_subscribe_only.py` (updated to new node constructor — 6.1 regression fix)
+
+### Change Log
+
+- 2026-05-17 — Story 6.2 implemented: `expression_map.yaml` loader + vocabulary completeness. Seeded structural skeleton (all canonical names @ `v3.0.0`); `map_loader.py` with strict-startup completeness/`visible_only`/pinned-tag validation (FR6/FR7/NFR7) and graceful FR13 runtime fallback; pinned canonical tuples added to `schema.py`; §9 startup wired into `node.py`. 24 tests added; full suite 65/65 green. **Owner-directed deviation from architecture §5.2 (vocalization deferred to animations; speech_emotion gains neck bias) — flagged for Story 6.4 / architecture reconciliation.**

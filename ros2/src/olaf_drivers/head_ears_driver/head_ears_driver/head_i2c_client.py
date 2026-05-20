@@ -12,6 +12,10 @@ Register map (from Story 1.3):
     0x20: LOOK_X (W)           - Signed: -100 to +100
     0x21: LOOK_Y (W)           - Signed: -100 to +100
     0x30: SYSTEM_STATUS (W)    - 0-5 status enum
+    0x40: LED_OVERLAY (W)      - 0-4 emotional LED wash, SEPARATE
+                                 event (none/warm/cool/hot/bright);
+                                 decoupled from expression + status
+                                 (Story 7.1 / 6.6 LED adapter)
 """
 
 import logging
@@ -29,8 +33,13 @@ REG_BLINK_TRIGGER = 0x12
 REG_LOOK_X = 0x20
 REG_LOOK_Y = 0x21
 REG_SYSTEM_STATUS = 0x30
+REG_LED_OVERLAY = 0x40
 
-# Expression type mapping (string -> register value)
+# Expression type mapping (string -> register value). 0-6 unchanged
+# (wire/back-compat + internal status use of sleepy/wink). Story 7.1a
+# added 7-13: the remaining canonical speech-emotions so all 12 render
+# distinctly on the ESP32 (must match EXPR_* in
+# modules/head/firmware/include/i2c_slave.h).
 EXPRESSION_MAP: dict[str, int] = {
     "neutral": 0,
     "happy": 1,
@@ -39,6 +48,14 @@ EXPRESSION_MAP: dict[str, int] = {
     "angry": 4,
     "sleepy": 5,
     "wink": 6,
+    "content": 7,
+    "excited": 8,
+    "scared": 9,
+    "curious": 10,
+    "sympathetic": 11,
+    "frustrated": 12,
+    "melancholic": 13,
+    "flirty": 14,  # device-only extra (not a speech_emotion canonical)
 }
 
 # System status mapping (string -> register value)
@@ -49,6 +66,17 @@ STATUS_MAP: dict[str, int] = {
     "processing": 3,
     "speaking": 4,
     "going_idle": 5,
+}
+
+# LED emotional-overlay mapping (string -> register value). A SEPARATE
+# event from expression + system status — mirrors the
+# expression_map.yaml `led_overlay` tokens (Story 7.1).
+LED_OVERLAY_MAP: dict[str, int] = {
+    "none": 0,
+    "warm": 1,
+    "cool": 2,
+    "hot": 3,
+    "bright": 4,
 }
 
 logger = logging.getLogger(__name__)
@@ -167,6 +195,31 @@ class HeadI2CClient:
 
         logger.debug("System status: %s (val=%d)", status, status_val)
         return self._write_byte(REG_SYSTEM_STATUS, status_val)
+
+    def set_led_overlay(self, overlay: str) -> bool:
+        """Set the emotional LED overlay — a SEPARATE event.
+
+        Decoupled from expression and system status: writing this does
+        not change the eye expression or the system-status animation,
+        only the LED colour wash. Mirrors the expression_map.yaml
+        ``led_overlay`` token (Story 7.1; rendered by Story 6.6).
+
+        Args:
+            overlay: One of none, warm, cool, hot, bright.
+                     Unknown → WARN + no write (safe; ``none`` is the
+                     resting state on the device).
+
+        Returns:
+            True if the write succeeded.
+        """
+        overlay_val = LED_OVERLAY_MAP.get(overlay.lower())
+        if overlay_val is None:
+            logger.warning("Unknown LED overlay: '%s'. Valid: %s",
+                           overlay, list(LED_OVERLAY_MAP.keys()))
+            return False
+
+        logger.debug("LED overlay: %s (val=%d)", overlay, overlay_val)
+        return self._write_byte(REG_LED_OVERLAY, overlay_val)
 
     def read_status(self) -> int | None:
         """Read module status register.

@@ -1,0 +1,142 @@
+# Per-emotion neck motion spec — Story 7.1b. **FROZEN 2026-05-20.**
+#
+# Three-level intensity (parallel to the eye renderer, Story 7.1a):
+#   L1  static pose only
+#   L2  + small idle drift / micro-movement
+#   L3  + brief peak gesture at expression onset, then settle
+#
+# Firmware-strict mapping in neck_adapter: incoming intensity
+# 1→L1, 2→L2, 3,4,5→L3 (the map currently sends 2-5; Kamal will
+# re-author later if needed, same as 7.1a).
+#
+# Angles are DEGREES.  L1 poses are **bear-inspired**
+# ([[reference-neck-bear-ref]], `.ai/neck_ref_sheet.jpg`) — strong
+# ROLL (head cocks), chin-up for energy, chin-down for subdued,
+# asymmetric pan for look-away / coy / wary. Eyes are FROZEN
+# (Story 7.1a); this story is neck-only.
+#
+# **History (Kamal):** seeds → bear-inspired → exaggerated → +30%
+# exaggeration → frozen. Anything past the mechanical envelope is
+# CLAMPED by the player (it does not error).
+#
+# Safety: clamped by NeckMotionPlayer to mechanical limits
+# pan ±80° / tilt ±20° / roll ±15° (the STS3215 linkage).
+#
+# Gesture token names refer to functions in
+# expression_engine/adapters/neck_gestures.py (the registry).
+
+emotions:
+
+  # ── 12 canonical speech-emotions ─────────────────────────────
+  neutral:
+    l1:           { pan: 0,   tilt: 0,   roll: 0 }
+    l2_drift_deg: 0.60
+    l2_period_s:  5.0
+    l3_gesture:   ~
+
+  happy:
+    # Bear "laughing" — chin near the stop.
+    l1:           { pan: 0,   tilt: 20,  roll: 4 }
+    l2_drift_deg: 1.05
+    l2_period_s:  3.0
+    l3_gesture:   { token: nod,        amp_deg: 16, dur_s: 0.55 }
+
+  content:
+    # Bear "calm-smiling" — chin up, gentle roll.
+    l1:           { pan: 0,   tilt: 10,  roll: 7 }
+    l2_drift_deg: 0.70
+    l2_period_s:  4.0
+    l3_gesture:   { token: dip,        amp_deg: 8,  dur_s: 0.80 }
+
+  excited:
+    # Bear "head-back roar of joy" — chin at the stop.
+    l1:           { pan: 0,   tilt: 20,  roll: -5 }
+    l2_drift_deg: 1.45
+    l2_period_s:  2.5
+    l3_gesture:   { token: nod,        amp_deg: 21, dur_s: 0.45 }
+
+  sad:
+    # Bear "head drooped" — chin at the stop.
+    l1:           { pan: 0,   tilt: -20, roll: 0 }
+    l2_drift_deg: 0.65
+    l2_period_s:  6.0
+    l3_gesture:   { token: dip,        amp_deg: 16, dur_s: 1.00 }
+
+  melancholic:
+    # Bear "defeated turn-away" — turned, chin down, head tilted.
+    l1:           { pan: -21, tilt: -20, roll: -13 }
+    l2_drift_deg: 0.50
+    l2_period_s:  7.0
+    l3_gesture:   { token: shake,      amp_deg: 13, dur_s: 1.20 }
+
+  sympathetic:
+    # Bear "concerned strong tilt" — head cocked toward listener.
+    l1:           { pan: 8,   tilt: 0,   roll: 15 }
+    l2_drift_deg: 0.70
+    l2_period_s:  4.5
+    l3_gesture:   { token: tilt_left,  amp_deg: 16, dur_s: 0.75 }
+
+  angry:
+    # Bear "grumpy chin-down stare" — chin at the stop.
+    l1:           { pan: 0,   tilt: -20, roll: 0 }
+    l2_drift_deg: 1.25
+    l2_period_s:  2.5
+    l3_gesture:   { token: shake,      amp_deg: 23, dur_s: 0.55 }
+
+  frustrated:
+    # Bear "look-away in dismay" — strong turn + roll-away + chin down.
+    l1:           { pan: 36,  tilt: -10, roll: -15 }
+    l2_drift_deg: 1.10
+    l2_period_s:  3.0
+    l3_gesture:   { token: look_away,  amp_deg: 23, dur_s: 0.70 }
+
+  scared:
+    # Bear "recoil" — pulled back chin up + pan to a side.
+    l1:           { pan: -13, tilt: 10,  roll: 0 }
+    l2_drift_deg: 1.00
+    l2_period_s:  3.5
+    l3_gesture:   { token: peek,       amp_deg: 16, dur_s: 0.45 }
+
+  curious:
+    # Bear "cocked head" — the signature curious pose.
+    l1:           { pan: 26,  tilt: 10,  roll: 15 }
+    l2_drift_deg: 0.80
+    l2_period_s:  4.0
+    l3_gesture:   { token: tilt_right, amp_deg: 18, dur_s: 0.65 }
+
+  surprised:
+    # Bear "head-back jerk" — chin at the stop + pan.
+    l1:           { pan: 10,  tilt: 20,  roll: 0 }
+    l2_drift_deg: 1.10
+    l2_period_s:  2.8
+    l3_gesture:   { token: peek,       amp_deg: 21, dur_s: 0.55 }
+
+  # ── Status-style / device extras ─────────────────────────────
+  sleepy:
+    # Bear "nodded off" — drooped + slumped sideways.
+    l1:           { pan: 0,   tilt: -20, roll: 15 }
+    l2_drift_deg: 0.40
+    l2_period_s:  8.0
+    l3_gesture:   { token: dip,        amp_deg: 8,  dur_s: 1.20 }
+
+  wink:
+    # Bear "sly side-eye" — turned + tilt.
+    l1:           { pan: -18, tilt: 5,   roll: 13 }
+    l2_drift_deg: 0.60
+    l2_period_s:  3.8
+    l3_gesture:   ~
+
+  flirty:
+    # Bear "coy strong tilt" — head cocked toward.
+    l1:           { pan: 16,  tilt: 8,   roll: 15 }
+    l2_drift_deg: 0.80
+    l2_period_s:  3.2
+    l3_gesture:   { token: tilt_right, amp_deg: 13, dur_s: 0.60 }
+
+# Safety — applied by neck_adapter after L1 + L2 + L3 are summed.
+# Mechanical envelope of the STS3215 linkage (NOT the ±55° Disney
+# guideline — the linkage tilt/roll are physically constrained).
+safety:
+  pan_deg:  80
+  tilt_deg: 20
+  roll_deg: 15

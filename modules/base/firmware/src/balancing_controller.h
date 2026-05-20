@@ -53,7 +53,7 @@ public:
     bool update();
 
     /**
-     * Set target velocity (from Raspberry Pi commands)
+     * Set target velocity (from Raspberry Pi commands or joystick)
      * @param linear_mps Linear velocity in m/s
      * @param angular_radps Angular velocity in rad/s
      */

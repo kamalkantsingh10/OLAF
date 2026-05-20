@@ -214,6 +214,111 @@ class TestRuntimeFallback:
             m.resolve("not_a_topic", "x")
 
 
+# ── Story 7.2 — layered_action + mood.eye validation ────────────────
+
+
+class TestStory72LayeredActionValidation:
+    """Story 7.2 — `vocalization.<tag>.layered_action` + `mood.<m>.eye`
+    are fail-fast validated at startup (NFR5/NFR7)."""
+
+    def test_packaged_map_has_layered_action_on_every_vocalization(self):
+        m = load_expression_map(PACKAGED_MAP)
+        for tag in schema.VOCALIZATION_TAGS:
+            entry = m.vocalization[tag]
+            assert "layered_action" in entry, f"{tag} missing layered_action"
+            assert "attack_ms" in entry["layered_action"]
+            assert "settle_ms" in entry["layered_action"]
+        # Review iter #2: only laughter/sigh/gasp carry an eye override;
+        # clears_throat/nod/shake are body-only.
+        for tag in ("laughter", "sigh", "gasp"):
+            assert "eye" in m.vocalization[tag]["layered_action"], (
+                f"{tag} expected to author eye override"
+            )
+        for tag in ("clears_throat", "nod", "shake"):
+            assert "eye" not in m.vocalization[tag]["layered_action"], (
+                f"{tag} must NOT author eye override (speech_emotion shows through)"
+            )
+
+    def test_packaged_map_has_mood_eye_on_every_mood(self):
+        m = load_expression_map(PACKAGED_MAP)
+        for mood_name in get_args(schema.Mood):
+            entry = m.mood[mood_name]
+            assert "eye" in entry, f"{mood_name} missing eye accent"
+            assert "expression" in entry["eye"]
+            assert "intensity" in entry["eye"]
+
+    def test_range_field_accepts_2_list(self, tmp_path, valid_map_dict):
+        # A [min,max] range is the canonical form.
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["attack_ms"] = [50, 100]
+        load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_range_field_accepts_scalar(self, tmp_path, valid_map_dict):
+        # A scalar is also accepted (treated as fixed).
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["attack_ms"] = 80
+        load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_range_with_wrong_length_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["attack_ms"] = [60]
+        with pytest.raises(MapValidationError, match="attack_ms"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_range_with_min_gt_max_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["settle_ms"] = [800, 400]
+        with pytest.raises(MapValidationError, match="settle_ms"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_unknown_neck_gesture_token_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["neck_gesture"]["token"] = "not_a_gesture"
+        with pytest.raises(MapValidationError, match="neck_gestures"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_unknown_ears_gesture_token_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["vocalization"]["gasp"]["layered_action"]["ears_gesture"]["token"] = "not_a_gesture"
+        with pytest.raises(MapValidationError, match="ears_gestures"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_audible_vocalization_eye_block_present_must_have_expression(self, tmp_path, valid_map_dict):
+        # When the optional `eye` block IS authored on an audible
+        # vocalization, expression is required (otherwise the override
+        # would have no name to send to the eye).
+        del valid_map_dict["vocalization"]["laughter"]["layered_action"]["eye"]["expression"]
+        with pytest.raises(MapValidationError, match="eye.expression"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_gesture_cue_eye_block_present_cannot_author_expression(self, tmp_path, valid_map_dict):
+        # nod has no eye block in the packaged map. If an author adds
+        # one AND puts an expression in it, the validator points them
+        # at the right design (drop the block entirely).
+        valid_map_dict["vocalization"]["nod"]["layered_action"]["eye"] = {
+            "expression": "happy", "intensity": [2, 3],
+        }
+        with pytest.raises(MapValidationError, match="nod|gesture cues"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_eye_block_is_optional(self, tmp_path, valid_map_dict):
+        # Sanity: a vocalization without `eye` loads fine (body-only).
+        # Already true for clears_throat/nod/shake in the packaged map.
+        load_expression_map(PACKAGED_MAP)
+
+    def test_layered_action_extra_field_fatal(self, tmp_path, valid_map_dict):
+        # Typos like `led_pulse` (dropped in 7.2 scope reshape) must
+        # surface at startup, not be silently ignored.
+        valid_map_dict["vocalization"]["laughter"]["layered_action"]["led_pulse"] = {
+            "color": "warm", "dur_s": 0.5,
+        }
+        with pytest.raises(MapValidationError, match="led_pulse"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_mood_eye_intensity_accepts_range(self, tmp_path, valid_map_dict):
+        valid_map_dict["mood"]["calm"]["eye"]["intensity"] = [2, 4]
+        load_expression_map(_write(tmp_path, valid_map_dict))
+
+    def test_mood_eye_missing_expression_fatal(self, tmp_path, valid_map_dict):
+        del valid_map_dict["mood"]["calm"]["eye"]["expression"]
+        with pytest.raises(MapValidationError, match="expression"):
+            load_expression_map(_write(tmp_path, valid_map_dict))
+
+
 class TestNodeStartupFatal:  # AC#2/#3 — §9: incomplete map → exit 1
     def test_node_main_exits_nonzero_on_incomplete_map(self, tmp_path):
         # node.main loads + validates the map BEFORE rclpy.init, so an

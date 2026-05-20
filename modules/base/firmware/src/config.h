@@ -46,13 +46,29 @@ constexpr uint32_t kI2CFrequency = 400000;     // 400kHz fast mode
 
 // --- PID balancing defaults (torque/current mode) ---
 // Output is current (Amps) directly to motors. Values from mjbots hoverbot.
-constexpr float kPitchKp = 0.2f;              // Conservative start — feel the response first
-constexpr float kPitchKi = 0.0f;              // No integral yet
-constexpr float kPitchKd = 0.05f;             // Damping
-constexpr float kTargetPitchDeg = 1.5f;       // CG offset — adjust on slider once balancing works
+constexpr float kPitchKp = 0.18f;             // Auto-tuned 2026-04-09 (0.11 with vel loop active)
+constexpr float kPitchKi = 0.0f;              // No integral — causes drift/windup
+constexpr float kPitchKd = 1.0f;              // Auto-tuned 2026-04-09
+constexpr float kTargetPitchDeg = 4.2f;       // CG offset — auto-tuned 2026-04-09
 constexpr float kPIDOutputMin = -kMaxCurrentAmps;
 constexpr float kPIDOutputMax = kMaxCurrentAmps;
 constexpr float kMaxIntegral = 5.0f;          // Anti-windup clamp
+
+// --- Velocity outer loop PID (stops drift) ---
+// Output is pitch target offset in degrees, added to kTargetPitchDeg.
+// Runs at 50Hz (every 20ms) — UART too slow for 200Hz.
+constexpr float kVelKp = 5.0f;                // Conservative start — increase via slider
+constexpr float kVelKi = 5.0f;                // Eliminates steady-state drift
+constexpr float kVelKd = 0.0f;                // Not needed for velocity loop
+constexpr float kVelOutputMaxDeg = 5.0f;       // Max pitch offset ±5°
+constexpr float kVelMaxIntegral = 2.0f;        // Anti-windup for velocity integral
+constexpr uint32_t kVelIntervalMs = 50;        // 20Hz velocity loop — keeps UART from starving balance PID
+
+// --- Velocity exponential smoothing filter ---
+// Hall encoders (90 CPR) produce noisy velocity at low speed.
+// Exponential filter: filtered = alpha * filtered + (1-alpha) * raw
+// Higher alpha = smoother but slower response. Tunable via web slider.
+constexpr float kVelFilterAlpha = 0.85f;       // Default smoothing factor (range 0.5–0.99)
 
 // --- PID loop timing ---
 constexpr uint32_t kPIDIntervalUs = 5000;      // 5ms = 200Hz

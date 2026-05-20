@@ -70,3 +70,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Pytest coverage data
+.coverage
+

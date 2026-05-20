@@ -8,10 +8,11 @@
 #include "balancing_controller.h"
 #include "imu.h"
 #include "motor_controller.h"
+#include "velocity_controller.h"
 #include "web_tuner.h"
 
 // Tighter output clamp during auto-tune to prevent violent movements
-constexpr float kAutoTuneOutputMax = 3.0f;  // 3 Amps max during auto-tune
+constexpr float kAutoTuneOutputMax = 1.5f;  // 1.5 Amps max during auto-tune
 
 // Global instance
 BalancingController balancer;
@@ -144,9 +145,10 @@ float BalancingController::getPIDOutput() {
 
 float BalancingController::calculatePID(float current_pitch, float dt) {
     // Use live-tunable gains from web UI
-    // Positive pitch = leaning backward. Target ~5° = CG offset.
-    // When pitch > target (leaning too far back), error is negative → negative output → drives backward to catch
-    float error = tuneTarget - current_pitch;
+    // Positive pitch = leaning backward. Target ~4.2° = CG offset.
+    // Velocity outer loop adds pitch offset to correct drift.
+    float effectiveTarget = tuneTarget + velController.getPitchOffset();
+    float error = effectiveTarget - current_pitch;
 
     // P term
     float p_term = tuneKp * error;

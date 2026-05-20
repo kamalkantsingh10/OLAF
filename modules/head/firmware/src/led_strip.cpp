@@ -30,6 +30,11 @@ static bool animation_complete = true;
 static uint32_t state_start_ms = 0;
 static uint8_t active_brightness = kLedDefaultBrightness;
 
+// Emotional overlay — a SEPARATE channel from current_state. Never
+// written by the state machine; only by ledStripSetOverlay() (its own
+// I2C event). NONE is a no-op so system-status LEDs are unchanged.
+static LedOverlay current_overlay = LedOverlay::NONE;
+
 // ============================================================================
 // Unified white palette — matches eye color on the displays
 // ============================================================================
@@ -290,6 +295,57 @@ static void animateGoingIdle() {
 }
 
 // ============================================================================
+// Emotional Overlay — separate wash, layered after the state animation
+// ============================================================================
+
+static void applyOverlay() {
+    if (current_overlay == LedOverlay::NONE) {
+        return;  // no tint — system-status animation unchanged
+    }
+
+    // Slow breath so the wash feels alive, not a flat fill.
+    float breath = 0.65f + 0.35f * (0.5f * (1.0f + sinf(millis() / 900.0f)));
+
+    if (current_overlay == LedOverlay::BRIGHT) {
+        // Hue unchanged — just lift brightness. Guarantee a glow even
+        // if the active state left the strip dark.
+        bool dark = true;
+        for (uint8_t i = 0; i < kLedStripCount; i++) {
+            if (leds[i].r || leds[i].g || leds[i].b) { dark = false; break; }
+        }
+        if (dark) {
+            setSymPair(0, whiteAt(0.5f * breath));
+        }
+        active_brightness = kLedMaxBrightness;
+        return;
+    }
+
+    CRGB wash;
+    switch (current_overlay) {
+        case LedOverlay::WARM: wash = CRGB(255, 120, 30); break;
+        case LedOverlay::COOL: wash = CRGB(20,  90, 255); break;
+        case LedOverlay::HOT:  wash = CRGB(255, 15,  0);  break;
+        default:               return;
+    }
+
+    // Ambient floor in the wash colour (so the emotion reads even when
+    // the system-status animation is dark), then bias every lit pixel
+    // toward the wash.
+    uint8_t floor_amt = (uint8_t)(40 * breath);
+    uint8_t bias_amt  = (current_overlay == LedOverlay::HOT) ? 150 : 110;
+    for (uint8_t i = 0; i < kLedStripCount; i++) {
+        CRGB amb = wash;
+        amb.nscale8(floor_amt);
+        leds[i] |= amb;
+        nblend(leds[i], wash, bias_amt);
+    }
+    if (current_overlay == LedOverlay::HOT &&
+        active_brightness < kLedMaxBrightness / 2) {
+        active_brightness = kLedMaxBrightness / 2;  // anger runs hotter
+    }
+}
+
+// ============================================================================
 // Public API
 // ============================================================================
 
@@ -327,6 +383,19 @@ LedState ledStripGetState() {
     return current_state;
 }
 
+void ledStripSetOverlay(LedOverlay overlay) {
+    if (overlay == current_overlay) {
+        return;
+    }
+    current_overlay = overlay;
+    const char* names[] = { "NONE", "WARM", "COOL", "HOT", "BRIGHT" };
+    Serial.printf("[LED] overlay -> %s\n", names[(uint8_t)overlay]);
+}
+
+LedOverlay ledStripGetOverlay() {
+    return current_overlay;
+}
+
 void ledStripUpdate() {
     switch (current_state) {
         case LedState::SPEAKING:   animateSpeaking();    break;
@@ -335,6 +404,10 @@ void ledStripUpdate() {
             active_brightness = kLedDefaultBrightness;
             break;
     }
+
+    // Emotional overlay is layered LAST and is independent of the
+    // state above (separate I2C event — REG_LED_OVERLAY).
+    applyOverlay();
 
     FastLED.setBrightness(active_brightness);
     FastLED.show();

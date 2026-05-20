@@ -8,9 +8,17 @@ animation. The engine never ticks the eyes.
 AR10 — the canonical→ESP32 vocabulary translation table lives HERE,
 not in `expression_map.yaml` and not in the render loop. The map stays
 canonical; swapping the eye display = rewriting THIS table only
-(NFR6). The ESP32 firmware accepts exactly 7 expression strings
-(`head_i2c_client.EXPRESSION_MAP`): neutral, happy, sad, surprised,
-angry, sleepy, wink.
+(NFR6).
+
+Story 7.1a (owner-authorised AR10 freeze deviation, 2026-05-19): the
+Head ESP32 firmware now renders all **12** canonical speech-emotions
+distinctly (the finalised spec filled-cyan-shape visual language +
+per-emotion blink contract), so this table is **1:1** for the 12
+speech-emotions — the 12→7 squash is removed. Activity eye-states
+still map onto the device set. Blink interval/duration/close-style is
+a per-emotion firmware contract (the device owns blink timing — the
+engine never sends blink timing; smart-peripheral AR1/§2); the
+firmware blink table is pinned to the spec by a host test.
 """
 
 from __future__ import annotations
@@ -21,24 +29,26 @@ from typing import Callable, Optional
 from expression_engine.logging_setup import log_event
 
 # Canonical name (speech_emotion 12 + activity eye states + defaults)
-# → one of the ESP32's 7 strings. AR10: this is the ONLY place the
-# hardware eye vocabulary appears. "Pick the closest" for the 7-string
-# device; unknown → neutral (safe) + a logged warning.
+# → an ESP32 device-expression string. AR10: this is the ONLY place
+# the hardware eye vocabulary appears. Story 7.1a: speech-emotions are
+# 1:1 (12 distinct device renders, no squash). Unknown → neutral
+# (safe) + a logged warning.
 _CANONICAL_TO_ESP32: dict[str, str] = {
-    # ── speech_emotion (12 first-class, brief §A.6) ──
+    # ── speech_emotion (12 first-class, brief §A.6) — 1:1, distinct ──
     "neutral": "neutral",
-    "content": "happy",
-    "excited": "happy",
+    "content": "content",
+    "excited": "excited",
     "sad": "sad",
     "angry": "angry",
-    "scared": "surprised",
+    "scared": "scared",
     "happy": "happy",          # ← reference expression (Story 6.4)
-    "curious": "surprised",
-    "sympathetic": "sad",
+    "curious": "curious",
+    "sympathetic": "sympathetic",
     "surprised": "surprised",
-    "frustrated": "angry",
-    "melancholic": "sad",
+    "frustrated": "frustrated",
+    "melancholic": "melancholic",
     # ── activity eye states (expression_map.yaml `activity.*.eye`) ──
+    # Map onto the device set; not required distinct.
     "boot": "neutral",
     "closed": "sleepy",
     "waking": "neutral",

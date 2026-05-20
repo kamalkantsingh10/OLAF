@@ -19,13 +19,14 @@ mood never snaps (NFR3).
 from __future__ import annotations
 
 import logging
-import math
 import os
+import random
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
+from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.adapters.base import ContinuousAdapter, DelegatingAdapter
 from expression_engine.config import AnimationConfig
 from expression_engine.logging_setup import log_event
@@ -136,52 +137,180 @@ def _offsets(partial: Optional[dict], joints: tuple[str, ...]) -> dict[str, floa
     return out
 
 
-class _Gesture:
-    """A parametric, code-side joint transient (nod / shake) — AR12.
+def _sample_int(value: Any, rng: random.Random) -> int:
+    """Sample an int from a 2-list range OR pass through a scalar (Story 7.2)."""
+    if isinstance(value, list):
+        return rng.randint(int(value[0]), int(value[1]))
+    return int(value)
 
-    Crisp attack to peak then settle/release; never eased. Lands ≤150ms
-    (peak by ~attack_ms). Map content is irrelevant (vocalization is
-    deferred — only the tag selects the trajectory).
+
+def _sample_float(value: Any, rng: random.Random) -> float:
+    """Sample a float from a 2-list range OR pass through a scalar (Story 7.2)."""
+    if isinstance(value, list):
+        return rng.uniform(float(value[0]), float(value[1]))
+    return float(value)
+
+
+def _sample_param(value: Any, rng: random.Random) -> Any:
+    """Range-aware sampler for ARBITRARY gesture kwargs (Story 7.2 review iter).
+
+    Numeric ranges with two int bounds → ``randint`` (e.g. nod ``cycles``);
+    other 2-lists → ``uniform`` (float). Scalars pass through unchanged.
+    """
+    if isinstance(value, list) and len(value) == 2:
+        lo, hi = value
+        bool_safe = (not isinstance(lo, bool)) and (not isinstance(hi, bool))
+        if bool_safe and isinstance(lo, int) and isinstance(hi, int):
+            return rng.randint(lo, hi)
+        return rng.uniform(float(lo), float(hi))
+    return value
+
+
+def _gesture_extra_kwargs(block: dict, rng: random.Random) -> dict:
+    """Sample every key beyond ``token/amp_deg/dur_s`` so authors can pass
+    arbitrary parameters (e.g. ``cycles``) into the gesture function as
+    kwargs. Each value is range-or-scalar via ``_sample_param``."""
+    out: dict = {}
+    for k, v in block.items():
+        if k in ("token", "amp_deg", "dur_s"):
+            continue
+        out[k] = _sample_param(v, rng)
+    return out
+
+
+class _VocalizationAction:
+    """Map-driven, randomized layered transient — Story 7.2 / AR12.
+
+    Replaces the Story 6.3 hard-coded ``_Gesture.SHAPES`` table. Reads
+    ``expression_map.yaml`` ``vocalization.<tag>.layered_action`` and
+    samples every range field via an injected ``random.Random`` at
+    construction — so two fires of the same vocalization never look
+    identical at the joint level.
+
+    Composes three independent layers on the same gesture window:
+      - **neck_offset(now)** — additive pan/tilt/roll using a token from
+        ``adapters.neck_gestures.GESTURES``.
+      - **ears_offset(now)** — additive 4-joint offset using a token from
+        ``adapters.ears_gestures.GESTURES``.
+      - **eye_target(now)** — (expression, intensity) the delegating eye
+        should show *during* the window; nod/shake derive expression
+        from the current mood (passed in at construction).
+
+    The action's window is ``attack_ms + settle_ms`` (sampled), padded to
+    cover every component's sampled ``dur_s``. ``expired(now)`` is true
+    after the window — the render loop drops the action and the eye
+    fire-on-change naturally re-fires the composed (non-vocalization)
+    eye on the next tick.
     """
 
-    SHAPES = {
-        "nod": ("tilt", 14.0),     # head nod = neck tilt
-        "shake": ("pan", 16.0),    # head shake = neck pan
-    }
-    #: shake oscillation count over the whole gesture (integer →
-    #: sin() is exactly 0 at total_s, so release is continuous).
-    _SHAKE_OSC = 3
-
-    def __init__(self, tag: str, start: float, attack_s: float, settle_s: float):
+    def __init__(
+        self,
+        tag: str,
+        spec: dict,
+        start: float,
+        rng: random.Random,
+        mood_eye_expression: Optional[str],
+    ) -> None:
         self.tag = tag
         self.start = start
-        self.attack_s = max(1e-3, attack_s)
-        self.settle_s = max(1e-3, settle_s)
-        self.joint, self.peak = self.SHAPES[tag]
+
+        attack_s = _sample_int(spec["attack_ms"], rng) / 1000.0
+        settle_s = _sample_int(spec["settle_ms"], rng) / 1000.0
+
+        neck = spec.get("neck_gesture")
+        if neck is not None:
+            self.neck_token: Optional[str] = str(neck["token"])
+            self.neck_amp = _sample_float(neck["amp_deg"], rng)
+            self.neck_dur = max(_sample_float(neck["dur_s"], rng), 1e-3)
+            self.neck_kwargs = _gesture_extra_kwargs(neck, rng)
+        else:
+            self.neck_token = None
+            self.neck_amp = 0.0
+            self.neck_dur = 0.0
+            self.neck_kwargs = {}
+
+        ears = spec.get("ears_gesture")
+        if ears is not None:
+            self.ears_token: Optional[str] = str(ears["token"])
+            self.ears_amp = _sample_float(ears["amp_deg"], rng)
+            self.ears_dur = max(_sample_float(ears["dur_s"], rng), 1e-3)
+            self.ears_kwargs = _gesture_extra_kwargs(ears, rng)
+        else:
+            self.ears_token = None
+            self.ears_amp = 0.0
+            self.ears_dur = 0.0
+            self.ears_kwargs = {}
+
+        # Eye is OPTIONAL (Story 7.2 review iter #2). When omitted, the
+        # vocalization is body-only — the composed eye (held
+        # speech_emotion / activity) shows through unchanged. Used for
+        # clears_throat / nod / shake which are physical, not emotional.
+        eye = spec.get("eye")
+        if eye is None:
+            self.eye_expression: Optional[str] = None
+            self.eye_intensity = 0
+        else:
+            eye_intensity = _sample_int(eye["intensity"], rng)
+            eye_intensity = max(1, min(5, int(eye_intensity)))
+            eye_expr_field = eye.get("expression")
+            if isinstance(eye_expr_field, list):
+                # Per-fire choice from a candidate list. Non-empty
+                # list is validated at map-load time.
+                self.eye_expression = str(rng.choice(eye_expr_field))
+            elif isinstance(eye_expr_field, str):
+                self.eye_expression = eye_expr_field
+            else:
+                # ``expression`` absent → mood-derived path (kept for
+                # forward-compat; no vocalization currently uses it).
+                self.eye_expression = mood_eye_expression
+            self.eye_intensity = eye_intensity
+
+        self._window_s = max(attack_s + settle_s, self.neck_dur, self.ears_dur)
 
     @property
-    def total_s(self) -> float:
-        return self.attack_s + self.settle_s
-
-    def offset(self, now: float) -> dict[str, float]:
-        e = now - self.start
-        if e < 0 or e > self.total_s:
-            return {}
-        if e <= self.attack_s:
-            amp = self.peak * (e / self.attack_s)
-        else:
-            amp = self.peak * (1.0 - (e - self.attack_s) / self.settle_s)
-        # shake oscillates around 0; nod is a single dip-and-return.
-        # Code review 2026-05-17: the oscillator must reach EXACTLY 0
-        # at total_s or the gesture release is a discontinuous neck
-        # snap. sin(N·π·e/total_s) is 0 at e=total_s for integer N,
-        # and the linear envelope is also 0 there → continuous release.
-        if self.tag == "shake":
-            amp *= math.sin(self._SHAKE_OSC * math.pi * e / self.total_s)
-        return {self.joint: amp}
+    def window_s(self) -> float:
+        return self._window_s
 
     def expired(self, now: float) -> bool:
-        return (now - self.start) > self.total_s
+        return (now - self.start) > self._window_s
+
+    def neck_offset(self, now: float) -> dict[str, float]:
+        if self.neck_token is None:
+            return {}
+        e = now - self.start
+        if e < 0 or e > self.neck_dur:
+            return {}
+        u = e / self.neck_dur
+        fn = neck_gestures.GESTURES.get(self.neck_token)
+        if fn is None:
+            return {}
+        p_off, t_off, r_off = fn(u, self.neck_amp, **self.neck_kwargs)
+        return {"pan": p_off, "tilt": t_off, "roll": r_off}
+
+    def ears_offset(self, now: float) -> dict[str, float]:
+        if self.ears_token is None:
+            return {}
+        e = now - self.start
+        if e < 0 or e > self.ears_dur:
+            return {}
+        u = e / self.ears_dur
+        fn = ears_gestures.GESTURES.get(self.ears_token)
+        if fn is None:
+            return {}
+        lp, lt, rp, rt = fn(u, self.ears_amp, **self.ears_kwargs)
+        return {
+            "left_pan": lp, "left_tilt": lt,
+            "right_pan": rp, "right_tilt": rt,
+        }
+
+    def eye_target(self, now: float) -> Optional[tuple[str, int]]:
+        """``(expression, intensity)`` while the window is open; else ``None``."""
+        if self.eye_expression is None:
+            return None
+        e = now - self.start
+        if e < 0 or e > self._window_s:
+            return None
+        return (self.eye_expression, self.eye_intensity)
 
 
 class RenderLoop:
@@ -202,6 +331,7 @@ class RenderLoop:
         eye: DelegatingAdapter,
         clock: Callable[[], float] = time.monotonic,
         audio_anchor_resolver: Optional[Callable[[str], float]] = None,
+        rng: Optional[random.Random] = None,
     ) -> None:
         self._state = state
         self._map = expression_map
@@ -213,6 +343,10 @@ class RenderLoop:
         # Seam for the real Pipecat frame→walltime mapping (later
         # story). None → no anticipatory biasing (immediate ease).
         self._anchor_resolver = audio_anchor_resolver
+        # Story 7.2: vocalization layered_action ranges are sampled
+        # via THIS RNG. Tests inject a seeded Random so sampled values
+        # are exact; production uses an unseeded default.
+        self._rng = rng if rng is not None else random.Random()
 
         self._a = _EaseChannel()   # activity (absolute)
         self._m = _EaseChannel()   # mood bias (additive)
@@ -220,7 +354,7 @@ class RenderLoop:
 
         self._last_evt: dict[str, object] = {}
         self._last_eye: tuple[str, int] | None = None
-        self._gestures: list[_Gesture] = []
+        self._vocalizations: list[_VocalizationAction] = []
         self._speech_smooth_s = _SPEECH_EASE_S
         self._wake_until = 0.0
         self._last_tick: float | None = None
@@ -353,17 +487,31 @@ class RenderLoop:
             if p.from_state == "sleeping" and p.state == "waking":
                 self._wake_until = now + _WAKE_WINDOW_S
 
-        # vocalization: trigger a parametric gesture (AR12).
+        # vocalization: map-driven, randomized parametric transient
+        # (Story 7.2 — replaces _Gesture.SHAPES).
         voc = self._changed(snap, "vocalization")
-        if voc is not None and voc.payload.tag in _Gesture.SHAPES:
-            self._gestures.append(
-                _Gesture(
-                    voc.payload.tag,
-                    now,
-                    self._anim.gesture_attack_ms / 1000.0,
-                    self._anim.gesture_settle_ms / 1000.0,
+        if voc is not None:
+            tag = voc.payload.tag
+            entry = self._map.vocalization.get(tag)
+            spec = entry.get("layered_action") if isinstance(entry, dict) else None
+            if spec is not None:
+                # nod/shake source their eye.expression from current mood.
+                mood_evt = snap.get("mood")
+                mood_eye_expr: Optional[str] = None
+                if mood_evt is not None:
+                    mood_entry = self._map.mood.get(mood_evt.payload.mood, {})
+                    mood_eye = mood_entry.get("eye") if isinstance(mood_entry, dict) else None
+                    if isinstance(mood_eye, dict):
+                        mood_eye_expr = mood_eye.get("expression")
+                self._vocalizations.append(
+                    _VocalizationAction(
+                        tag=tag,
+                        spec=spec,
+                        start=now,
+                        rng=self._rng,
+                        mood_eye_expression=mood_eye_expr,
+                    )
                 )
-            )
 
     # ── the tick ───────────────────────────────────────────────────
 
@@ -396,31 +544,50 @@ class RenderLoop:
             dt,
         )
 
-        # gesture transient (crisp, additive, not eased)
-        self._gestures = [g for g in self._gestures if not g.expired(now)]
-        gest: dict[str, float] = {}
-        for g in self._gestures:
-            for j, v in g.offset(now).items():
-                gest[j] = gest.get(j, 0.0) + v
+        # vocalization transient (additive, finite, not eased) —
+        # Story 7.2 / AR12. Drops expired actions; sums neck + ears
+        # offsets; first active action with an eye override wins for
+        # the delegating eye.
+        self._vocalizations = [
+            a for a in self._vocalizations if not a.expired(now)
+        ]
+        gest_neck: dict[str, float] = {}
+        gest_ears: dict[str, float] = {}
+        voc_eye: Optional[tuple[str, int]] = None
+        for action in self._vocalizations:
+            for j, v in action.neck_offset(now).items():
+                gest_neck[j] = gest_neck.get(j, 0.0) + v
+            for j, v in action.ears_offset(now).items():
+                gest_ears[j] = gest_ears.get(j, 0.0) + v
+            if voc_eye is None:
+                voc_eye = action.eye_target(now)
 
         neck_out = {
             j: self._a.value.get(j, 0.0)
             + self._m.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)
-            + gest.get(j, 0.0)
+            + gest_neck.get(j, 0.0)
             for j in _NECK
         }
         ears_out = {
-            j: self._a.value.get(j, 0.0) + self._s.value.get(j, 0.0)
+            j: self._a.value.get(j, 0.0)
+            + self._s.value.get(j, 0.0)
+            + gest_ears.get(j, 0.0)
             for j in _EARS
         }
 
         self._neck.apply(neck_out)
         self._ears.apply(ears_out)
 
-        # Delegating eye: fire-on-change ONLY, sent immediately (early
-        # → the ESP32's own ramp lands inside the anticipatory window).
-        eye = (target.eye_expression, target.eye_intensity)
+        # Delegating eye: fire-on-change ONLY, sent immediately. While
+        # a vocalization is active and provides an eye_target, it
+        # OVERRIDES the composed eye (Story 7.2 AC#5). When the
+        # vocalization window expires `voc_eye` returns to None and the
+        # next tick's composed eye differs from `_last_eye` → fire-on-
+        # change re-fires the composed eye automatically.
+        eye = voc_eye if voc_eye is not None else (
+            target.eye_expression, target.eye_intensity
+        )
         if eye != self._last_eye:
             self._last_eye = eye
             self._eye.set_expression(eye[0], eye[1])

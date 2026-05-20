@@ -14,7 +14,10 @@ from expression_engine import schema
 from expression_engine.config import AnimationConfig, load_config
 from expression_engine.map_loader import MapValidationError, load_expression_map
 from expression_engine.node import _default_config_path, _default_map_path
-from expression_engine.render_loop import _Gesture
+import random
+
+from expression_engine.adapters import neck_gestures
+from expression_engine.render_loop import _VocalizationAction
 
 PKG_MAP = _default_map_path()
 
@@ -145,14 +148,39 @@ class TestEyeWakeFatal:
             EyeAdapter(lambda: BadWake()).connect()
 
 
-# P6 — shake gesture decays to exactly 0 at total_s (no release snap)
+# P6 — Story 7.2 update: the old _Gesture's hard-coded shake (linear
+# attack+settle multiplied by sin) is gone. The equivalent property
+# now lives on `neck_gestures.shake`: at u=1.0 (gesture end) the
+# offset must be ~0 — no neck SNAP when the vocalization action
+# expires. _VocalizationAction additionally returns an empty offset
+# AFTER the sampled window (the expired-then-popped path).
 class TestShakeSettles:
-    def test_shake_zero_at_total(self):
-        g = _Gesture("shake", start=0.0, attack_s=0.08, settle_s=0.20)
-        # at end of gesture the offset must be ~0 (continuous release)
-        last = g.offset(g.total_s - 1e-6)
-        assert abs(last.get("pan", 0.0)) < 0.05
-        assert g.offset(g.total_s + 0.01) == {}
+    def test_neck_gesture_shake_zero_at_u_one(self):
+        # `shake(u, amp) = (amp*sin(4πu), 0, 0)` — sin(4π) = 0 exactly.
+        p_off, t_off, r_off = neck_gestures.GESTURES["shake"](1.0 - 1e-6, 16.0)
+        assert abs(p_off) < 0.01
+        assert t_off == 0.0 and r_off == 0.0
+
+    def test_vocalization_action_returns_empty_after_window(self):
+        spec = {
+            "attack_ms": 80,
+            "settle_ms": 320,
+            "eye": {"intensity": 2},
+            "neck_gesture": {"token": "shake", "amp_deg": 16.0, "dur_s": 0.4},
+        }
+        action = _VocalizationAction(
+            tag="shake",
+            spec=spec,
+            start=0.0,
+            rng=random.Random(0),
+            mood_eye_expression=None,
+        )
+        # Inside the dur window: a real offset.
+        mid = action.neck_offset(0.1)
+        assert "pan" in mid
+        # Past the dur window: no contribution.
+        past = action.neck_offset(action.window_s + 0.01)
+        assert past == {}
 
 
 # P11 — config range checks (NFR7)

@@ -33,6 +33,7 @@ from typing import Any, get_args
 import yaml
 
 from expression_engine import schema
+from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.logging_setup import log_event
 
 _TOPICS = ("mood", "activity", "speech_emotion", "vocalization")
@@ -188,6 +189,155 @@ def _check_eye(entry: dict, where: str) -> None:
         )
 
 
+# ── Story 7.2 helpers — random ranges for vocalization layered_action ─
+
+def _check_range_numeric(value: Any, where: str, *, allow_scalar: bool = True) -> None:
+    """A range field is `[min, max]` of numbers (min ≤ max) OR a scalar.
+
+    Story 7.2 — `vocalization.<tag>.layered_action.*` and
+    `mood.<mood>.eye.intensity` all author ranges sampled per-fire.
+    Scalars are accepted as fixed values (normalised by the render
+    loop's sampler).
+    """
+    if _is_number(value):
+        if allow_scalar:
+            return
+        raise MapValidationError(f"{where}: expected a range [min, max], got scalar {value!r}")
+    _require(
+        isinstance(value, list) and len(value) == 2,
+        f"{where}: range must be a 2-list [min, max], got {value!r}",
+    )
+    lo, hi = value
+    _require(
+        _is_number(lo) and _is_number(hi),
+        f"{where}: range bounds must be numbers, got {value!r}",
+    )
+    _require(
+        lo <= hi,
+        f"{where}: range min must be <= max, got [{lo}, {hi}]",
+    )
+
+
+def _check_vocalization_eye(eye: Any, where: str, *, expression_required: bool) -> None:
+    """A vocalization `eye` block — { [expression], intensity: range }.
+
+    Story 7.2 review iter: ``expression`` may be a single string OR a
+    non-empty list of strings (sampled per fire — e.g. sigh =
+    [content, frustrated]).
+    """
+    _require(isinstance(eye, dict), f"{where}: 'eye' must be a mapping")
+    if expression_required:
+        _require(
+            "expression" in eye,
+            f"{where}: 'eye.expression' is required for this vocalization",
+        )
+    if "expression" in eye:
+        expr = eye["expression"]
+        if isinstance(expr, list):
+            _require(
+                len(expr) >= 1 and all(isinstance(s, str) and s for s in expr),
+                f"{where}: 'eye.expression' as a list must be non-empty "
+                f"strings, got {expr!r}",
+            )
+        else:
+            _require(
+                isinstance(expr, str) and expr,
+                f"{where}: 'eye.expression' must be a non-empty string "
+                f"or a non-empty list of strings",
+            )
+    _require(
+        "intensity" in eye,
+        f"{where}: 'eye.intensity' (range or scalar) is required",
+    )
+    _check_range_numeric(eye["intensity"], f"{where}.intensity")
+
+
+def _check_gesture_block(
+    block: Any,
+    where: str,
+    valid_tokens: dict,
+    token_lib_name: str,
+) -> None:
+    """A gesture component — { token: <known>, amp_deg: range, dur_s: range,
+    [**extras] }.
+
+    Story 7.2 review iter: extra keys beyond the three required ones are
+    ACCEPTED and passed as kwargs to the gesture function at fire time
+    (e.g. ``cycles`` for ``nod``). Each extra must still be a range
+    list or scalar (validated by ``_check_range_numeric``).
+    """
+    _require(isinstance(block, dict), f"{where}: must be a mapping")
+    for key in ("token", "amp_deg", "dur_s"):
+        _require(key in block, f"{where}: missing required field {key!r}")
+    token = block["token"]
+    _require(
+        isinstance(token, str) and token in valid_tokens,
+        f"{where}: token {token!r} not in {token_lib_name}.GESTURES "
+        f"({sorted(valid_tokens)})",
+    )
+    _check_range_numeric(block["amp_deg"], f"{where}.amp_deg")
+    _check_range_numeric(block["dur_s"], f"{where}.dur_s")
+    for k, v in block.items():
+        if k in ("token", "amp_deg", "dur_s"):
+            continue
+        _check_range_numeric(v, f"{where}.{k}")
+
+
+_LAYERED_ACTION_ALLOWED = {
+    "attack_ms", "settle_ms", "eye", "neck_gesture", "ears_gesture",
+}
+
+
+def _check_layered_action(
+    action: Any, where: str, tag: str, gesture_cue_tags: tuple[str, ...]
+) -> None:
+    """Story 7.2 — `vocalization.<tag>.layered_action` shape + ranges."""
+    _require(isinstance(action, dict), f"{where}: must be a mapping")
+    extras = set(action) - _LAYERED_ACTION_ALLOWED
+    _require(
+        not extras,
+        f"{where}: unknown field(s) {sorted(extras)}; allowed: "
+        f"{sorted(_LAYERED_ACTION_ALLOWED)}",
+    )
+    for key in ("attack_ms", "settle_ms"):
+        _require(key in action, f"{where}: missing required field {key!r}")
+    _check_range_numeric(action["attack_ms"], f"{where}.attack_ms")
+    _check_range_numeric(action["settle_ms"], f"{where}.settle_ms")
+    # Story 7.2 review iter #2: `eye` is OPTIONAL. When omitted, the
+    # vocalization is body-only (composed speech_emotion eye shows
+    # through). When present, audible tags author expression + intensity;
+    # gesture cues (nod/shake) may NOT author expression (forward-compat
+    # mood-derivation path — currently no tag uses it, but the guard
+    # prevents silent misuse).
+    if "eye" in action:
+        expression_required = tag not in gesture_cue_tags
+        _check_vocalization_eye(
+            action["eye"], f"{where}.eye", expression_required=expression_required
+        )
+        if not expression_required:
+            _require(
+                "expression" not in action["eye"],
+                f"{where}.eye: gesture cues (nod/shake) cannot author "
+                f"eye.expression — drop the `eye` block entirely if no "
+                f"override is intended, or take the expression from the "
+                f"composed speech_emotion implicitly.",
+            )
+    if "neck_gesture" in action:
+        _check_gesture_block(
+            action["neck_gesture"],
+            f"{where}.neck_gesture",
+            neck_gestures.GESTURES,
+            "neck_gestures",
+        )
+    if "ears_gesture" in action:
+        _check_gesture_block(
+            action["ears_gesture"],
+            f"{where}.ears_gesture",
+            ears_gestures.GESTURES,
+            "ears_gestures",
+        )
+
+
 def _check_entries(block: dict, topic: str) -> None:
     for name, entry in block.items():
         where = f"expression_map.yaml: {topic}.{name}"
@@ -203,6 +353,13 @@ def _check_entries(block: dict, topic: str) -> None:
                 _require(
                     isinstance(entry["led_bias"], dict),
                     f"{where}: 'led_bias' must be a mapping",
+                )
+            # Story 7.2: mood eye accent — source for nod/shake's
+            # vocalization eye when no per-vocalization expression is
+            # authored. Intensity is a RANGE (sampled per fire).
+            if "eye" in entry:
+                _check_vocalization_eye(
+                    entry["eye"], f"{where}.eye", expression_required=True
                 )
         else:
             _check_pose(entry, where)
@@ -323,6 +480,14 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
             isinstance(entry, dict),
             f"expression_map.yaml: vocalization.{name} must be a mapping",
         )
+        # Story 7.2 — `layered_action` shape + ranges + token validity.
+        if "layered_action" in entry:
+            _check_layered_action(
+                entry["layered_action"],
+                f"expression_map.yaml: vocalization.{name}.layered_action",
+                tag=name,
+                gesture_cue_tags=schema.VOCALIZATION_GESTURE_CUES,
+            )
 
     # FR7 / AR8 step 4 — gesture cues are silent: visible_only MUST be
     # present AND exactly True.

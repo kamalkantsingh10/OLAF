@@ -143,6 +143,21 @@ class TestEyeAdapter:
         for name in schema.SPEECH_EMOTION_CANONICAL:
             assert name in _CANONICAL_TO_ESP32, f"{name} missing from AR10 table"
 
+    def test_all_12_map_to_distinct_targets(self):
+        # Story 7.1a: AR10 no longer squashes 12→7. Each canonical
+        # speech-emotion must reach a DISTINCT device expression so it
+        # renders distinctly on the eyes (owner-authorised AR10
+        # freeze deviation, 2026-05-19).
+        from expression_engine import schema
+
+        targets = [
+            EyeAdapter.translate(n)
+            for n in schema.SPEECH_EMOTION_CANONICAL
+        ]
+        assert len(set(targets)) == len(
+            schema.SPEECH_EMOTION_CANONICAL
+        ), dict(zip(schema.SPEECH_EMOTION_CANONICAL, targets))
+
     def test_unknown_canonical_falls_back_to_neutral(self):
         assert EyeAdapter.translate("no_such_eye") == "neutral"
 
@@ -151,8 +166,9 @@ class TestEyeAdapter:
         a = EyeAdapter(lambda: fake)
         a.connect()
         assert fake.opened
-        a.set_expression("frustrated", 9)  # → angry, intensity clamped 5
-        assert fake.expressions[-1] == ("angry", 5)
+        # 7.1a: frustrated is now its own device target (no squash).
+        a.set_expression("frustrated", 9)  # → frustrated, intensity clamp 5
+        assert fake.expressions[-1] == ("frustrated", 5)
 
     def test_blink_and_close(self):
         fake = FakeEyeClient()

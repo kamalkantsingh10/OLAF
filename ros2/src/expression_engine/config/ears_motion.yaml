@@ -1,0 +1,142 @@
+# Per-emotion ears motion spec — Story 7.1c.
+#
+# Three-level intensity (parallel to eyes 7.1a + neck 7.1b):
+#   L1  static pose only
+#   L2  + small idle drift / micro-movement
+#   L3  + brief peak gesture at expression onset, then settle
+#
+# Firmware-strict mapping in the player: incoming intensity
+# 1→L1, 2→L2, 3,4,5→L3 (map sends 2-5; Kamal re-authors later).
+#
+# Angles are DEGREES.  Joints are:
+#   left_pan, right_pan    — outward/inward swing
+#   left_tilt, right_tilt  — forward (+) / back (−) pitch
+#
+# L1 poses are **bear-inspired** ([[reference-neck-bear-ref]],
+# `.ai/neck_ref_sheet.jpg`) — bears in the sheet show: PERKED for
+# alert/happy/curious, DROOPED for sad/sleepy, FLATTENED for anger
+# /fear, ASYMMETRIC for curious/coy. Eyes (7.1a) and neck (7.1b)
+# are FROZEN — this story is ears-only.
+#
+# Safety: clamped by the player to mechanical envelope —
+#   left_pan / right_pan : ±50°  (right_pan ≥65° binds, hard limit)
+#   left_tilt / right_tilt: −60..+90°
+#
+# Gesture token names refer to functions in
+# expression_engine/adapters/ears_gestures.py (the registry).
+
+emotions:
+
+  # ── 12 canonical speech-emotions ─────────────────────────────
+  neutral:
+    l1:           { left_pan:  5, left_tilt:  0, right_pan:  5, right_tilt:  0 }
+    l2_drift_deg: 0.5
+    l2_period_s:  5.0
+    l3_gesture:   ~
+
+  happy:
+    # Bear "perked" — ears UP + slightly forward.
+    l1:           { left_pan: 22, left_tilt: 22, right_pan: 22, right_tilt: 22 }
+    l2_drift_deg: 0.8
+    l2_period_s:  3.5
+    l3_gesture:   { token: perk_up,    amp_deg: 12, dur_s: 0.55 }
+
+  content:
+    # Bear "soft perky" — slight up.
+    l1:           { left_pan: 12, left_tilt: 10, right_pan: 12, right_tilt: 10 }
+    l2_drift_deg: 0.6
+    l2_period_s:  4.0
+    l3_gesture:   { token: twitch,     amp_deg:  4, dur_s: 0.80 }
+
+  excited:
+    # Bear "ears way up" — fully perked, near limits.
+    l1:           { left_pan: 30, left_tilt: 30, right_pan: 30, right_tilt: 30 }
+    l2_drift_deg: 1.1
+    l2_period_s:  3.0
+    l3_gesture:   { token: flick,      amp_deg: 16, dur_s: 0.50 }
+
+  sad:
+    # Bear "drooped" — ears spread wide and tilted DOWN/back.
+    l1:           { left_pan: 35, left_tilt: -25, right_pan: 35, right_tilt: -25 }
+    l2_drift_deg: 0.4
+    l2_period_s:  6.0
+    l3_gesture:   { token: droop,      amp_deg: 10, dur_s: 1.00 }
+
+  melancholic:
+    # Bear "low-drooped" — ears spread + slight back-down.
+    l1:           { left_pan: 28, left_tilt: -18, right_pan: 28, right_tilt: -18 }
+    l2_drift_deg: 0.3
+    l2_period_s:  7.0
+    l3_gesture:   { token: droop,      amp_deg:  8, dur_s: 1.20 }
+
+  sympathetic:
+    # Bear "soft attentive" — ears toward listener, slight perked.
+    l1:           { left_pan: 14, left_tilt: 10, right_pan: 14, right_tilt: 10 }
+    l2_drift_deg: 0.5
+    l2_period_s:  4.5
+    l3_gesture:   { token: swivel_in,  amp_deg:  6, dur_s: 0.75 }
+
+  angry:
+    # Bear "flattened back" — ears pulled in & tilted DOWN.
+    l1:           { left_pan:  2, left_tilt: -28, right_pan:  2, right_tilt: -28 }
+    l2_drift_deg: 0.7
+    l2_period_s:  3.0
+    l3_gesture:   { token: flatten,    amp_deg: 14, dur_s: 0.55 }
+
+  frustrated:
+    # Bear "half-flattened, asymmetric back".
+    l1:           { left_pan:  8, left_tilt: -20, right_pan: 14, right_tilt: -16 }
+    l2_drift_deg: 0.7
+    l2_period_s:  3.5
+    l3_gesture:   { token: flatten,    amp_deg: 10, dur_s: 0.70 }
+
+  scared:
+    # Bear "fear-flatten" — pulled BACK hard, tilted DOWN.
+    l1:           { left_pan:  6, left_tilt: -35, right_pan:  6, right_tilt: -35 }
+    l2_drift_deg: 0.6
+    l2_period_s:  4.0
+    l3_gesture:   { token: flatten,    amp_deg: 16, dur_s: 0.45 }
+
+  curious:
+    # Bear "asymmetric cock" — one ear UP, one slightly UP.
+    l1:           { left_pan:  8, left_tilt: 24, right_pan: 30, right_tilt:  6 }
+    l2_drift_deg: 0.6
+    l2_period_s:  4.0
+    l3_gesture:   { token: one_cock,   amp_deg: 12, dur_s: 0.70 }
+
+  surprised:
+    # Bear "ears forward alert" — straight up.
+    l1:           { left_pan: 30, left_tilt: 12, right_pan: 30, right_tilt: 12 }
+    l2_drift_deg: 0.9
+    l2_period_s:  3.0
+    l3_gesture:   { token: perk_up,    amp_deg: 16, dur_s: 0.55 }
+
+  # ── Status-style / device extras ─────────────────────────────
+  sleepy:
+    # Bear "ears relaxed-down" — soft droop.
+    l1:           { left_pan: 18, left_tilt: -12, right_pan: 18, right_tilt: -12 }
+    l2_drift_deg: 0.3
+    l2_period_s:  8.0
+    l3_gesture:   { token: droop,      amp_deg:  6, dur_s: 1.20 }
+
+  wink:
+    # Bear "sly asymmetric" — one ear cocked.
+    l1:           { left_pan: 14, left_tilt: -2, right_pan: 22, right_tilt: 12 }
+    l2_drift_deg: 0.5
+    l2_period_s:  3.8
+    l3_gesture:   ~
+
+  flirty:
+    # Bear "coy asymmetric perk".
+    l1:           { left_pan: 18, left_tilt: 14, right_pan: 12, right_tilt: 16 }
+    l2_drift_deg: 0.6
+    l2_period_s:  3.2
+    l3_gesture:   { token: one_cock,   amp_deg:  8, dur_s: 0.60 }
+
+# Safety — applied by EarsMotionPlayer after L1 + L2 + L3 sum.
+# Matches ears_adapter._LIMITS; right_pan ≥65° BINDS on SCS0009.
+safety:
+  left_pan:   { lo: -50, hi: 50 }
+  right_pan:  { lo: -50, hi: 50 }
+  left_tilt:  { lo: -60, hi: 90 }
+  right_tilt: { lo: -60, hi: 90 }

@@ -1,0 +1,18 @@
+# Deferred Work
+
+## Deferred from: code review of 6-4-reference-expression-end-to-end (2026-05-17)
+
+- **mock_publisher manage_rclpy=False teardown on dead context** (`ros2/src/expression_engine/test/mock_publisher.py`) — when embedded and the engine hits the FR4 fatal path mid-run, the still-running publisher loop spins on a shut-down context; teardown unguarded. Manual e2e hardware harness only, not a production path. Reason: test tooling, low impact, no production exposure.
+- **mock_publisher latched depth-1 late-join misses `waking`** (`ros2/src/expression_engine/test/mock_publisher.py`) — `activity` published TRANSIENT_LOCAL depth 1; a late-joining engine sees only the last sample (`listening`), never `from_state=sleeping,state=waking`, so the NFR1 wake short-circuit can't fire on late-join. Worked in the reference run (engine subscribed before publish). Reason: DDS semantics of the FR14 substitute; revisit at live-pipeline integration.
+- **Speech-overlay / mood decay-to-base (TTL)** (`render_loop.py` `_compose` / `state.py`) — §3/§5.1 specify the speech_emotion overlay decays to base after ~3s silence; current last-write-wins holds it indefinitely. **Deferred to Story 6.5 (idle).** Reason: idle/return-to-neutral concern — `[idle] return_to_neutral_after_seconds=3.0` is 6.5's config; 6.3 left an ambient-target seam for the idle FSM to substitute. Architect to confirm §3/§5.1 wording reads as idle-FSM substitution when 6.5 is built.
+
+## ~~Deferred~~ → PULLED INTO Story 7.1 (owner-directed, 2026-05-19)
+
+> **Status update:** Owner directed this be done **now, in the 7.1 session** (not deferred to 6.6). Implemented end-to-end (`REG_LED_OVERLAY=0x40`); firmware compiles clean. **Only the OTA flash + I2C hardware verify remain — blocked on battery recharge.** Tracked as Story 7.1 Task 6. Original deferred plan kept below for reference.
+
+- **ESP32 head firmware — LED overlay as a SEPARATE I2C event** (`modules/head/firmware/` + `ros2/src/olaf_drivers/head_ears_driver/head_ears_driver/head_i2c_client.py`). Today the head ESP32 has no LED-overlay register: LED animation is implicitly coupled to `REG_SYSTEM_STATUS` (0x30, wake/sleep) and there is no path to drive the `led_overlay` token (`none|warm|cool|hot|bright`) the 7.1 map now authors. **Owner-requested (Kamal, 2026-05-19): make the LED its own event, decoupled from expression + system status.** Concrete plan:
+  1. **Protocol:** add `REG_LED_OVERLAY = 0x40` (W), value enum `0=none,1=warm,2=cool,3=hot,4=bright`. Document it in the `head_i2c_client.py` register-map docstring next to `0x30`.
+  2. **Python:** add `REG_LED_OVERLAY` constant + `set_led_overlay(token: str) -> bool` (token→enum, unknown→`none`+WARN) in `head_i2c_client.py`. No change to `set_expression` / `set_system_status` (decoupled).
+  3. **ESP32 firmware (OTA-flashable per Kamal):** `i2c_slave.h` — add `REG_LED_OVERLAY` + `current_command_.led_overlay` field; `i2c_slave.cpp` — `case REG_LED_OVERLAY:` stores it (validated 0–4) independent of `REG_EXPRESSION_TYPE`/`REG_SYSTEM_STATUS`; `led_strip.cpp`/`animation_engine.cpp` — drive the strip from `led_overlay` on its own, not derived from expression/status; `config.h` — register constant.
+  4. **Flash:** OTA to the head ESP32; re-verify with `head_i2c_client.set_led_overlay(...)` end-to-end.
+  - **Belongs to Story 6.6 (Real LED adapter — breath LED)** as its firmware prerequisite. **Out of Story 7.1 scope** (7.1 authors the `led_overlay` token only; AR5/§4-FROZEN forbids 7.1 touching adapters/firmware). Tracked task created in this session. Reason: owner deferred ("work on it later"); 6.6 is the LED-adapter story and the natural home.

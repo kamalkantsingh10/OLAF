@@ -1,0 +1,93 @@
+# generated: 2026-05-16T00:24:25
+# last_updated: 2026-05-16T00:24:25
+# project: OLAF
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: docs/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# PROJECT NOTES (OLAF Phase 2):
+# - Epic 5 was a HARD GATE. Stories 5.1 + 5.2 (SCP approval 2026-05-15) and
+#   5.3 (per-driver hardware verification) are all 'done' as of 2026-05-17:
+#   neck, ears, and head/eye each confirmed moving real hardware in-process.
+#   GATE CLOSED — Epic 5 'done'; Epics 6, 7, 8 are unblocked.
+# - Sequencing is strictly linear: Epic 5 → 6 → 7 → 8.
+# - Epic 9 (Hardening) is a non-blocking backlog epic — it does NOT gate
+#   Epics 6/7/8. Story 9.1 captures the Pi/ESP32 I2C boot-order race found
+#   while closing 5.3.
+
+generated: 2026-05-16T00:24:25
+last_updated: 2026-05-20T00:00:02
+project: OLAF
+project_key: NOKEY
+tracking_system: file-system
+story_location: docs/implementation-artifacts
+
+development_status:
+  # ── Epic 5: Restructure & Driver Verification (hard gate) ──
+  epic-5: done
+  5-1-execute-restructure: done
+  5-2-documentation-redirect: done
+  5-3-per-driver-hardware-verification: done
+  epic-5-retrospective: optional
+
+  # ── Epic 6: Expression Engine ──
+  epic-6: in-progress
+  6-1-subscriber-schema-3-envelope-validation: done
+  6-2-map-loader-vocabulary-completeness: done
+  6-3-animation-loop: done
+  6-4-reference-expression-end-to-end-freezes-the-schema: done
+  6-5-idle-behaviour: ready-for-dev
+  6-6-real-led-adapter-breath-led: ready-for-dev
+  6-7-service-hardening: ready-for-dev
+  epic-6-retrospective: optional
+
+  # ── Epic 7: Expression Authoring & Finalization ──
+  epic-7: in-progress
+  7-1-author-finalize-the-speech-emotions: in-progress
+  7-1a-eye-visual-language-rewrite: review
+  7-1b-neck-movement-routines: review
+  7-1c-ear-movement-routines: review
+  7-2-author-finalize-the-vocalizations-layered-actions: review
+  7-3-activity-to-posture-mapping: ready-for-dev
+  7-4-mood-to-subtle-ambient-modifier: ready-for-dev
+  7-5-locked-expression-regression-harness: ready-for-dev
+  epic-7-retrospective: optional
+
+  # ── Epic 8: Heart Display Animation ──
+  epic-8: backlog
+  8-1-mood-activity-driven-heart: backlog
+  epic-8-retrospective: optional
+
+  # ── Epic 9: Hardening (non-blocking backlog — does NOT gate 6/7/8) ──
+  epic-9: backlog
+  9-1-harmonize-boot-of-interfaces-and-esp32s: backlog
+  epic-9-retrospective: optional

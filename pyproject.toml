@@ -35,6 +35,11 @@ odrive = "^0.6.10.post0"
 numpy = "^1.24.0"
 pyyaml = "^6.0"
 
+# Wire-schema validation (expression_engine — Story 6.1, AR13)
+pydantic = "^2.0"
+# TOML config loader: stdlib tomllib on 3.11+; tomli only on pinned 3.10 floor
+tomli = { version = "^2.0", python = "<3.11" }
+
 # ROS2 Build Tools
 empy = "^4.2"
 lark = "^1.3.0"

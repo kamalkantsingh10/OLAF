@@ -16,6 +16,7 @@
 #include "motor_controller.h"
 #include "display_driver.h"
 #include "balancing_controller.h"
+#include "velocity_controller.h"
 #include "web_tuner.h"
 
 #define OTA_HOSTNAME "olaf-base"
@@ -45,8 +46,9 @@ uint8_t serialCmdIdx = 0;
 
 void startBalance() {
     Serial.println("[BALANCE] Starting PID balancing");
-    Serial.printf("[BALANCE] Kp=%.1f, Ki=%.2f, Kd=%.1f\n", tuneKp, tuneKi, tuneKd);
+    Serial.printf("[BALANCE] Kp=%.3f, Ki=%.3f, Kd=%.3f\n", tuneKp, tuneKi, tuneKd);
     oled.showMessage("BALANCE", "PID active");
+    velController.reset();
     balancer.enable();
     appState = STATE_BALANCING;
     lastPIDLoop = micros();
@@ -169,8 +171,9 @@ void setup() {
     oled.showMessage("Motors init...");
     motors.begin();
 
-    // 6. Balancing controller
+    // 6. Balancing controller + velocity outer loop
     balancer.begin();
+    velController.begin();
 
     // 7. Web tuner dashboard
     webTuner.begin();
@@ -212,6 +215,10 @@ void loop() {
 
     // PID balancing at 200Hz
     if (appState == STATE_BALANCING) {
+        // Velocity outer loop — self-timed at 50Hz, reads ODrive UART
+        // Runs OUTSIDE PID timing gate so UART blocking doesn't starve balance PID
+        velController.update();
+
         uint32_t now_us = micros();
         if (now_us - lastPIDLoop >= kPIDIntervalUs) {
             lastPIDLoop = now_us;
@@ -250,7 +257,9 @@ void loop() {
                               (float)now, pitch, roll, pidOut, m0, m1);
 
                 webTuner.sendTelemetry(pitch, roll, pidOut, m0, m1, accuracy,
-                                       imu.getGyroX(), imu.getGyroY(), imu.getGyroZ());
+                                       imu.getGyroX(), imu.getGyroY(), imu.getGyroZ(),
+                                       velController.getMeasuredVelocity(),
+                                       velController.getPitchOffset());
             }
         }
     }

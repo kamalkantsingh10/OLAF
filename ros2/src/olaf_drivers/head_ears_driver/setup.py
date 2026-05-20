@@ -15,13 +15,13 @@ setup(
     zip_safe=True,
     maintainer='Kamal Kant Singh',
     maintainer_email='kamalkantsingh10@gmail.com',
-    description='ROS2 driver node for OLAF Head+Ears module (I2C 0x08)',
+    description='OLAF Head+Ears hardware logic (I2C 0x08). Servo/I2C drivers '
+               'and expression presets, imported in-process by the expression '
+               'engine. ROS-node wrappers archived 2026-05-15 (Phase 2 SCP).',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'head_node = head_ears_driver.head_node:main',
-            'ears_node = head_ears_driver.ears_node:main',
         ],
     },
 )

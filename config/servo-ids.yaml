@@ -60,7 +60,7 @@ neck:
       id: 11
       model: STS3215
       function: "Neck base rotation (pan left/right)"
-      center_position: 2436
+      center_position: 2164  # Recalibrated 2026-05-17: head physically leveled (Story 5.3 follow-up)
       min_angle: -90
       max_angle: 90
       direction: -1  # +counts = OLAF's right, positive angle = OLAF's left
@@ -68,7 +68,7 @@ neck:
       id: 12
       model: STS3215
       function: "Left linkage servo (tilt/roll via universal joint)"
-      center_position: 3426
+      center_position: 3096  # Recalibrated 2026-05-17: head physically leveled (Story 5.3 follow-up)
       min_angle: -20
       max_angle: 20
       direction: 1    # +counts = chin up (tilt up)
@@ -76,7 +76,7 @@ neck:
       id: 13
       model: STS3215
       function: "Right linkage servo (tilt/roll via universal joint)"
-      center_position: 215
+      center_position: 370  # Recalibrated 2026-05-17: head physically leveled (Story 5.3 follow-up)
       min_angle: -20
       max_angle: 20
       direction: -1   # +counts = chin down; for tilt up, needs negative movement

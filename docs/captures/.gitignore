@@ -1,0 +1,7 @@
+# Webcam captures are LOCAL ONLY — never committed (avoid repo bloat).
+# Stills + video stay here on disk for Epic 7 verification but are
+# git-ignored. Only this .gitignore and README.md are tracked so the
+# folder + convention exist in the repo.
+*
+!.gitignore
+!README.md

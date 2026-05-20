@@ -9,6 +9,7 @@
  */
 
 #include "web_tuner.h"
+#include "velocity_controller.h"
 #include "config.h"
 #include <ESPAsyncWebServer.h>
 
@@ -83,26 +84,16 @@ canvas{width:100%;height:180px;background:#fff;border:1px solid #ddd;border-radi
 <div class="btns">
   <button class="btn-go" onclick="send('CMD:BALANCE')">BALANCE</button>
   <button class="btn-stop" onclick="send('CMD:STOP')">STOP</button>
-  <button class="btn-tare" onclick="send('CMD:TARE')">TARE</button>
-  <button class="btn-auto" onclick="send('CMD:AUTOTUNE')">AUTO-TUNE</button>
   <button class="btn-tare" onclick="send('CMD:SAVE')">SAVE</button>
-</div>
-<div class="btns">
-  <button class="btn-go" id="btnLog" onclick="toggleLog()">REC LOG</button>
-  <button class="btn-tare" onclick="copyLog()">COPY LOG</button>
-  <button class="btn-stop" onclick="clearLog()">CLEAR</button>
 </div>
 
 <div id="atStatus"></div>
-<div id="logStatus" style="font-size:0.8em;color:#885500;margin:4px 0"></div>
-<textarea id="logArea" rows="10" style="width:100%;font-family:monospace;font-size:0.7em;
-  background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;display:none"></textarea>
 
 <div class="card">
   <h3>PID GAINS</h3>
   <div class="slider-row">
     <label>Kp</label>
-    <input type="range" id="sKp" min="0" max="3" step="0.01" value="0.5">
+    <input type="range" id="sKp" min="0.05" max="0.5" step="0.01" value="0.2">
     <span class="sv" id="svKp">0.500</span>
   </div>
   <div class="slider-row">
@@ -112,15 +103,52 @@ canvas{width:100%;height:180px;background:#fff;border:1px solid #ddd;border-radi
   </div>
   <div class="slider-row">
     <label>Kd</label>
-    <input type="range" id="sKd" min="0" max="0.5" step="0.001" value="0.05">
+    <input type="range" id="sKd" min="0.1" max="1.0" step="0.005" value="0.3">
     <span class="sv" id="svKd">0.050</span>
   </div>
   <div class="slider-row">
     <label>Target</label>
-    <input type="range" id="sTarget" min="-5" max="5" step="0.1" value="0">
+    <input type="range" id="sTarget" min="-5" max="10" step="0.1" value="5.0">
     <span class="sv" id="svTarget">0.0</span>
   </div>
 </div>
+
+<div class="card">
+  <h3>VELOCITY LOOP</h3>
+  <div class="btns" style="margin-bottom:8px">
+    <button id="btnVel" style="flex:1;padding:10px;border:none;border-radius:8px;font-size:1em;
+      font-weight:bold;cursor:pointer;font-family:monospace;background:#888;color:#fff"
+      onclick="toggleVel()">VEL LOOP OFF</button>
+  </div>
+  <div class="row">
+    <div class="card"><h3>WHEEL VEL</h3><div class="val" id="vVel" style="font-size:1em;color:#666">--</div></div>
+    <div class="card"><h3>PITCH OFS</h3><div class="val" id="vVelOfs" style="font-size:1em;color:#666">--</div></div>
+  </div>
+  <div class="slider-row">
+    <label>Vel Kp</label>
+    <input type="range" id="sVKp" min="0" max="50" step="1" value="20">
+    <span class="sv" id="svVKp">20</span>
+  </div>
+  <div class="slider-row">
+    <label>Vel Ki</label>
+    <input type="range" id="sVKi" min="0" max="50" step="1" value="20">
+    <span class="sv" id="svVKi">20</span>
+  </div>
+  <div class="slider-row">
+    <label>Filter &alpha;</label>
+    <input type="range" id="sVAlpha" min="0.50" max="0.99" step="0.01" value="0.85">
+    <span class="sv" id="svVAlpha">0.85</span>
+  </div>
+</div>
+
+<div class="btns">
+  <button class="btn-go" id="btnLog" onclick="toggleLog()">REC LOG</button>
+  <button class="btn-tare" onclick="copyLog()">COPY LOG</button>
+  <button class="btn-stop" onclick="clearLog()">CLEAR</button>
+</div>
+<div id="logStatus" style="font-size:0.8em;color:#885500;margin:4px 0"></div>
+<textarea id="logArea" rows="10" style="width:100%;font-family:monospace;font-size:0.7em;
+  background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;display:none"></textarea>
 
 <div class="status" id="wsStatus">Connecting...</div>
 
@@ -181,13 +209,24 @@ function connect(){
     // Initial gains sync
     if(d.gains){
       document.getElementById('sKp').value=d.kp;
-      document.getElementById('svKp').textContent=d.kp.toFixed(1);
+      document.getElementById('svKp').textContent=d.kp.toFixed(3);
       document.getElementById('sKi').value=d.ki;
-      document.getElementById('svKi').textContent=d.ki.toFixed(2);
+      document.getElementById('svKi').textContent=d.ki.toFixed(3);
       document.getElementById('sKd').value=d.kd;
-      document.getElementById('svKd').textContent=d.kd.toFixed(1);
+      document.getElementById('svKd').textContent=d.kd.toFixed(3);
       document.getElementById('sTarget').value=d.tgt;
       document.getElementById('svTarget').textContent=d.tgt.toFixed(1);
+      if(d.vkp!==undefined){
+        document.getElementById('sVKp').value=d.vkp;
+        document.getElementById('svVKp').textContent=d.vkp.toFixed(0);
+        document.getElementById('sVKi').value=d.vki;
+        document.getElementById('svVKi').textContent=d.vki.toFixed(0);
+      }
+      if(d.va!==undefined){
+        document.getElementById('sVAlpha').value=d.va;
+        document.getElementById('svVAlpha').textContent=d.va.toFixed(2);
+      }
+      if(d.ve!==undefined){velOn=!!d.ve;updVelBtn()}
       return;
     }
     // Auto-tune status messages
@@ -198,11 +237,11 @@ function connect(){
       // Update sliders if gains changed
       if(d.kp!==undefined){
         document.getElementById('sKp').value=d.kp;
-        document.getElementById('svKp').textContent=d.kp.toFixed(1);
+        document.getElementById('svKp').textContent=d.kp.toFixed(3);
         document.getElementById('sKi').value=d.ki;
-        document.getElementById('svKi').textContent=d.ki.toFixed(2);
+        document.getElementById('svKi').textContent=d.ki.toFixed(3);
         document.getElementById('sKd').value=d.kd;
-        document.getElementById('svKd').textContent=d.kd.toFixed(1);
+        document.getElementById('svKd').textContent=d.kd.toFixed(3);
       }
       return;
     }
@@ -219,6 +258,10 @@ function connect(){
       document.getElementById('vGy').textContent=d.gy.toFixed(3);
       document.getElementById('vGz').textContent=d.gz.toFixed(3);
       document.getElementById('vRoll').textContent=d.r.toFixed(1)+'\u00B0';
+    }
+    if(d.wv!==undefined){
+      document.getElementById('vVel').textContent=d.wv.toFixed(3)+' t/s';
+      document.getElementById('vVelOfs').textContent=d.vo.toFixed(2)+'\u00B0';
     }
     if(logging && (d.o!==0 || d.m0!==0)){
       logLines.push(Date.now()+','+d.p.toFixed(3)+','+d.o.toFixed(4)+','+d.m0.toFixed(4)+','+d.m1.toFixed(4)+','+(d.gx||0).toFixed(4)+','+(d.gy||0).toFixed(4)+','+(d.gz||0).toFixed(4));
@@ -266,10 +309,25 @@ function bindSlider(id,param,fmt){
   const v=document.getElementById('sv'+id.slice(1));
   s.oninput=()=>{v.textContent=parseFloat(s.value).toFixed(fmt);send('SET:'+param+'='+s.value)};
 }
-bindSlider('sKp','Kp',2);
+bindSlider('sKp','Kp',3);
 bindSlider('sKi','Ki',3);
 bindSlider('sKd','Kd',3);
 bindSlider('sTarget','Target',1);
+bindSlider('sVKp','VKp',0);
+bindSlider('sVKi','VKi',0);
+bindSlider('sVAlpha','VAlpha',2);
+
+let velOn=false;
+function toggleVel(){
+  velOn=!velOn;
+  send(velOn?'CMD:VELON':'CMD:VELOFF');
+  updVelBtn();
+}
+function updVelBtn(){
+  const b=document.getElementById('btnVel');
+  b.textContent=velOn?'VEL LOOP ON':'VEL LOOP OFF';
+  b.style.background=velOn?'#22aa22':'#888';
+}
 </script>
 </body>
 </html>
@@ -296,6 +354,11 @@ static void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                     webTuner.pendingCmd_ = WEB_CMD_TARE;
                 } else if (strcmp(cmd, "AUTOTUNE") == 0) {
                     webTuner.pendingCmd_ = WEB_CMD_AUTOTUNE;
+                } else if (strcmp(cmd, "VELON") == 0) {
+                    velController.setEnabled(true);
+                    velController.reset();
+                } else if (strcmp(cmd, "VELOFF") == 0) {
+                    velController.setEnabled(false);
                 } else if (strcmp(cmd, "SAVE") == 0) {
                     webTuner.saveGains();
                     char json[64];
@@ -306,10 +369,12 @@ static void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                 } else if (strcmp(cmd, "LOGSTOP") == 0) {
                     webTuner.stopLog();
                 } else if (strcmp(cmd, "GETGAINS") == 0) {
-                    char json[128];
+                    char json[192];
                     snprintf(json, sizeof(json),
-                             "{\"gains\":1,\"kp\":%.1f,\"ki\":%.2f,\"kd\":%.1f,\"tgt\":%.1f}",
-                             tuneKp, tuneKi, tuneKd, tuneTarget);
+                             "{\"gains\":1,\"kp\":%.3f,\"ki\":%.3f,\"kd\":%.3f,\"tgt\":%.1f,"
+                             "\"vkp\":%.0f,\"vki\":%.0f,\"va\":%.2f,\"ve\":%d}",
+                             tuneKp, tuneKi, tuneKd, tuneTarget, tuneVelKp, tuneVelKi,
+                             tuneVelAlpha, velController.isEnabled() ? 1 : 0);
                     client->text(json);
                 }
                 Serial.printf("[Web] CMD: %s\n", cmd);
@@ -325,6 +390,9 @@ static void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                     else if (strcmp(param, "Ki") == 0) { tuneKi = val; }
                     else if (strcmp(param, "Kd") == 0) { tuneKd = val; }
                     else if (strcmp(param, "Target") == 0) { tuneTarget = val; }
+                    else if (strcmp(param, "VKp") == 0) { tuneVelKp = val; }
+                    else if (strcmp(param, "VKi") == 0) { tuneVelKi = val; }
+                    else if (strcmp(param, "VAlpha") == 0) { tuneVelAlpha = constrain(val, 0.5f, 0.99f); }
 
                     Serial.printf("[Web] %s = %.2f\n", param, val);
                 }
@@ -341,8 +409,8 @@ static void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 
 void WebTuner::autoTuneStart() {
     atState_ = AT_FINDING_KU;
-    atKp_ = 0.01f;           // Start very gentle (current mode)
-    atKpStep_ = 0.005f;     // Tiny increments
+    atKp_ = 0.1f;            // Start at known-safe lower bound
+    atKpStep_ = 0.01f;       // Fine increments within 0.1–0.3 range
     atStepStartMs_ = millis();
     atStepDurationMs_ = 4000; // 4 seconds per step to settle
     atPeakCount_ = 0;
@@ -352,16 +420,21 @@ void WebTuner::autoTuneStart() {
     atKu_ = 0.0f;
     atTu_ = 0.0f;
 
-    // Keep a small Kd for damping during auto-tune — pure P-only is too violent
-    // We're looking for the Kp where oscillation starts DESPITE the damping
+    // Save user's gains so we can restore on abort/failure
+    atSavedKp_ = tuneKp;
+    atSavedKi_ = tuneKi;
+    atSavedKd_ = tuneKd;
+
+    // Keep current Kd for damping — robot needs real damping to stay upright
     tuneKi = 0.0f;
-    tuneKd = 0.002f;  // Light damping to prevent violent jerks
+    // tuneKd stays at current value (0.3 or whatever user has)
     tuneKp = atKp_;
 
-    char msg[96];
-    snprintf(msg, sizeof(msg), "Auto-tune started — Kp=%.1f, Ki=0, Kd=2 (damped)", atKp_);
+    char msg[128];
+    snprintf(msg, sizeof(msg),
+             "Auto-tune started — Kp=%.2f, Ki=0, Kd=%.3f (kept)", atKp_, tuneKd);
     sendAutoTuneStatus(msg);
-    Serial.printf("[AutoTune] Starting at Kp=%.1f (Kd=2 damping)\n", atKp_);
+    Serial.printf("[AutoTune] Starting at Kp=%.2f (Kd=%.3f kept)\n", atKp_, tuneKd);
 }
 
 bool WebTuner::autoTuneStep(float pitch) {
@@ -428,11 +501,15 @@ bool WebTuner::autoTuneStep(float pitch) {
 
             // Not oscillating yet — increase Kp
             atKp_ += atKpStep_;
-            if (atKp_ > 0.5f) {
-                // Hit max — use current Kp as Ku estimate
-                atKu_ = atKp_ * 0.8f;
-                atTu_ = 0.5f;  // Assume 0.5s period as fallback
-                autoTuneApplyResults();
+            if (atKp_ > 0.3f) {
+                // Hit max of safe range — no oscillation found
+                // Restore user's previous gains
+                tuneKp = atSavedKp_;
+                tuneKi = atSavedKi_;
+                tuneKd = atSavedKd_;
+                atState_ = AT_IDLE;
+                sendAutoTuneStatus("Auto-tune: no oscillation found in Kp 0.1-0.3. Gains restored.");
+                Serial.println("[AutoTune] No oscillation found — gains restored");
                 return false;
             }
 
@@ -441,9 +518,9 @@ bool WebTuner::autoTuneStep(float pitch) {
             atStepStartMs_ = now;
 
             char msg[96];
-            snprintf(msg, sizeof(msg), "Testing Kp=%.1f — looking for oscillation...", atKp_);
+            snprintf(msg, sizeof(msg), "Testing Kp=%.2f — looking for oscillation...", atKp_);
             sendAutoTuneStatus(msg);
-            Serial.printf("[AutoTune] Trying Kp=%.1f\n", atKp_);
+            Serial.printf("[AutoTune] Trying Kp=%.2f\n", atKp_);
         }
     }
 
@@ -475,15 +552,14 @@ bool WebTuner::detectSustainedOscillation() {
 }
 
 void WebTuner::autoTuneApplyResults() {
-    // Ziegler-Nichols PID formulas
-    float newKp = 0.6f * atKu_;
-    float newKi = 1.2f * atKu_ / atTu_;
-    float newKd = 0.075f * atKu_ * atTu_;
+    // Ziegler-Nichols PD-only formulas (Ki=0 — integral causes drift on this robot)
+    float newKp = 0.8f * atKu_;
+    float newKi = 0.0f;
+    float newKd = 0.1f * atKu_ * atTu_;
 
-    // Clamp to reasonable ranges
-    newKp = constrain(newKp, 1.0f, 60.0f);
-    newKi = constrain(newKi, 0.0f, 5.0f);
-    newKd = constrain(newKd, 0.0f, 15.0f);
+    // Clamp to known-good ranges for torque/current mode
+    newKp = constrain(newKp, 0.1f, 0.3f);
+    newKd = constrain(newKd, 0.25f, 1.2f);
 
     tuneKp = newKp;
     tuneKi = newKi;
@@ -496,16 +572,16 @@ void WebTuner::autoTuneApplyResults() {
 
     char msg[128];
     snprintf(msg, sizeof(msg),
-             "Auto-tune DONE! Ku=%.1f Tu=%.2fs -> Kp=%.1f Ki=%.2f Kd=%.1f (saved)",
-             atKu_, atTu_, newKp, newKi, newKd);
+             "Auto-tune DONE! Ku=%.3f Tu=%.2fs -> Kp=%.3f Ki=0 Kd=%.3f (saved)",
+             atKu_, atTu_, newKp, newKd);
     sendAutoTuneStatus(msg);
-    Serial.printf("[AutoTune] Complete: Ku=%.1f Tu=%.3fs\n", atKu_, atTu_);
-    Serial.printf("[AutoTune] Applied & saved: Kp=%.1f Ki=%.2f Kd=%.1f\n", newKp, newKi, newKd);
+    Serial.printf("[AutoTune] Complete: Ku=%.3f Tu=%.3fs\n", atKu_, atTu_);
+    Serial.printf("[AutoTune] Applied & saved: Kp=%.3f Ki=0 Kd=%.3f\n", newKp, newKd);
 
     // Send gains to web UI so sliders update
-    char json[128];
+    char json[160];
     snprintf(json, sizeof(json),
-             "{\"at\":\"%s\",\"kp\":%.1f,\"ki\":%.2f,\"kd\":%.1f}",
+             "{\"at\":\"%s\",\"kp\":%.3f,\"ki\":%.3f,\"kd\":%.3f}",
              msg, newKp, newKi, newKd);
     wsSocket.textAll(json);
 }
@@ -525,8 +601,11 @@ void WebTuner::loadGains() {
         tuneKi = prefs_.getFloat("ki", kPitchKi);
         tuneKd = prefs_.getFloat("kd", kPitchKd);
         tuneTarget = prefs_.getFloat("target", kTargetPitchDeg);
-        Serial.printf("[Web] Loaded saved PID: Kp=%.1f Ki=%.2f Kd=%.1f Target=%.1f\n",
-                      tuneKp, tuneKi, tuneKd, tuneTarget);
+        tuneVelKp = prefs_.getFloat("vkp", kVelKp);
+        tuneVelKi = prefs_.getFloat("vki", kVelKi);
+        tuneVelAlpha = prefs_.getFloat("valpha", kVelFilterAlpha);
+        Serial.printf("[Web] Loaded PID: Kp=%.3f Ki=%.3f Kd=%.3f Target=%.1f VKp=%.0f VKi=%.0f Alpha=%.2f\n",
+                      tuneKp, tuneKi, tuneKd, tuneTarget, tuneVelKp, tuneVelKi, tuneVelAlpha);
     } else {
         Serial.println("[Web] No saved PID — using defaults");
     }
@@ -539,9 +618,12 @@ void WebTuner::saveGains() {
     prefs_.putFloat("ki", tuneKi);
     prefs_.putFloat("kd", tuneKd);
     prefs_.putFloat("target", tuneTarget);
+    prefs_.putFloat("vkp", tuneVelKp);
+    prefs_.putFloat("vki", tuneVelKi);
+    prefs_.putFloat("valpha", tuneVelAlpha);
     prefs_.end();
-    Serial.printf("[Web] Saved PID: Kp=%.1f Ki=%.2f Kd=%.1f Target=%.1f\n",
-                  tuneKp, tuneKi, tuneKd, tuneTarget);
+    Serial.printf("[Web] Saved PID: Kp=%.3f Ki=%.3f Kd=%.3f Target=%.1f VKp=%.0f VKi=%.0f Alpha=%.2f\n",
+                  tuneKp, tuneKi, tuneKd, tuneTarget, tuneVelKp, tuneVelKi, tuneVelAlpha);
 }
 
 // ---- Data logging ----
@@ -654,15 +736,16 @@ void WebTuner::update() {
 
 void WebTuner::sendTelemetry(float pitch, float roll, float pid_out,
                               float m0_vel, float m1_vel, uint8_t accuracy,
-                              float gyro_x, float gyro_y, float gyro_z) {
+                              float gyro_x, float gyro_y, float gyro_z,
+                              float wheel_vel, float vel_offset) {
     if (wsSocket.count() == 0) return;
 
-    char buf[200];
+    char buf[256];
     snprintf(buf, sizeof(buf),
              "{\"p\":%.2f,\"r\":%.2f,\"o\":%.3f,\"m0\":%.3f,\"m1\":%.3f,\"a\":%d,"
-             "\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f}",
+             "\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"wv\":%.3f,\"vo\":%.2f}",
              pitch, roll, pid_out, m0_vel, m1_vel, accuracy,
-             gyro_x, gyro_y, gyro_z);
+             gyro_x, gyro_y, gyro_z, wheel_vel, vel_offset);
     wsSocket.textAll(buf);
 }
 

@@ -24,6 +24,23 @@ enum class LedState : uint8_t {
 };
 
 /**
+ * LED emotional overlay — a SEPARATE event from LedState and from the
+ * eye expression. Driven by its own I2C register (REG_LED_OVERLAY,
+ * 0x40), never derived from expression_type or system_status. Layered
+ * as a colour wash on top of whatever LedState animation is running;
+ * NONE = no change (system-status animation only — no regression).
+ * Mirrors expression_map.yaml `led_overlay` tokens (Story 7.1 authors
+ * the token; this enum is its render target).
+ */
+enum class LedOverlay : uint8_t {
+    NONE   = 0,  // no emotional tint
+    WARM   = 1,  // positive valence — warm amber wash
+    COOL   = 2,  // subdued / sad — cool blue wash
+    HOT    = 3,  // anger / frustration — strong red wash
+    BRIGHT = 4   // high arousal — brightness lift, hue unchanged
+};
+
+/**
  * Initialize the LED strip
  * Must be called in setup() before any LED operations
  */
@@ -43,6 +60,21 @@ void ledStripSetState(LedState state);
  * @return Current LedState
  */
 LedState ledStripGetState();
+
+/**
+ * Set the emotional colour overlay (separate event — independent of
+ * LedState and eye expression). Applied as a wash in ledStripUpdate().
+ *
+ * @param overlay The new overlay (NONE clears any tint)
+ */
+void ledStripSetOverlay(LedOverlay overlay);
+
+/**
+ * Get the current emotional overlay
+ *
+ * @return Current LedOverlay
+ */
+LedOverlay ledStripGetOverlay();
 
 /**
  * Update LED animations

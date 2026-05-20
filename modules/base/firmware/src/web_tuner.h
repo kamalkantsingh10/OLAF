@@ -46,7 +46,8 @@ public:
 
     void sendTelemetry(float pitch, float roll, float pid_out,
                        float m0_vel, float m1_vel, uint8_t accuracy,
-                       float gyro_x = 0, float gyro_y = 0, float gyro_z = 0);
+                       float gyro_x = 0, float gyro_y = 0, float gyro_z = 0,
+                       float wheel_vel = 0, float vel_offset = 0);
 
     WebCommand getCommand();
 
@@ -111,6 +112,11 @@ private:
     // Results
     float atKu_ = 0.0f;              // Critical gain
     float atTu_ = 0.0f;              // Oscillation period (seconds)
+
+    // Saved gains to restore on abort/failure
+    float atSavedKp_ = 0.0f;
+    float atSavedKi_ = 0.0f;
+    float atSavedKd_ = 0.0f;
 
     Preferences prefs_;
 

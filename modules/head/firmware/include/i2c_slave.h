@@ -10,6 +10,9 @@
  *   0x12: BLINK_TRIGGER (W) - Write 1 to trigger blink
  *   0x20: LOOK_X (W) - Look direction X (-100 to +100)
  *   0x21: LOOK_Y (W) - Look direction Y (-100 to +100)
+ *   0x30: SYSTEM_STATUS (W) - LedState enum (0-5)
+ *   0x40: LED_OVERLAY (W) - Emotional LED wash, SEPARATE event
+ *                           (0=none 1=warm 2=cool 3=hot 4=bright)
  *
  * Thread Safety:
  *   - ISR handlers set flags and copy data to volatile buffers
@@ -46,6 +49,11 @@ constexpr uint8_t REG_LOOK_Y = 0x21;  // Signed: -100 (down) to +100 (up)
 // System Status Register
 constexpr uint8_t REG_SYSTEM_STATUS = 0x30;  // 0-5 matches LedState enum
 
+// Emotional LED Overlay Register — a SEPARATE event, decoupled from
+// expression_type and system_status (Story 7.1 / 6.6 LED adapter).
+constexpr uint8_t REG_LED_OVERLAY = 0x40;  // 0-4 matches LedOverlay enum
+constexpr uint8_t LED_OVERLAY_MAX = 4;     // bright
+
 // ============================================================================
 // Status Flags
 // ============================================================================
@@ -59,15 +67,27 @@ constexpr uint8_t STATUS_ERROR = 0x04;
 // Expression Types (per story spec)
 // ============================================================================
 
-constexpr uint8_t EXPR_NEUTRAL   = 0;  // Calm, attentive baseline
-constexpr uint8_t EXPR_HAPPY     = 1;  // Joyful, positive
-constexpr uint8_t EXPR_SAD       = 2;  // Disappointed, melancholy
-constexpr uint8_t EXPR_SURPRISED = 3;  // Startled, wide-eyed
-constexpr uint8_t EXPR_ANGRY     = 4;  // Frustrated, intense
-constexpr uint8_t EXPR_SLEEPY    = 5;  // Tired, droopy
-constexpr uint8_t EXPR_WINK      = 6;  // Playful wink (one eye)
+// 0-6 unchanged (wire/back-compat; sleepy/wink also used internally
+// for status animations). Story 7.1a added 7-13 so all 12 canonical
+// speech-emotions render distinctly. MUST match
+// head_i2c_client.EXPRESSION_MAP + eye_adapter._CANONICAL_TO_ESP32.
+constexpr uint8_t EXPR_NEUTRAL     = 0;   // oval-steady (datum)
+constexpr uint8_t EXPR_HAPPY       = 1;   // crescent-up (6.4 reference)
+constexpr uint8_t EXPR_SAD         = 2;   // arc-down, dim
+constexpr uint8_t EXPR_SURPRISED   = 3;   // wide-round MAX
+constexpr uint8_t EXPR_ANGRY       = 4;   // narrow-slant (overt)
+constexpr uint8_t EXPR_SLEEPY      = 5;   // heavy half-lid (status use)
+constexpr uint8_t EXPR_WINK        = 6;   // one eye closed (status use)
+constexpr uint8_t EXPR_CONTENT     = 7;   // crescent-up shallow
+constexpr uint8_t EXPR_EXCITED     = 8;   // wide-round, bright
+constexpr uint8_t EXPR_SCARED      = 9;   // wide-round tense, raised
+constexpr uint8_t EXPR_CURIOUS     = 10;  // tall-alert (asymmetric)
+constexpr uint8_t EXPR_SYMPATHETIC = 11;  // arc-down gentle
+constexpr uint8_t EXPR_FRUSTRATED  = 12;  // narrow-slant softer
+constexpr uint8_t EXPR_MELANCHOLIC = 13;  // arc-down dimmest, lowest
+constexpr uint8_t EXPR_FLIRTY      = 14;  // device extra (Kamal 2026-05-19)
 
-constexpr uint8_t EXPR_COUNT = 7;  // Total number of expressions
+constexpr uint8_t EXPR_COUNT = 15;  // 0-14 (7.1a: 12 canonical + sleepy/wink + flirty)
 
 // ============================================================================
 // I2C Command Structure
@@ -82,6 +102,7 @@ struct I2CCommand {
   uint8_t status;
   uint8_t error_code;
   uint8_t system_status;  // 0-5, matches LedState enum
+  uint8_t led_overlay;    // 0-4, matches LedOverlay enum (separate event)
 };
 
 // ============================================================================

@@ -12,16 +12,17 @@ import time
 import sys
 
 from head_ears_driver.ears_servo_driver import EarsServoDriver
-from head_ears_driver.expressions import get_preset_by_name
 
-# Demo sequence: (name, description, angles_override, intensity, hold_seconds)
-# If angles_override is None, uses the preset. Otherwise, direct angles.
+# Demo sequence: (name, description, angles, hold_seconds). Angles are
+# explicit per step. (Story 7.1 retired head_ears_driver/expressions.py
+# — the expression_engine map is the single source of expression data;
+# this manual ears-only demo carries its own baked-in angle dicts,
+# kept identical to the former presets×intensity for behavior parity.)
 DEMO_SEQUENCE = [
     {
         "name": "Neutral",
         "desc": "Ears erect, straight up. The Doberman at attention — vigilant, poised.",
-        "preset": "neutral",
-        "intensity": 1.0,
+        "angles": {"left_pan": 0, "left_tilt": 0, "right_pan": 0, "right_tilt": 0},
         "hold": 3.0,
     },
     {
@@ -33,36 +34,31 @@ DEMO_SEQUENCE = [
     {
         "name": "Curious",
         "desc": "Asymmetric forward tilt — one ear cocks wider. What was that sound?",
-        "preset": "curious",
-        "intensity": 1.0,
+        "angles": {"left_pan": 5, "left_tilt": 20, "right_pan": 55, "right_tilt": 12},
         "hold": 3.0,
     },
     {
         "name": "Mildly Curious",
         "desc": "Same posture, half intensity. Just a passing interest.",
-        "preset": "curious",
-        "intensity": 0.5,
+        "angles": {"left_pan": 2.5, "left_tilt": 10, "right_pan": 27.5, "right_tilt": 6.0},
         "hold": 2.5,
     },
     {
         "name": "Thinking",
         "desc": "Subtle asymmetric scan. Processing, contemplating.",
-        "preset": "thinking",
-        "intensity": 1.0,
+        "angles": {"left_pan": 8, "left_tilt": 18, "right_pan": 12, "right_tilt": 12},
         "hold": 3.0,
     },
     {
         "name": "Happy",
         "desc": "The Doberman greeting pin — ears wide and pulled back. Pure joy.",
-        "preset": "happy",
-        "intensity": 1.0,
+        "angles": {"left_pan": 20, "left_tilt": 18, "right_pan": 20, "right_tilt": 18},
         "hold": 3.0,
     },
     {
         "name": "Excited",
         "desc": "Perked forward with moderate splay. Ready to play!",
-        "preset": "excited",
-        "intensity": 1.0,
+        "angles": {"left_pan": 15, "left_tilt": 20, "right_pan": 15, "right_tilt": 20},
         "hold": 3.0,
     },
     {
@@ -74,15 +70,13 @@ DEMO_SEQUENCE = [
     {
         "name": "Confused",
         "desc": "Strong asymmetry — one ear up, one way out. What is happening?",
-        "preset": "confused",
-        "intensity": 1.0,
+        "angles": {"left_pan": 0, "left_tilt": 20, "right_pan": 55, "right_tilt": 5},
         "hold": 3.0,
     },
     {
         "name": "Sad",
         "desc": "Full airplane droop. Ears splay wide and fold back. Dejected.",
-        "preset": "sad",
-        "intensity": 1.0,
+        "angles": {"left_pan": 80, "left_tilt": 20, "right_pan": 55, "right_tilt": 30},
         "hold": 3.0,
     },
     {
@@ -123,10 +117,7 @@ def run_demo() -> None:
         print(f"[{i:2d}/{total}] {name}")
         print(f"       {desc}")
 
-        if "preset" in step:
-            angles = get_preset_by_name(step["preset"], step.get("intensity", 1.0))
-        else:
-            angles = step["angles"]
+        angles = step["angles"]
 
         for servo_name, degrees in angles.items():
             driver.move(servo_name, degrees, speed_pct)

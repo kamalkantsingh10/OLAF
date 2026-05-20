@@ -108,6 +108,14 @@ void processI2CCommands() {
         last_system_status = cmd.system_status;
     }
 
+    // LED emotional overlay — a SEPARATE event. Independent of
+    // system_status and expression_type; only touches the LED wash.
+    static uint8_t last_led_overlay = 0xFF;
+    if (cmd.led_overlay != last_led_overlay) {
+        ledStripSetOverlay(static_cast<LedOverlay>(cmd.led_overlay));
+        last_led_overlay = cmd.led_overlay;
+    }
+
     // Expression (only effective when status = SPEAKING)
     if (eyes.getSystemStatus() == 4) {
         eyes.setExpression(cmd.expression_type, cmd.intensity);

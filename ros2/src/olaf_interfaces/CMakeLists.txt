@@ -14,16 +14,13 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
 
 # Declare ROS2 messages
+# NOTE: Expression/EarsPose/Gesture/HeartRate archived 2026-05-15 — see
+# archive/ros2/olaf_interfaces/msg/README.md and the Phase 2 SCP.
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Expression.msg"
-  "msg/EarsPose.msg"
-  "msg/Gesture.msg"
-  "msg/HeartRate.msg"
   "msg/ModuleStatus.msg"
-  DEPENDENCIES std_msgs geometry_msgs
+  DEPENDENCIES std_msgs
 )
 
 if(BUILD_TESTING)

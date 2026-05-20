@@ -27,6 +27,7 @@ void I2CSlave::begin(uint8_t address, uint8_t sda_pin, uint8_t scl_pin) {
   current_command_.status = STATUS_READY;
   current_command_.error_code = 0;
   current_command_.system_status = 0;  // IDLE
+  current_command_.led_overlay = 0;    // NONE (separate event)
 
   // Initialize volatile state
   register_address_ = 0;
@@ -125,6 +126,18 @@ void I2CSlave::processRegisterWrite(uint8_t reg, uint8_t value) {
       }
       break;
 
+    case REG_LED_OVERLAY:
+      // SEPARATE event — independent of expression_type & system_status.
+      if (value <= LED_OVERLAY_MAX) {
+        current_command_.led_overlay = value;
+        new_command_received_ = true;
+        Serial.printf("[I2C] LED overlay: %d\n", value);
+      } else {
+        Serial.printf("[I2C] ERROR: Invalid LED overlay %d\n", value);
+        setError(0x03);
+      }
+      break;
+
     case REG_COMMAND:
       Serial.printf("[I2C] Command register: 0x%02X\n", value);
       break;
@@ -160,6 +173,9 @@ uint8_t I2CSlave::readRegister(uint8_t reg) {
 
     case REG_LOOK_Y:
       return (uint8_t)current_command_.look_y;
+
+    case REG_LED_OVERLAY:
+      return current_command_.led_overlay;
 
     default:
       Serial.printf("[I2C] WARNING: Read from unknown register 0x%02X\n", reg);

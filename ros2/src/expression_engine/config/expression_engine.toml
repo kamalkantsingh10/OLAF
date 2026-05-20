@@ -1,0 +1,51 @@
+# OLAF Expression Engine configuration.
+#
+# Mirrors companion brief Appendix B.1 / architecture §8
+# (docs/planning-artifacts/architecture/phase2-expression-engine.md#8).
+#
+# `schema_version` here is the *config-file* schema version (local to
+# this engine). It is NOT the wire `schema_version` (that is always 3,
+# enforced by expression_engine/schema.py — see companion Appendix A.3).
+schema_version = 1
+
+# Story 6.1 consumes only [dds] and [topics]. The remaining sections
+# are the canonical §8 shape; their consumers land in later Epic 6/7/8
+# stories. The loader (expression_engine/config.py) ignores unknown /
+# not-yet-consumed sections so this file does not churn per story.
+
+[dds]
+# Default DDS domain. Configurable on both sides; the companion's
+# publisher uses [publisher].dds_domain_id (Appendix A.1). Must match.
+domain_id = 0
+
+[topics]
+# Topic names MUST match the companion's [publisher.topics] block
+# (Appendix A.2). Subscribe-only — the engine never publishes here.
+mood = "/olaf/mood"
+activity = "/olaf/activity"
+speech_emotion = "/olaf/speech_emotion"
+vocalization = "/olaf/vocalization"
+
+# ── Sections below are not consumed in Story 6.1 (later stories) ──
+
+[hardware]
+# Cross-checked against config/servo-ids.yaml (Phase 1 calibration is
+# the single source of truth — the engine does not duplicate it).
+neck_port = "/dev/ttyUSB-neck"
+ears_port = "/dev/ttyUSB-ears"
+head_i2c_addr = 0x08
+led_strip_count = 24
+led_strip_pin = 18
+heart_display = "spi-0.0"
+
+[animation]
+servo_tick_hz = 100
+led_tick_hz = 30
+mood_ease_seconds = 3.0
+emotion_anticipatory_ms = 50
+gesture_attack_ms = 80
+gesture_settle_ms = 200
+
+[idle]
+return_to_neutral_after_seconds = 3.0
+breath_period_seconds = 4.0

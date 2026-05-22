@@ -32,10 +32,12 @@ ros2/src/olaf_drivers/head_ears_driver:libs \\
     # Or run a subset (leaf labels; use dot for working submodes):
     #   ... e2e_activity_run.py listening speaking working.thinking
 
-Safety: adapters are driven to `neutral()` then `close()` in a
-`finally` — Ctrl-C is safe. Authored poses stay within
-`config/servo-ids.yaml` limits (the ears adapter also clamps
-right_pan ≤50°).
+Stepping: the walk PAUSES after each state and waits for ENTER, so you
+control the pace. At the end the head is left HOLDING its final pose
+(no neutral reset) — e.g. the sleep drop persists instead of popping
+back up. Ctrl-C is safe (servos hold position in-limits). Authored
+poses stay within `config/servo-ids.yaml` limits (the ears adapter
+also clamps right_pan ≤50°).
 
 Not a pytest test (no `test_*` prefix). AC#7 visible-distinctness is a
 human observation; this harness drives the states + prints evidence.
@@ -145,13 +147,13 @@ def _print_pose_evidence(emap, rl, label: str) -> None:
     print("     ears  " + "  ".join(f"{j}={float(av.get(j, 0.0)):+6.1f}" for j in _EARS))
 
 
-def run(labels: Sequence[str], hold_s: float = 3.5) -> None:
+def run(labels: Sequence[str], settle_s: float = 1.5) -> None:
     config = load_config(_default_config_path())
     emap = load_expression_map(_default_map_path())
 
-    print("=== Story 7.3 activity → posture run ===")
+    print("=== Story 7.3 activity → posture run (manual step) ===")
     print(f"  states to walk: {list(labels)}")
-    print(f"  hold per state: {hold_s}s  baseline mood={_BASELINE_MOOD} (LED tint)")
+    print(f"  baseline mood={_BASELINE_MOOD} (LED tint) — press ENTER to advance")
 
     rclpy.init()
     node = ExpressionEngineNode(
@@ -180,21 +182,31 @@ def run(labels: Sequence[str], hold_s: float = 3.5) -> None:
         _publish_one(node, "mood", {"mood": _BASELINE_MOOD, "reason": "7.3 hw walk"})
         _spin_for(0.3)
 
-        for label in labels:
+        n = len(labels)
+        for i, label in enumerate(labels):
             payload = by_label[label]
-            print(f"\n[{label}]")
+            print(f"\n[{i + 1}/{n}] {label}")
             _publish_one(node, "activity", payload)
-            _spin_for(hold_s)     # ease in + hold for observation
+            _spin_for(settle_s)   # deliver event + let the head ease in
+            # The render loop runs on its OWN thread, so the pose keeps
+            # easing + holding while we block on input() below.
             _print_pose_evidence(emap, rl, label)
+            prompt = (
+                "  ▶ ENTER → next state  (Ctrl-C to stop)... "
+                if i < n - 1 else
+                "  ✓ last state — ENTER to finish (head HOLDS this pose)... "
+            )
+            try:
+                input(prompt)
+            except EOFError:
+                break
 
-        print("\n=== done — observe: each state's body posture reads as distinct ===")
+        print("\n=== done — head left in its FINAL pose (no neutral reset) ===")
     finally:
         node.render_loop.stop()
-        try:
-            node._neck.apply(node._neck.neutral())
-            node._ears.apply(node._ears.neutral())
-        except Exception:
-            pass
+        # Deliberately NOT driving to neutral() — the head HOLDS its last
+        # pose (e.g. the sleep drop persists) instead of popping back up to
+        # an awake-looking posture. Servos hold position safely in-limits.
         node.close_adapters()
         executor.remove_node(node)
         node.destroy_node()

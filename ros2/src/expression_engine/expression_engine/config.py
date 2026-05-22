@@ -60,7 +60,7 @@ class IdleConfig:
     deep sleep so it's never statue-still. Tunable, sane defaults.
     """
 
-    idle_after_seconds: float = 30.0     # quiet time before decay starts (listening etc.)
+    idle_after_seconds: float = 60.0     # quiet time before decay starts (listening etc.)
     step_min_seconds: float = 10.0       # random per-step pace, min
     step_max_seconds: float = 30.0       # random per-step pace, max
     drift_amplitude_deg: float = 0.6     # sub-degree micro-movement amplitude

@@ -51,7 +51,7 @@ gesture_settle_ms = 200
 # the whole head winds down to deep sleep along a fixed expression path
 # at a random per-step pace, then loops at sleep so it's never
 # statue-still. Most idle tuning lives here (no code change to retune).
-idle_after_seconds = 30.0      # quiet time before decay starts (listening etc.)
+idle_after_seconds = 60.0      # quiet time before decay starts (listening etc.)
 step_min_seconds = 10.0        # random per-step pace, min
 step_max_seconds = 30.0        # random per-step pace, max
 drift_amplitude_deg = 0.6      # sub-degree mood-modulated micro-movement

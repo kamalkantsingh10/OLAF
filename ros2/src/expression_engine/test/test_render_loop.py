@@ -658,8 +658,8 @@ class TestIdleIntegration:
         _push(st, "activity", {"state": "listening", "from_state": "waking"})
         lp.tick(ck())                      # listening → status "listening"
         assert lp._eye.statuses[-1][1] == "listening"
-        ck.advance(31.0)
-        lp.tick(ck())                      # quiet >30s → idle engages
+        ck.advance(61.0)
+        lp.tick(ck())                      # quiet >60s → idle engages
         assert lp._idle.active
         assert lp._eye.statuses[-1][1] == "woke_up"   # strip dark, eyes open
 
@@ -669,7 +669,7 @@ class TestIdleIntegration:
         lp = _loop(st, ck)
         _push(st, "activity", {"state": "listening", "from_state": "waking"})
         lp.tick(ck())
-        ck.advance(31.0)
+        ck.advance(61.0)
         lp.tick(ck())
         assert lp._idle.active
         # a speech_emotion exits idle immediately → strip back to listening

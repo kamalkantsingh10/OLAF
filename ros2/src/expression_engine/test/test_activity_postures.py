@@ -124,6 +124,10 @@ def test_right_pan_safe_for_scs0009(leaves, label):
 
 
 def test_leaf_postures_are_pairwise_distinct(leaves):
+    # boot = sleep mode by design: `starting` intentionally shares
+    # `sleeping`'s body pose (the bot wakes up FROM sleep), so that pair
+    # is an allowed duplicate. Every OTHER state stays distinct (AC#2).
+    allowed_dupes = {frozenset({"starting", "sleeping"})}
     seen: dict[tuple, str] = {}
     for label, entry in leaves.items():
         pose = entry["pose"]
@@ -131,10 +135,12 @@ def test_leaf_postures_are_pairwise_distinct(leaves):
             tuple(float(pose["neck"][j]) for j in _NECK),
             tuple(float(pose["ears"][j]) for j in _EARS),
         )
-        assert sig not in seen, (
-            f"{label} has an identical posture to {seen.get(sig)} — "
-            f"AC#2 requires distinct postures"
-        )
+        if sig in seen:
+            assert frozenset({label, seen[sig]}) in allowed_dupes, (
+                f"{label} has an identical posture to {seen[sig]} — "
+                f"AC#2 requires distinct postures"
+            )
+            continue
         seen[sig] = label
 
 

@@ -40,17 +40,29 @@ _LIMITS = {
 }
 
 
+# Per-joint "currently clamping" flags so the clamp warning logs ONCE
+# per out-of-range episode instead of every ~100Hz tick. Story 6.5: the
+# idle micro-drift nudges the neck past the tilt limit while it rests at
+# the full sleep droop (-28), which otherwise floods journald.
+_clamp_warned: dict[str, bool] = {}
+
+
 def _clamp(joint: str, deg: float) -> float:
     lo, hi = _LIMITS[joint]
     c = max(lo, min(hi, deg))
     if c != deg:
-        log_event(
-            logging.WARNING,
-            "neck_target_clamped",
-            joint=joint,
-            requested=deg,
-            clamped=c,
-        )
+        if not _clamp_warned.get(joint):
+            log_event(
+                logging.WARNING,
+                "neck_target_clamped",
+                joint=joint,
+                requested=round(deg, 2),
+                clamped=c,
+                note="further clamps for this joint suppressed until in-range",
+            )
+            _clamp_warned[joint] = True
+    else:
+        _clamp_warned[joint] = False
     return c
 
 

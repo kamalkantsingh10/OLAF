@@ -162,3 +162,16 @@ def test_tail_is_neutral_content_sleepy_123():
         ("neutral", 1), ("content", 1), ("sleepy", 1), ("sleepy", 2), ("sleepy", 3),
     ]
     assert _TAIL[-1].droop == 1.0
+
+
+def test_idle_stage_eyes_translate_via_ar10():
+    # Regression (2026-05-22): the idle eye `sleepy` was NOT a key in the
+    # eye_adapter AR10 table (only a device VALUE), so it fell back to
+    # neutral and the eyes never went sleepy. Every idle stage eye MUST
+    # be a translatable canonical.
+    from expression_engine.adapters.eye_adapter import _CANONICAL_TO_ESP32
+    for s in _TAIL:
+        assert s.eye_expr in _CANONICAL_TO_ESP32, (
+            f"idle eye {s.eye_expr!r} not in eye_adapter._CANONICAL_TO_ESP32 "
+            f"— would fall back to neutral"
+        )

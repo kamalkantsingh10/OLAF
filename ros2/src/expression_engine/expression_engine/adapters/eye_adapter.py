@@ -47,6 +47,12 @@ _CANONICAL_TO_ESP32: dict[str, str] = {
     "surprised": "surprised",
     "frustrated": "frustrated",
     "melancholic": "melancholic",
+    # ── idle decay + mood eye (Story 6.5 / 7.2) ──
+    # `sleepy` is a real device expression (EXPR_SLEEPY) emitted directly
+    # as a canonical by the idle controller and by mood.sleepy.eye. It
+    # was previously only a device VALUE (closed/closing → sleepy), so the
+    # canonical fell back to neutral (the 2026-05-22 idle bug). 1:1 here.
+    "sleepy": "sleepy",
     # ── activity eye states (expression_map.yaml `activity.*.eye`) ──
     # Map onto the device set; not required distinct.
     "boot": "sleepy",         # ← asleep at boot/startup (Story 7.3); agrees with firmware default

@@ -365,6 +365,12 @@ class RenderLoop:
         # peripheral when the mapped value actually changes.
         self._last_status: str | None = None
         self._last_overlay: str | None = None
+        # Boot priming: the activity ease channel starts at neutral (0).
+        # On the FIRST activity we initialise it AT the pose so the bot
+        # appears directly in its boot pose (e.g. sleep) instead of
+        # sweeping neutral→pose (Story 7.3 boot=sleep). Later transitions
+        # ease normally (NFR3).
+        self._activity_primed = False
 
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -561,11 +567,15 @@ class RenderLoop:
         if now < self._wake_until:
             activity_tau = _WAKE_FAST_EASE_S  # begin motion <100ms
 
-        self._a.step(
-            {**target.activity_neck, **target.activity_ears},
-            activity_tau,
-            dt,
-        )
+        act_target = {**target.activity_neck, **target.activity_ears}
+        if not self._activity_primed and snap.get("activity") is not None:
+            # First activity since boot — initialise the ease channel AT
+            # the pose (no sweep from the neutral zero-init) so the bot
+            # boots directly into its pose, e.g. sleep (Story 7.3).
+            self._a.value = dict(act_target)
+            self._a.vel = {j: 0.0 for j in act_target}
+            self._activity_primed = True
+        self._a.step(act_target, activity_tau, dt)
         self._m.step(target.mood_neck, self._anim.mood_ease_seconds, dt)
         self._s.step(
             {**target.speech_neck, **target.speech_ears},

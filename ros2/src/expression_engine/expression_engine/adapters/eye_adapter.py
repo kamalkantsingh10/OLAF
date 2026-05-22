@@ -96,28 +96,29 @@ class EyeAdapter:
     def connect(self) -> None:
         self._client = self._factory()
         self._client.open()
-        # The Head ESP32 BOOTS ASLEEP and ignores set_expression until
-        # explicitly woken (REG_SYSTEM_STATUS "woke_up"; known Pi/ESP32
-        # boot-order gotcha). Without this the eyes stay closed.
-        # Activity-driven sleep/wake mapping is Story 7.3; here we just
-        # ensure the device is responsive for rendering.
-        # Code review 2026-05-17: a failed/absent wake is a CONNECT
-        # FAILURE, not an INFO. An unwoken head silently renders no
-        # eyes — NFR7 says connect failure is fatal, so escalate
-        # (raises out of node.connect_adapters → §9 step 5 fatal →
-        # systemd restart) rather than starting blind.
+        # BOOT = SLEEP MODE (Story 7.3): the Head ESP32 boots asleep and
+        # we KEEP it asleep on connect — the engine drives wake via
+        # activity→system_status (waking→woke_up). We send an explicit
+        # 'idle' (NOT 'woke_up') so the head doesn't flash neutral/awake
+        # on engine start; it stays in its sleepy boot state until the
+        # first activity says otherwise.
+        # The 'idle' write also doubles as the NFR7 connect check: a
+        # failed/absent status write is a CONNECT FAILURE (the head isn't
+        # reachable over I2C), so escalate (raises out of
+        # node.connect_adapters → §9 step 5 fatal → systemd restart)
+        # rather than starting blind.
         set_status = getattr(self._client, "set_system_status", None)
         if not callable(set_status):
             raise RuntimeError(
-                "eye client has no set_system_status — cannot wake the "
-                "Head ESP32 (it boots asleep and ignores set_expression)"
+                "eye client has no set_system_status — cannot reach the "
+                "Head ESP32 over I2C"
             )
-        if not set_status("woke_up"):
+        if not set_status("idle"):
             raise RuntimeError(
-                "Head ESP32 wake (set_system_status 'woke_up') failed — "
-                "the eyes would stay closed; failing fast (NFR7)"
+                "Head ESP32 not responding (set_system_status 'idle' "
+                "failed) — failing fast (NFR7)"
             )
-        log_event(logging.INFO, "eye_adapter_connected", woke_up=True)
+        log_event(logging.INFO, "eye_adapter_connected", boot_state="idle")
 
     def close(self) -> None:
         if self._client is not None:

@@ -125,7 +125,9 @@ class TestNeckClamp:
         assert roll == _LIMITS["roll"][0]
 
 
-# P8 — eye wake failure is a fatal connect error
+# P8 — eye connect status-write failure is a fatal connect error.
+# (Story 7.3: connect now sends 'idle' to KEEP the head asleep rather
+# than 'woke_up'; the write still doubles as the NFR7 reachability check.)
 class TestEyeWakeFatal:
     def test_missing_set_system_status_raises(self):
         from expression_engine.adapters.eye_adapter import EyeAdapter
@@ -147,7 +149,7 @@ class TestEyeWakeFatal:
             def set_system_status(s, st): return False
             def set_expression(s, e, i=3): return True
 
-        with pytest.raises(RuntimeError, match="wake"):
+        with pytest.raises(RuntimeError, match="not responding"):
             EyeAdapter(lambda: BadWake()).connect()
 
 

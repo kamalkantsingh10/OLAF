@@ -132,10 +132,10 @@ class _FakeHeadClient:
 def test_eye_adapter_status_and_overlay_passthrough():
     client = _FakeHeadClient()
     ad = EyeAdapter(client_factory=lambda: client)
-    ad.connect()  # connect() itself wakes the head ("woke_up")
+    ad.connect()  # connect() keeps the head ASLEEP ("idle"), not awake
     ad.set_system_status("listening")
     ad.set_led_overlay("warm")
-    assert client.statuses == ["woke_up", "listening"]
+    assert client.statuses == ["idle", "listening"]
     assert client.overlays == ["warm"]
 
 

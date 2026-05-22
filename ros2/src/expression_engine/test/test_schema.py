@@ -20,7 +20,7 @@ import pytest
 from pydantic import ValidationError
 
 from expression_engine.schema import (
-    PINNED_COMPANION_TAG,
+    INTERFACE_VERSION,
     SUPPORTED_SCHEMA_VERSION,
     ActivityEvent,
     MoodEvent,
@@ -47,12 +47,13 @@ def envelope(payload: dict, version: int = 3) -> str:
     )
 
 
-class TestPinnedTag:
-    def test_pinned_companion_tag_is_v300(self):
-        # Source-of-truth string; cross-checked in Story 6.2.
-        assert PINNED_COMPANION_TAG == "v3.0.0"
+class TestInterfaceVersion:
+    def test_interface_version_semver(self):
+        # Body-owned interface version (Story 7.6). Cross-checked
+        # against contract/VERSION in test_contract.py.
+        assert INTERFACE_VERSION == "1.0.0"
 
-    def test_supported_version_is_3(self):
+    def test_supported_wire_version_is_3(self):
         assert SUPPORTED_SCHEMA_VERSION == 3
 
 
@@ -153,9 +154,27 @@ class TestMalformedRejected:  # Task 5
         with pytest.raises(ValidationError):
             parse_event("mood", raw)
 
-    def test_extra_forbidden_field(self):
+    def test_extra_payload_field_ignored(self):
+        # Story 7.6: payloads are forward-compatible — an additive field
+        # from a newer interface MINOR is IGNORED, not fatal.
+        ev = parse_event("mood", envelope({"mood": "calm", "future_field": 1}))
+        assert ev.payload.mood == "calm"
+        assert not hasattr(ev.payload, "future_field")
+
+    def test_extra_envelope_field_still_forbidden(self):
+        # The ENVELOPE stays strict — a stray top-level field is fatal.
+        raw = json.dumps(
+            {
+                "schema_version": 3,
+                "timestamp": TS,
+                "source": "voice_agent_pipeline",
+                "correlation_id": CID,
+                "payload": {"mood": "calm"},
+                "bogus": 1,
+            }
+        )
         with pytest.raises(ValidationError):
-            parse_event("mood", envelope({"mood": "calm", "bogus": 1}))
+            parse_event("mood", raw)
 
     def test_wrong_enum_value(self):
         with pytest.raises(ValidationError):
@@ -178,3 +197,36 @@ class TestMalformedRejected:  # Task 5
         ev = parse_event("mood", envelope({"mood": "calm"}))
         with pytest.raises(ValidationError):
             ev.payload.mood = "happy"
+
+
+class TestStory76Interface:  # Story 7.6 — body-owned interface
+    def _env(self, payload: dict, source: str = "voice_agent_pipeline") -> str:
+        return json.dumps(
+            {
+                "schema_version": 3,
+                "timestamp": TS,
+                "source": source,
+                "correlation_id": CID,
+                "payload": payload,
+            }
+        )
+
+    def test_source_accepts_any_producer_id(self):
+        # source is no longer the "voice_agent_pipeline" literal — any
+        # non-empty producer id is valid (test rig, joystick, etc.).
+        ev = parse_event("mood", self._env({"mood": "happy"}, source="test_rig"))
+        assert ev.source == "test_rig"
+
+    def test_empty_source_rejected(self):
+        with pytest.raises(ValidationError):
+            parse_event("mood", self._env({"mood": "happy"}, source=""))
+
+    def test_additive_field_tolerated_on_every_payload(self):
+        # Forward-compat holds across all four payloads.
+        parse_event("activity", self._env(
+            {"state": "starting", "_future": 1}))
+        parse_event("speech_emotion", self._env(
+            {"emotion": "neutral", "source_tag": "x", "raw_tag": "x",
+             "resolved_fallback": None, "_future": 1}))
+        parse_event("vocalization", self._env(
+            {"tag": "nod", "tts_supported": False, "_future": 1}))

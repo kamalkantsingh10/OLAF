@@ -1,0 +1,36 @@
+{
+  "description": "Mirror of companion ``schemas/mood_event.py:MoodPayload`` (A.4).",
+  "properties": {
+    "mood": {
+      "enum": [
+        "calm",
+        "happy",
+        "playful",
+        "curious",
+        "thoughtful",
+        "sleepy",
+        "grumpy",
+        "excited"
+      ],
+      "title": "Mood",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    }
+  },
+  "required": [
+    "mood"
+  ],
+  "title": "MoodPayload",
+  "type": "object"
+}

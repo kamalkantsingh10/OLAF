@@ -1,0 +1,72 @@
+{
+  "description": "Mirror of companion ``schemas/activity_event.py:ActivityPayload``.\n\nInvariants re-derived verbatim (Appendix A.5):\n  - ``working_submode`` non-null iff ``state == \"working\"``.\n  - ``from_state`` is ``None`` iff this is the initial\n    ``state == \"starting\"`` event.",
+  "properties": {
+    "from_state": {
+      "anyOf": [
+        {
+          "enum": [
+            "starting",
+            "sleeping",
+            "waking",
+            "listening",
+            "working",
+            "speaking",
+            "going_to_sleep"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "From State"
+    },
+    "state": {
+      "enum": [
+        "starting",
+        "sleeping",
+        "waking",
+        "listening",
+        "working",
+        "speaking",
+        "going_to_sleep"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "transition_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transition Reason"
+    },
+    "working_submode": {
+      "anyOf": [
+        {
+          "enum": [
+            "thinking",
+            "delegating"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Working Submode"
+    }
+  },
+  "required": [
+    "state"
+  ],
+  "title": "ActivityPayload",
+  "type": "object"
+}

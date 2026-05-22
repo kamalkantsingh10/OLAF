@@ -1,0 +1,31 @@
+{
+  "description": "Mirror of ``schemas/vocalization_event.py`` (A.7).",
+  "properties": {
+    "audio_frame_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Audio Frame Id"
+    },
+    "tag": {
+      "title": "Tag",
+      "type": "string"
+    },
+    "tts_supported": {
+      "title": "Tts Supported",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "tag",
+    "tts_supported"
+  ],
+  "title": "VocalizationPayload",
+  "type": "object"
+}

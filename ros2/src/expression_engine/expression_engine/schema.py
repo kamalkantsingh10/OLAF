@@ -12,7 +12,8 @@ coupling (AR13). These models mirror the companion's wire contract:
   build_documents/planning-artifacts/olaf-embodiment-brief.md §Appendix A
 
 Hand-mirrored models drift; Story 6.2 adds a cross-check against
-:data:`PINNED_COMPANION_TAG`. Any contract edit here MUST cite the
+:data:`INTERFACE_VERSION` (the map carries ``interface_version`` and
+the loader asserts it matches). Any contract edit here MUST cite the
 companion source module + Appendix A section it mirrors.
 
 Fail-fast posture (FR4, NFR7, brief §A.3 "Subscriber rule"): a wire
@@ -31,17 +32,32 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-#: Pinned companion source-of-truth. The schemas below are re-derived
-#: from this exact tag. Written into expression_map.yaml and
-#: cross-checked in Story 6.2 (phase2-expression-engine.md §12.4).
-PINNED_COMPANION_TAG = "v3.0.0"
+#: Body-owned interface contract version (semver). MIRRORS
+#: ``contract/VERSION`` — cross-checked by ``test/test_contract.py`` so
+#: the two can never drift. Story 7.6 made the expression interface a
+#: body-owned, versioned standard: the body no longer pins the
+#: companion's *release* (the old ``PINNED_COMPANION_TAG = "v3.0.0"``);
+#: it declares the *interface* version it speaks. This is DISTINCT from
+#: the wire :data:`SUPPORTED_SCHEMA_VERSION` below (the envelope-format
+#: major gate) — bump INTERFACE_VERSION for any vocabulary / envelope
+#: governance change (major = breaking, minor = additive/forward-compat).
+INTERFACE_VERSION = "1.0.0"
 
-#: The only wire schema version this engine accepts (brief §A.3/§A.8).
+#: The only wire envelope-format version this engine accepts (brief
+#: §A.3/§A.8) — the major-fatal gate (:func:`assert_schema_version`).
+#: A breaking *wire* change bumps this AND INTERFACE_VERSION's major.
 SUPPORTED_SCHEMA_VERSION = 3
 
+#: Envelope config — STRICT: a stray/typo envelope field fails loudly.
 _FROZEN = ConfigDict(frozen=True, extra="forbid")
+
+#: Payload config — frozen but FORWARD-COMPATIBLE (Story 7.6): unknown
+#: payload fields are IGNORED, not fatal. A producer on a newer
+#: interface MINOR may add an additive payload field and an older body
+#: tolerates it. Only payloads relax; the envelope stays strict.
+_PAYLOAD_CONFIG = ConfigDict(frozen=True, extra="ignore")
 
 
 class SchemaVersionError(Exception):
@@ -85,7 +101,7 @@ WorkingSubmode = Literal["thinking", "delegating"]
 # `str` on the wire (forward-compat — subscribers ignore unknowns,
 # FR13). But the *required map-coverage* set for a given pinned
 # companion release IS fixed. These tuples are that pinned set,
-# re-derived from brief §A.6/§A.7 @ PINNED_COMPANION_TAG. They are the
+# re-derived from brief §A.6/§A.7 @ INTERFACE_VERSION. They are the
 # single source of truth for the Story 6.2 map-loader completeness
 # check — do NOT re-list canonical names anywhere else.
 
@@ -114,7 +130,7 @@ VOCALIZATION_GESTURE_CUES: tuple[str, ...] = ("nod", "shake")
 class MoodPayload(BaseModel):
     """Mirror of companion ``schemas/mood_event.py:MoodPayload`` (A.4)."""
 
-    model_config = _FROZEN
+    model_config = _PAYLOAD_CONFIG
 
     mood: Mood
     reason: str | None = None
@@ -129,7 +145,7 @@ class ActivityPayload(BaseModel):
         ``state == "starting"`` event.
     """
 
-    model_config = _FROZEN
+    model_config = _PAYLOAD_CONFIG
 
     state: ActivityState
     working_submode: WorkingSubmode | None = None
@@ -162,7 +178,7 @@ class SpeechEmotionPayload(BaseModel):
     here). ``audio_frame_id`` is ``str | None`` (not int).
     """
 
-    model_config = _FROZEN
+    model_config = _PAYLOAD_CONFIG
 
     emotion: str
     source_tag: str
@@ -174,7 +190,7 @@ class SpeechEmotionPayload(BaseModel):
 class VocalizationPayload(BaseModel):
     """Mirror of ``schemas/vocalization_event.py`` (A.7)."""
 
-    model_config = _FROZEN
+    model_config = _PAYLOAD_CONFIG
 
     tag: str
     audio_frame_id: str | None = None
@@ -198,7 +214,11 @@ class EventEnvelope(BaseModel):
 
     schema_version: int = SUPPORTED_SCHEMA_VERSION
     timestamp: datetime
-    source: Literal["voice_agent_pipeline"]
+    #: Producer identity. Story 7.6 relaxed this from the
+    #: ``"voice_agent_pipeline"`` literal to ANY non-empty id — a
+    #: body-owned interface must not name one producer (the companion
+    #: is just one publisher; a test rig / joystick are others).
+    source: str = Field(min_length=1)
     correlation_id: UUID
     payload: BaseModel
 

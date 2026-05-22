@@ -14,6 +14,14 @@ setup(
         ('share/' + package_name, ['package.xml']),
         # Renderer mapping + service config (populated in Epic 6)
         (os.path.join('share', package_name, 'config'), glob('config/*')),
+        # Body-owned interface contract (Story 7.6) — spec + VERSION +
+        # generated JSON Schemas. Installed so they resolve at runtime
+        # and ship with the package. Kept self-contained for later
+        # extraction into a neutral interface package (git mv).
+        (os.path.join('share', package_name, 'contract'),
+            glob('contract/*.md') + glob('contract/VERSION')),
+        (os.path.join('share', package_name, 'contract', 'schemas'),
+            glob('contract/schemas/*.json')),
     ],
     install_requires=[
         'setuptools',

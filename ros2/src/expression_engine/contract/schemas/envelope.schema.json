@@ -1,0 +1,44 @@
+{
+  "$defs": {
+    "BaseModel": {
+      "properties": {},
+      "title": "BaseModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Mirror of companion ``schemas/envelope.py:EventEnvelope`` (A.3).\n\n``frozen=True`` \u2192 events are safe to hand between the rclpy\nexecutor thread and the (later) render thread without defensive\ncopies. ``extra=\"forbid\"`` \u2192 a wire typo fails loudly. Field\ndefaults exist for standalone construction; published events\nalways carry all five (brief \u00a7A.3).",
+  "properties": {
+    "correlation_id": {
+      "format": "uuid",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/BaseModel"
+    },
+    "schema_version": {
+      "default": 3,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "required": [
+    "timestamp",
+    "source",
+    "correlation_id",
+    "payload"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

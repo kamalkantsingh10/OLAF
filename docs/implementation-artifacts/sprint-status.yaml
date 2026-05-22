@@ -45,7 +45,7 @@
 #   while closing 5.3.
 
 generated: 2026-05-16T00:24:25
-last_updated: 2026-05-22T00:00:01
+last_updated: 2026-05-23T00:00:01
 project: OLAF
 project_key: NOKEY
 tracking_system: file-system
@@ -80,6 +80,7 @@ development_status:
   7-3-activity-to-posture-mapping: review
   7-4-mood-to-subtle-ambient-modifier: review
   7-5-locked-expression-regression-harness: ready-for-dev
+  7-6-body-owned-expression-interface-contract: review
   epic-7-retrospective: optional
 
   # ── Epic 8: Heart Display Animation ──

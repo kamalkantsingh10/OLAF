@@ -17,10 +17,12 @@
 # schema_version (which is 3, enforced by schema.py).
 schema_version: 1
 
-# Canonical vocabulary is validated against THIS companion release.
-# MUST equal schema.PINNED_COMPANION_TAG — mismatch is startup-fatal
-# (the NFR5 lockstep enforcement promised in Story 6.1 / §12.4).
-pinned_companion_tag: "v3.0.0"
+# Body-owned interface version (Story 7.6). MUST equal
+# schema.INTERFACE_VERSION and contract/VERSION — mismatch is
+# startup-fatal (the NFR5 lockstep enforcement, §12.4). The body no
+# longer pins the companion's RELEASE; it declares the INTERFACE it
+# speaks. See ../contract/INTERFACE.md.
+interface_version: "1.0.0"
 
 # FR13 runtime fallback, returned for any unmapped canonical name.
 defaults:

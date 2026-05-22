@@ -9,6 +9,10 @@ separate (see "Why three files", below).
 > mechanical limits) lives elsewhere: repo-root [`config/servo-ids.yaml`](../../../../config/servo-ids.yaml).
 > That file is Pi-written (`set-center`, calibration tools) and is a different
 > lifecycle — do **not** move it here or merge it in.
+>
+> The **input contract** — what a producer publishes to drive OLAF — is the
+> body-owned [`../contract/INTERFACE.md`](../contract/INTERFACE.md) (Story 7.6).
+> These YAMLs map that abstract intent onto *this* body's actuators.
 
 ## Files
 

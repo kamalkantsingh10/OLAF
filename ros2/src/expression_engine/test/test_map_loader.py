@@ -52,9 +52,9 @@ class TestLoadsPackagedMap:
         m = load_expression_map(PACKAGED_MAP)
         assert isinstance(m, ExpressionMap)
 
-    def test_pinned_tag_matches_schema(self):
+    def test_interface_version_matches_schema(self):
         m = load_expression_map(PACKAGED_MAP)
-        assert m.pinned_companion_tag == schema.PINNED_COMPANION_TAG
+        assert m.interface_version == schema.INTERFACE_VERSION
 
     def test_defaults_resolved(self):
         m = load_expression_map(PACKAGED_MAP)
@@ -76,8 +76,8 @@ class TestLoadsPackagedMap:
         with pytest.raises(MapValidationError):
             load_expression_map(_write(tmp_path, valid_map_dict))
 
-    def test_pinned_tag_mismatch_fatal(self, tmp_path, valid_map_dict):
-        valid_map_dict["pinned_companion_tag"] = "v2.9.9"
+    def test_interface_version_mismatch_fatal(self, tmp_path, valid_map_dict):
+        valid_map_dict["interface_version"] = "9.9.9"
         with pytest.raises(MapValidationError):
             load_expression_map(_write(tmp_path, valid_map_dict))
 

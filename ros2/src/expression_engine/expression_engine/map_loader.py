@@ -12,7 +12,7 @@ Two distinct failure modes (Dev Notes — do NOT conflate):
 
 Strict-at-startup, graceful-at-runtime — that asymmetry is the design
 (NFR5). The required canonical set is derived from `schema.py`
-(single source of truth, re-derived @ PINNED_COMPANION_TAG); never
+(single source of truth, re-derived @ INTERFACE_VERSION); never
 re-listed by hand. Extra map entries beyond the pinned set are
 ACCEPTED — vocabulary growth is a pure YAML edit (NFR5).
 
@@ -39,7 +39,7 @@ from expression_engine.logging_setup import log_event
 _TOPICS = ("mood", "activity", "speech_emotion", "vocalization")
 _REQUIRED_TOP_LEVEL = (
     "schema_version",
-    "pinned_companion_tag",
+    "interface_version",
     "defaults",
     *_TOPICS,
 )
@@ -93,7 +93,7 @@ class ExpressionMap:
     """Validated, queryable map data + the FR13 fallback resolver."""
 
     schema_version: int
-    pinned_companion_tag: str
+    interface_version: str
     defaults: dict[str, Any]
     mood: dict[str, Any]
     activity: dict[str, Any]
@@ -137,8 +137,8 @@ def _assert_complete(
     _require(
         not missing,
         f"expression_map.yaml: '{topic}' is missing canonical "
-        f"entries for the pinned companion set "
-        f"({schema.PINNED_COMPANION_TAG}): {missing}. "
+        f"entries for the pinned interface set "
+        f"({schema.INTERFACE_VERSION}): {missing}. "
         f"Add them to the map — startup is fatal until complete "
         f"(FR6/NFR7).",
     )
@@ -403,8 +403,8 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
 
     Raises:
         FileNotFoundError: the map file is absent.
-        MapValidationError: malformed YAML, a missing top-level key, a
-            pinned-tag mismatch, an incomplete canonical vocabulary
+        MapValidationError: malformed YAML, a missing top-level key, an
+            interface-version mismatch, an incomplete canonical vocabulary
             (FR6), or nod/shake without ``visible_only: true`` (FR7).
     """
     path = Path(path)
@@ -431,13 +431,14 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
             f"{path}: top-level '{key}' must be a mapping",
         )
 
-    # Lockstep: the map's pinned tag must equal the tag schema.py was
-    # re-derived from (the NFR5 enforcement promised in Story 6.1).
+    # Lockstep: the map's interface_version must equal the version
+    # schema.py declares (NFR5; Story 7.6 — body-owned interface, the
+    # map no longer pins the companion's release tag).
     _require(
-        raw["pinned_companion_tag"] == schema.PINNED_COMPANION_TAG,
-        f"{path}: pinned_companion_tag "
-        f"{raw['pinned_companion_tag']!r} != schema.py "
-        f"{schema.PINNED_COMPANION_TAG!r}. The map and the re-derived "
+        raw["interface_version"] == schema.INTERFACE_VERSION,
+        f"{path}: interface_version "
+        f"{raw['interface_version']!r} != schema.py "
+        f"{schema.INTERFACE_VERSION!r}. The map and the re-derived "
         f"schema must move in lockstep (NFR5, §12.4).",
     )
 
@@ -502,7 +503,7 @@ def load_expression_map(path: str | Path) -> ExpressionMap:
 
     return ExpressionMap(
         schema_version=raw["schema_version"],
-        pinned_companion_tag=raw["pinned_companion_tag"],
+        interface_version=raw["interface_version"],
         defaults=raw["defaults"],
         mood=raw["mood"],
         activity=activity,

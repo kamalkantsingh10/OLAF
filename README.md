@@ -162,6 +162,7 @@ companion topics ─▶ activity base ─▶ + mood bias ─▶ + speech_emotion
                                           eyes (OLED) · ears · neck · WS2812 LEDs
 ```
 
+- **Producer contract:** any producer drives OLAF by publishing to the body-owned [expression interface](ros2/src/expression_engine/contract/INTERFACE.md) (`mood`/`activity`/`speech_emotion`/`vocalization`) — so the *same* companion can drive different hardware bodies.
 - **Single source of truth:** `ros2/src/expression_engine/config/expression_map.yaml` (+ `neck_motion.yaml`, `ears_motion.yaml`). See the [config index](ros2/src/expression_engine/config/README.md).
 - **Additive composition:** later layers ride on top of earlier ones, so a vocalization gesture never wipes the underlying emotional pose.
 - **Hand-authored, hardware-tuned:** every emotion is authored, then frozen after a pass on the real avatar.

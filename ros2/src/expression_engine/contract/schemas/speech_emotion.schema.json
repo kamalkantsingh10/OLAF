@@ -1,0 +1,48 @@
+{
+  "description": "Mirror of ``schemas/speech_emotion_event.py`` (A.6).\n\nSchema-3: the pre-3 ``expression_data`` field is GONE (A.8). The\nrenderer mapping is the engine's own concern, keyed on ``emotion``\n(12 canonical names \u2014 enforced by the Story 6.2 map loader, NOT\nhere). ``audio_frame_id`` is ``str | None`` (not int).",
+  "properties": {
+    "audio_frame_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Audio Frame Id"
+    },
+    "emotion": {
+      "title": "Emotion",
+      "type": "string"
+    },
+    "raw_tag": {
+      "title": "Raw Tag",
+      "type": "string"
+    },
+    "resolved_fallback": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resolved Fallback"
+    },
+    "source_tag": {
+      "title": "Source Tag",
+      "type": "string"
+    }
+  },
+  "required": [
+    "emotion",
+    "source_tag",
+    "raw_tag",
+    "resolved_fallback"
+  ],
+  "title": "SpeechEmotionPayload",
+  "type": "object"
+}

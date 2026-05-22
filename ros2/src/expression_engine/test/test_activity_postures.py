@@ -144,6 +144,11 @@ def test_leaf_postures_are_pairwise_distinct(leaves):
 @pytest.mark.parametrize("label", sorted(_expected_leaf_labels()))
 def test_eye_expression_resolves_via_ar10(leaves, label):
     eye = leaves[label].get("eye")
+    if label == "speaking":
+        # speaking deliberately authors NO eye — the eye is driven by the
+        # active speech_emotion (Story 7.3). Activity = body pose + LED only.
+        assert eye is None, "speaking must NOT author an activity eye (speech drives it)"
+        return
     assert isinstance(eye, dict), f"{label}: eye block missing"
     expr = eye.get("expression")
     assert isinstance(expr, str) and expr, f"{label}: eye.expression missing"

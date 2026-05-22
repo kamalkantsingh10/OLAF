@@ -27,6 +27,8 @@ help:
     @echo ""
     @echo "Robot (run ON the Pi — drives real hardware):"
     @echo "  just body-up          Boot the body — bring the engine node up & ready"
+    @echo "  just monitor          Live-watch the 4 interface topics (read-only)"
+    @echo "  just topics           List the /olaf/* topics on the DDS domain"
     @echo "  just activity-walk    Story 7.3 — walk every ActivityState"
     @echo "  just voc-run          Story 7.2 — fire each vocalization"
     @echo "  just idle-run         Story 6.5 — watch the head drift to sleep"
@@ -125,6 +127,29 @@ body-up *args:
     source /opt/ros/jazzy/setup.bash
     PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
         poetry run python -m expression_engine.node {{args}}
+
+# Joins the engine's configured DDS domain + per-topic QoS, so it sees
+# exactly what the body sees — latched mood/activity replay their
+# current value on connect (a plain `ros2 topic echo` would miss them).
+# Read-only. Ctrl-C to stop. Run alongside `just body-up` or against a
+# producer.
+
+# Live-watch the 4 interface topics (read-only) — same domain as body.
+monitor:
+    #!/usr/bin/env bash
+    source /opt/ros/jazzy/setup.bash
+    PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
+        poetry run python ros2/src/expression_engine/tools/monitor.py
+
+# Quick discovery on domain 42. `-v` adds QoS + pub/sub counts:
+#   just topics -v
+
+# List the /olaf/* topics on the DDS domain (discovery check).
+topics *args:
+    #!/usr/bin/env bash
+    source /opt/ros/jazzy/setup.bash
+    ROS_DOMAIN_ID=42 ros2 topic list {{args}} | grep -E '/olaf/' \
+        || echo "(no /olaf/* topics on domain 42 — is the body or a producer up?)"
 
 # Run any expression_engine script on the robot (path relative to the
 # package). Usage: just exp-run test/e2e_activity_run.py [args...]

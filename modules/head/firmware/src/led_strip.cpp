@@ -187,33 +187,25 @@ static void animateListening() {
 }
 
 // ============================================================================
-// PROCESSING — White comet bouncing edge ↔ center  (looping, 700 ms)
+// PROCESSING — Whole-strip "thinking" pulse-blink  (looping, ~650 ms)
 //
-// Eased ping-pong with a fading tail.
+// All symmetric pairs pulse TOGETHER on a brisk, sharp beat — a busy
+// blink, deliberately distinct from LISTENING's smooth wave travelling
+// outward. A low floor keeps a dim mood-tinted background present between
+// pulses (the overlay tints the whole strip). Story 7.3 (Kamal: working
+// LED must differ clearly from listening).
 // ============================================================================
 
 static void animateProcessing() {
     clearAll();
 
-    float phase = (millis() % 700) / 700.0f;
-
-    float pos;
-    if (phase < 0.5f) {
-        pos = 3.0f * (1.0f - easeInOut(phase * 2.0f));
-    } else {
-        pos = 3.0f * easeInOut((phase - 0.5f) * 2.0f);
-    }
+    float phase = (millis() % 650) / 650.0f;
+    float pulse = sinf(phase * PI);
+    pulse = pulse * pulse * pulse;            // sharp peak → reads as a blink
+    float level = 0.15f + 0.80f * pulse;      // dim background floor + bright blink
 
     for (uint8_t d = 0; d <= 3; d++) {
-        float gap = fabsf((float)d - pos);
-        if (gap < 2.0f) {
-            float intensity = (gap < 0.6f)
-                ? 1.0f
-                : (1.0f - (gap - 0.6f) / 1.4f);
-            intensity *= intensity;
-
-            setSymPair(d, whiteAt(intensity * 0.9f));
-        }
+        setSymPair(d, whiteAt(level));
     }
 
     active_brightness = kLedDefaultBrightness;

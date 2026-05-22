@@ -1,6 +1,6 @@
 # Story 7.3: Activity → posture mapping
 
-Status: in-progress
+Status: review
 
 <!-- Created 2026-05-20 after 7.1a/b/c froze the per-emotion look.
 Finalises the `activity.*` block in expression_map.yaml so every
@@ -81,13 +81,16 @@ without any active speech_emotion or vocalization.
 - [x] Task 3: **Tests** — full-block coverage assertion, bounds
   check (incl. right_pan ≤ 50), YAML integrity (no `:value`
   no-space). Existing suites stay green.
-- [ ] Task 4: **Hardware verify** — small helper to step through
+- [x] Task 4: **Hardware verify** — small helper to step through
   ActivityStates from the Pi (drive `system_status` register +
   the engine's activity topic). Kamal-locks each.
-  - [x] Harness built: `test/e2e_activity_run.py` (walks all 8 leaf
-    states one at a time, holds each, prints authored vs eased pose).
-  - [ ] On-robot walk + Kamal-lock of each state — **PENDING** (needs
-    the avatar; run command in the harness docstring).
+  - [x] Harness built: `test/e2e_activity_run.py` (ENTER-stepped walk,
+    leaves head in final pose, prints authored vs eased pose + status).
+  - [x] On-robot walk + Kamal-lock — DONE 2026-05-22. Iteratively tuned
+    on hardware: sleepy half-lid + drowsy blink, boot=sleep (no neutral
+    flash), LED listening/working/speaking distinct + mood-tinted,
+    content eye distinct from excited, speaking defers eye to speech.
+    Kamal: boot "now it perfect".
 
 ## Dev Notes
 

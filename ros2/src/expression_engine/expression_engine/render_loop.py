@@ -29,7 +29,8 @@ from typing import Any, Callable, Optional
 from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.adapters.base import ContinuousAdapter, DelegatingAdapter
 from expression_engine.adapters.eye_adapter import EyeAdapter
-from expression_engine.config import AnimationConfig
+from expression_engine.config import AnimationConfig, IdleConfig
+from expression_engine.idle import IdleController
 from expression_engine.logging_setup import log_event
 from expression_engine.map_loader import ExpressionMap
 from expression_engine.state import EngineState
@@ -332,6 +333,7 @@ class RenderLoop:
         clock: Callable[[], float] = time.monotonic,
         audio_anchor_resolver: Optional[Callable[[str], float]] = None,
         rng: Optional[random.Random] = None,
+        idle: Optional[IdleConfig] = None,
     ) -> None:
         self._state = state
         self._map = expression_map
@@ -363,6 +365,13 @@ class RenderLoop:
         # peripheral when the mapped value actually changes.
         self._last_status: str | None = None
         self._last_overlay: str | None = None
+        # Story 6.5 — idle drift-to-sleep. Its own RNG so step pacing
+        # never perturbs the vocalization RNG. The `sleeping` activity
+        # pose is the droop target the whole head decays toward.
+        self._idle = IdleController(idle or IdleConfig(), rng=random.Random())
+        _spose = self._map.activity.get("sleeping", {}).get("pose", {})
+        self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
+        self._sleep_ears = _overlay({j: 0.0 for j in _EARS}, _spose.get("ears"))
         # Boot priming: the activity ease channel starts at neutral (0).
         # On the FIRST activity we initialise it AT the pose so the bot
         # appears directly in its boot pose (e.g. sleep) instead of
@@ -435,6 +444,22 @@ class RenderLoop:
             speech_neck, speech_ears, eye_expr, eye_int, speech_active,
         )
 
+    def _mood_energy(self, snap: dict) -> float:
+        """Idle micro-drift amplitude scale from the current mood — calmer
+        moods (lower `led_bias.intensity`) drift more gently. Default 1.0
+        when no mood is set. (Story 6.5 — the only mood→head influence,
+        per the 7.4 de-scope.)"""
+        mood_evt = snap.get("mood")
+        if mood_evt is None:
+            return 1.0
+        entry = self._map.mood.get(mood_evt.payload.mood, {})
+        bias = entry.get("led_bias") if isinstance(entry, dict) else None
+        inten = bias.get("intensity") if isinstance(bias, dict) else None
+        if not isinstance(inten, (int, float)) or isinstance(inten, bool):
+            return 1.0
+        # led_bias.intensity ~0.2..0.6 → energy ~0.5..1.5 (clamped).
+        return max(0.3, min(1.5, float(inten) / 0.4))
+
     # ── per-event side effects (fire-on-change) ────────────────────
 
     def _changed(self, snap: dict, topic: str) -> object | None:
@@ -457,6 +482,7 @@ class RenderLoop:
         sp = self._changed(snap, "speech_emotion")
         if sp is not None:
             self._speech_smooth_s = _SPEECH_EASE_S
+            self._idle.notify_event(now)   # speech resets idle (Story 6.5)
             fid = sp.payload.audio_frame_id
             if fid is not None and self._anchor_resolver is not None:
                 try:
@@ -487,21 +513,15 @@ class RenderLoop:
                         # audio anchor (NFR2 anticipatory window).
                         self._speech_smooth_s = sized
 
-        # activity: wake short-circuit (sleeping→waking, NFR1) + drive
-        # the head system_status (Story 7.3 — wake level + WS2812 strip
-        # lit/dark + pattern). Fire-on-change so two activities mapping
-        # to the same status (starting/sleeping → idle) don't re-write.
+        # activity: wake short-circuit (sleeping→waking, NFR1) + reset
+        # idle (Story 6.5). The head system_status is driven in tick()
+        # (idle-aware — idle forces the strip OFF), not here.
         act = self._changed(snap, "activity")
         if act is not None:
             p = act.payload
             if p.from_state == "sleeping" and p.state == "waking":
                 self._wake_until = now + _WAKE_WINDOW_S
-            status = EyeAdapter.status_for_activity(p.state)
-            if status is not None and status != self._last_status:
-                self._last_status = status
-                set_status = getattr(self._eye, "set_system_status", None)
-                if callable(set_status):
-                    set_status(status)
+            self._idle.notify_event(now)
 
         # mood: drive the WS2812 colour wash (Story 7.3) — the current
         # mood's nearest tint bucket. Separate event from system_status;
@@ -521,6 +541,7 @@ class RenderLoop:
         # (Story 7.2 — replaces _Gesture.SHAPES).
         voc = self._changed(snap, "vocalization")
         if voc is not None:
+            self._idle.notify_event(now)   # vocalization resets idle (Story 6.5)
             tag = voc.payload.tag
             entry = self._map.vocalization.get(tag)
             spec = entry.get("layered_action") if isinstance(entry, dict) else None
@@ -562,7 +583,28 @@ class RenderLoop:
         if now < self._wake_until:
             activity_tau = _WAKE_FAST_EASE_S  # begin motion <100ms
 
-        act_target = {**target.activity_neck, **target.activity_ears}
+        # Story 6.5 — idle drift-to-sleep. When decaying, the WHOLE HEAD
+        # eases toward the `sleeping` pose by the stage's droop fraction
+        # and the eye shows the stage expression; any event reset it in
+        # _handle_events.
+        act_evt = snap.get("activity")
+        act_state = act_evt.payload.state if act_evt is not None else None
+        idle_stage = self._idle.tick(
+            now, act_state, (target.eye_expression, target.eye_intensity)
+        )
+        if idle_stage is not None:
+            d = idle_stage.droop
+            act_target = {
+                **{j: target.activity_neck[j]
+                   + (self._sleep_neck[j] - target.activity_neck[j]) * d
+                   for j in _NECK},
+                **{j: target.activity_ears[j]
+                   + (self._sleep_ears[j] - target.activity_ears[j]) * d
+                   for j in _EARS},
+            }
+        else:
+            act_target = {**target.activity_neck, **target.activity_ears}
+
         if not self._activity_primed and snap.get("activity") is not None:
             # First activity since boot — initialise the ease channel AT
             # the pose (no sweep from the neutral zero-init) so the bot
@@ -571,6 +613,20 @@ class RenderLoop:
             self._a.vel = {j: 0.0 for j in act_target}
             self._activity_primed = True
         self._a.step(act_target, activity_tau, dt)
+
+        # Head system_status (Story 7.3) — idle-aware (Story 6.5): while
+        # decaying the strip goes OFF (idle); otherwise the activity's
+        # status. Fire-on-change; nothing before the first activity.
+        eff_status = "idle" if idle_stage is not None else (
+            EyeAdapter.status_for_activity(act_state)
+            if act_state is not None else None
+        )
+        if eff_status is not None and eff_status != self._last_status:
+            self._last_status = eff_status
+            set_status = getattr(self._eye, "set_system_status", None)
+            if callable(set_status):
+                set_status(eff_status)
+
         self._s.step(
             {**target.speech_neck, **target.speech_ears},
             self._speech_smooth_s,
@@ -595,10 +651,19 @@ class RenderLoop:
             if voc_eye is None:
                 voc_eye = action.eye_target(now)
 
+        # Idle micro-drift: sub-degree breath-like neck sway so the head
+        # is never statue-still while decaying (Story 6.5). Amplitude
+        # scales with the current mood (calmer → gentler).
+        drift = {j: 0.0 for j in _NECK}
+        if idle_stage is not None:
+            dp, dtl = self._idle.drift_offset(now, self._mood_energy(snap))
+            drift["pan"] = dp
+            drift["tilt"] = dtl
         neck_out = {
             j: self._a.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)
             + gest_neck.get(j, 0.0)
+            + drift[j]
             for j in _NECK
         }
         ears_out = {
@@ -617,9 +682,12 @@ class RenderLoop:
         # vocalization window expires `voc_eye` returns to None and the
         # next tick's composed eye differs from `_last_eye` → fire-on-
         # change re-fires the composed eye automatically.
-        eye = voc_eye if voc_eye is not None else (
-            target.eye_expression, target.eye_intensity
-        )
+        if voc_eye is not None:
+            eye = voc_eye
+        elif idle_stage is not None:
+            eye = (idle_stage.eye_expr, idle_stage.eye_level)
+        else:
+            eye = (target.eye_expression, target.eye_intensity)
         if eye != self._last_eye:
             self._last_eye = eye
             self._eye.set_expression(eye[0], eye[1])

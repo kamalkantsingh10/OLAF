@@ -65,7 +65,7 @@ development_status:
   6-2-map-loader-vocabulary-completeness: done
   6-3-animation-loop: done
   6-4-reference-expression-end-to-end-freezes-the-schema: done
-  6-5-idle-behaviour: ready-for-dev
+  6-5-idle-behaviour: in-progress
   6-6-real-led-adapter-breath-led: ready-for-dev
   6-7-service-hardening: ready-for-dev
   epic-6-retrospective: optional

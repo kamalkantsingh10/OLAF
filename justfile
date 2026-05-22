@@ -28,6 +28,7 @@ help:
     @echo "Robot (run ON the Pi — drives real hardware):"
     @echo "  just activity-walk    Story 7.3 — walk every ActivityState"
     @echo "  just voc-run          Story 7.2 — fire each vocalization"
+    @echo "  just idle-run         Story 6.5 — watch the head drift to sleep"
     @echo "  just exp-run <script> Run any expression_engine script"
     @echo ""
     @echo "Cleanup:"
@@ -130,6 +131,14 @@ voc-run *args:
     source /opt/ros/jazzy/setup.bash
     PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
         poetry run python ros2/src/expression_engine/test/e2e_vocalization_run.py {{args}}
+
+# Story 6.5 — watch the head drift to sleep (idle decay) on the robot.
+# Fast demo timings by default; see the script header for flags.
+idle-run *args:
+    #!/usr/bin/env bash
+    source /opt/ros/jazzy/setup.bash
+    PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
+        poetry run python ros2/src/expression_engine/test/e2e_idle_run.py {{args}}
 
 # ==============================================================================
 # Cleanup Commands

@@ -641,3 +641,62 @@ class TestCompose:
             "resolved_fallback": "unknown"})
         _run(lp, ck, 0.3)  # FR13: defaults, loop stays alive
         assert lp.tick_count == 30
+
+
+# ── Story 6.5 — idle drift-to-sleep integration ─────────────────────
+
+
+class TestIdleIntegration:
+    def test_idle_engages_after_quiet_and_forces_led_off(self):
+        # listening + nothing heard for >idle_after_seconds (30s default)
+        # → decay engages, the strip is forced OFF (system_status idle).
+        st = EngineState()
+        ck = SimClock()
+        lp = _loop(st, ck)
+        _push(st, "activity", {"state": "listening", "from_state": "waking"})
+        lp.tick(ck())                      # listening → status "listening"
+        assert lp._eye.statuses[-1][1] == "listening"
+        ck.advance(31.0)
+        lp.tick(ck())                      # quiet >30s → idle engages
+        assert lp._idle.active
+        assert lp._eye.statuses[-1][1] == "idle"   # LED off
+
+    def test_speech_emotion_resets_idle(self):
+        st = EngineState()
+        ck = SimClock()
+        lp = _loop(st, ck)
+        _push(st, "activity", {"state": "listening", "from_state": "waking"})
+        lp.tick(ck())
+        ck.advance(31.0)
+        lp.tick(ck())
+        assert lp._idle.active
+        # a speech_emotion exits idle immediately → strip back to listening
+        _push(st, "speech_emotion", {
+            "emotion": "happy", "source_tag": "h", "raw_tag": "h",
+            "resolved_fallback": None})
+        ck.advance(0.01)
+        lp.tick(ck())
+        assert not lp._idle.active
+        assert lp._eye.statuses[-1][1] == "listening"
+
+    def test_no_idle_while_speaking(self):
+        st = EngineState()
+        ck = SimClock()
+        lp = _loop(st, ck)
+        _push(st, "activity", {"state": "speaking", "from_state": "listening"})
+        lp.tick(ck())
+        ck.advance(100.0)
+        lp.tick(ck())
+        assert not lp._idle.active         # busy → never decays
+
+    def test_no_idle_while_working(self):
+        st = EngineState()
+        ck = SimClock()
+        lp = _loop(st, ck)
+        _push(st, "activity", {
+            "state": "working", "working_submode": "thinking",
+            "from_state": "listening"})
+        lp.tick(ck())
+        ck.advance(100.0)
+        lp.tick(ck())
+        assert not lp._idle.active

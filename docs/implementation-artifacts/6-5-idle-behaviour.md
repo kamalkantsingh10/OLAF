@@ -1,6 +1,6 @@
 # Story 6.5: Idle behaviour
 
-Status: in-progress
+Status: review
 
 > **RE-SCOPED 2026-05-22 (Kamal):** idle is a **drift-to-sleep decay of
 > the WHOLE HEAD**, not a two-state ambient. Left alone, the avatar winds
@@ -154,8 +154,13 @@ claude-opus-4-7 (1M context)
 
 ### Hardware verify
 
-- [ ] PENDING — Kamal runs `just idle-run` on the robot and locks the
-  feel (then sets the real `[idle]` timings in the toml).
+- [x] DONE 2026-05-22 — Kamal walked it on the robot ("it works.. cool").
+  Tuned on hardware: eyes go drowsy (sleepy half-lid, was a flat line —
+  the `sleepy` canonical was untranslated), neck droops, strip off, the
+  stir is shallow (content↔sleepy, not a full wake to neutral) and the
+  transitions ease gently (`ease_seconds` 2.0). idle_after_seconds → 60
+  (drift off only after a minute). Suppressed in speaking/working; resets
+  on any new activity/speech/vocalization.
 
 ### File List
 

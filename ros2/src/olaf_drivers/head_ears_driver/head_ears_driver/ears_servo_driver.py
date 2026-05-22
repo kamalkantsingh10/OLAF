@@ -43,6 +43,11 @@ class EarsServoDriver:
         self._counts_per_deg = self._config["counts_per_degree"]
         self._base_speed = self._config["base_speed"]
         self._servos = self._config["servos"]
+        # Per-servo "currently clamping" flags so the clamp warning logs
+        # ONCE per episode instead of flooding every tick (the render
+        # loop drives ~200 Hz; a held over-limit target would otherwise
+        # spam stdout). Keyed by servo id.
+        self._clamp_warned: dict[int, bool] = {}
 
         # Open port
         device = self._config["port"]
@@ -80,12 +85,26 @@ class EarsServoDriver:
         return max(0, min(1023, position))
 
     def _clamp_angle(self, servo: dict, degrees: float) -> float:
-        """Clamp angle to configured min/max limits."""
+        """Clamp angle to configured min/max limits.
+
+        Warns ONCE when a servo first goes out of range (and again only
+        after it returns in-range), so a held over-limit target driven at
+        ~200 Hz logs a single line instead of flooding stdout.
+        """
         min_a = servo["min_angle"]
         max_a = servo["max_angle"]
         clamped = max(min_a, min(max_a, degrees))
+        sid = servo.get("id")
         if clamped != degrees:
-            print(f"[WARN] Angle {degrees} clamped to [{min_a}, {max_a}] -> {clamped}")
+            if not self._clamp_warned.get(sid):
+                print(
+                    f"[WARN] {servo.get('function', sid)}: angle {degrees:.1f}° "
+                    f"clamped to [{min_a}, {max_a}] -> {clamped} "
+                    f"(further clamps for this servo suppressed until in-range)"
+                )
+                self._clamp_warned[sid] = True
+        else:
+            self._clamp_warned[sid] = False
         return clamped
 
     def move(self, servo_name: str, degrees: float, speed_pct: float = 0.0) -> bool:

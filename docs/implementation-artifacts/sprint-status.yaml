@@ -45,7 +45,7 @@
 #   while closing 5.3.
 
 generated: 2026-05-16T00:24:25
-last_updated: 2026-05-20T00:00:02
+last_updated: 2026-05-22T00:00:01
 project: OLAF
 project_key: NOKEY
 tracking_system: file-system
@@ -65,20 +65,20 @@ development_status:
   6-2-map-loader-vocabulary-completeness: done
   6-3-animation-loop: done
   6-4-reference-expression-end-to-end-freezes-the-schema: done
-  6-5-idle-behaviour: ready-for-dev
-  6-6-real-led-adapter-breath-led: ready-for-dev
+  6-5-idle-behaviour: review
+  6-6-real-led-adapter-breath-led: done  # SUPERSEDED — LED is firmware-driven (head ESP32); engine drives it via system_status+led_overlay (7.3). See story.
   6-7-service-hardening: ready-for-dev
   epic-6-retrospective: optional
 
   # ── Epic 7: Expression Authoring & Finalization ──
   epic-7: in-progress
-  7-1-author-finalize-the-speech-emotions: in-progress
+  7-1-author-finalize-the-speech-emotions: review
   7-1a-eye-visual-language-rewrite: review
   7-1b-neck-movement-routines: review
   7-1c-ear-movement-routines: review
   7-2-author-finalize-the-vocalizations-layered-actions: review
-  7-3-activity-to-posture-mapping: ready-for-dev
-  7-4-mood-to-subtle-ambient-modifier: ready-for-dev
+  7-3-activity-to-posture-mapping: review
+  7-4-mood-to-subtle-ambient-modifier: review
   7-5-locked-expression-regression-harness: ready-for-dev
   epic-7-retrospective: optional
 

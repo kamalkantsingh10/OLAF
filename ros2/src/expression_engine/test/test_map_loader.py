@@ -203,8 +203,8 @@ class TestRuntimeFallback:
         assert m.resolve("mood", "happy") is not m.resolve(
             "speech_emotion", "happy"
         )
-        assert "lean_bias" in m.resolve("mood", "happy")
-        assert "eye" in m.resolve("speech_emotion", "happy")
+        assert "led_bias" in m.resolve("mood", "happy")
+        assert "pose" in m.resolve("speech_emotion", "happy")
 
     def test_unknown_topic_raises_keyerror(self):
         # A bad TOPIC (not a bad name) is a programming error, not a

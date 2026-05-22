@@ -47,9 +47,15 @@ _CANONICAL_TO_ESP32: dict[str, str] = {
     "surprised": "surprised",
     "frustrated": "frustrated",
     "melancholic": "melancholic",
+    # ── idle decay + mood eye (Story 6.5 / 7.2) ──
+    # `sleepy` is a real device expression (EXPR_SLEEPY) emitted directly
+    # as a canonical by the idle controller and by mood.sleepy.eye. It
+    # was previously only a device VALUE (closed/closing → sleepy), so the
+    # canonical fell back to neutral (the 2026-05-22 idle bug). 1:1 here.
+    "sleepy": "sleepy",
     # ── activity eye states (expression_map.yaml `activity.*.eye`) ──
     # Map onto the device set; not required distinct.
-    "boot": "neutral",
+    "boot": "sleepy",         # ← asleep at boot/startup (Story 7.3); agrees with firmware default
     "closed": "sleepy",
     "waking": "neutral",
     "open": "neutral",
@@ -59,6 +65,23 @@ _CANONICAL_TO_ESP32: dict[str, str] = {
     "closing": "sleepy",
 }
 _ESP32_FALLBACK = "neutral"
+
+# AR10-style device translation (Story 7.3): canonical ActivityState →
+# Head ESP32 system_status name (head_i2c_client.STATUS_MAP). The
+# system_status drives the device's wake level (eye openness) AND the
+# WS2812 strip pattern (lit only for listening/processing/speaking;
+# dark for idle/woke_up/going_idle). `working` (both submodes) → the
+# single PROCESSING status. The render loop sends this on activity
+# change (fire-on-change); the map stays canonical (NFR6).
+_ACTIVITY_TO_STATUS: dict[str, str] = {
+    "starting": "idle",
+    "sleeping": "idle",
+    "waking": "woke_up",
+    "listening": "listening",
+    "working": "processing",
+    "speaking": "speaking",
+    "going_to_sleep": "going_idle",
+}
 
 
 def _default_client_factory():
@@ -79,28 +102,29 @@ class EyeAdapter:
     def connect(self) -> None:
         self._client = self._factory()
         self._client.open()
-        # The Head ESP32 BOOTS ASLEEP and ignores set_expression until
-        # explicitly woken (REG_SYSTEM_STATUS "woke_up"; known Pi/ESP32
-        # boot-order gotcha). Without this the eyes stay closed.
-        # Activity-driven sleep/wake mapping is Story 7.3; here we just
-        # ensure the device is responsive for rendering.
-        # Code review 2026-05-17: a failed/absent wake is a CONNECT
-        # FAILURE, not an INFO. An unwoken head silently renders no
-        # eyes — NFR7 says connect failure is fatal, so escalate
-        # (raises out of node.connect_adapters → §9 step 5 fatal →
-        # systemd restart) rather than starting blind.
+        # BOOT = SLEEP MODE (Story 7.3): the Head ESP32 boots asleep and
+        # we KEEP it asleep on connect — the engine drives wake via
+        # activity→system_status (waking→woke_up). We send an explicit
+        # 'idle' (NOT 'woke_up') so the head doesn't flash neutral/awake
+        # on engine start; it stays in its sleepy boot state until the
+        # first activity says otherwise.
+        # The 'idle' write also doubles as the NFR7 connect check: a
+        # failed/absent status write is a CONNECT FAILURE (the head isn't
+        # reachable over I2C), so escalate (raises out of
+        # node.connect_adapters → §9 step 5 fatal → systemd restart)
+        # rather than starting blind.
         set_status = getattr(self._client, "set_system_status", None)
         if not callable(set_status):
             raise RuntimeError(
-                "eye client has no set_system_status — cannot wake the "
-                "Head ESP32 (it boots asleep and ignores set_expression)"
+                "eye client has no set_system_status — cannot reach the "
+                "Head ESP32 over I2C"
             )
-        if not set_status("woke_up"):
+        if not set_status("idle"):
             raise RuntimeError(
-                "Head ESP32 wake (set_system_status 'woke_up') failed — "
-                "the eyes would stay closed; failing fast (NFR7)"
+                "Head ESP32 not responding (set_system_status 'idle' "
+                "failed) — failing fast (NFR7)"
             )
-        log_event(logging.INFO, "eye_adapter_connected", woke_up=True)
+        log_event(logging.INFO, "eye_adapter_connected", boot_state="idle")
 
     def close(self) -> None:
         if self._client is not None:
@@ -120,6 +144,33 @@ class EyeAdapter:
             )
             return _ESP32_FALLBACK
         return esp
+
+    @staticmethod
+    def status_for_activity(state: str) -> Optional[str]:
+        """ActivityState → Head system_status name (Story 7.3).
+
+        Unknown state → None (the render loop simply sends nothing —
+        the device holds its current status). `working` maps the same
+        for both submodes (thinking/delegating → processing)."""
+        return _ACTIVITY_TO_STATUS.get(state)
+
+    def set_system_status(self, status: str) -> None:
+        """Drive the Head ESP32 system_status (wake level + WS2812 strip).
+
+        Story 7.3 — sent by the render loop on activity change. Unknown
+        status names are handled (WARN + no-op) by the client."""
+        if self._client is not None:
+            self._client.set_system_status(status)
+
+    def set_led_overlay(self, overlay: str) -> None:
+        """Drive the WS2812 emotional colour wash (Story 7.3 / 6.6).
+
+        Sent by the render loop on mood change — the mood's nearest tint
+        bucket (none/warm/cool/hot/bright). A SEPARATE event from
+        system_status; the firmware layers it on the active strip
+        animation."""
+        if self._client is not None:
+            self._client.set_led_overlay(overlay)
 
     def set_expression(self, canonical_name: str, intensity: int) -> None:
         if self._client is None:

@@ -31,33 +31,65 @@ defaults:
   led: { color: "#404040", intensity: 0.2, pattern: solid }
   heart: { bpm: 60, intensity: 2, color: "#802020" }
 
-# ALL Mood values (subtle modifier only — low impact, PRD 7.4).
-# `eye` block (Story 7.2) supplies the eye accent for nod/shake
-# vocalizations (which carry only an intensity range — the expression
-# comes from the current mood). Intensity is a 2-list range [min,max]
-# sampled per-fire; expression is the head_i2c_client canonical name.
+# ALL Mood values. Story 7.4 DE-SCOPE (2026-05-22): mood is NOT a head
+# modifier — no neck lean (lean_bias removed), no eye recolour. Mood's
+# emotional display is the HEART (Epic 8.1, via `led_bias.color`); on the
+# head it only sets the WS2812 colour tint (`led_overlay`) during the lit
+# states (listening/working/speaking), and (later) modulates idle drift
+# (Story 6.5). `eye` is consumed ONLY by nod/shake vocalizations (Story
+# 7.2 — they source their transient eye from the current mood; intensity
+# is a [min,max] range sampled per fire). `led_overlay` = nearest of the
+# 5 device tint buckets (none/warm/cool/hot/bright); `led_bias.color`
+# keeps the true hex (heart / future RGB).
 mood:
-  calm:       { lean_bias: 3, led_bias: { color: "#a0c0ff", intensity: 0.3 }, eye: { expression: content,   intensity: [1, 2] } }
-  happy:      { lean_bias: 5, led_bias: { color: "#ffd060", intensity: 0.5 }, eye: { expression: happy,     intensity: [2, 3] } }
-  playful:    { lean_bias: 6, led_bias: { color: "#ff90c0", intensity: 0.5 }, eye: { expression: excited,   intensity: [2, 3] } }
-  curious:    { lean_bias: 4, led_bias: { color: "#90e0ff", intensity: 0.4 }, eye: { expression: curious,   intensity: [2, 3] } }
-  thoughtful: { lean_bias: 2, led_bias: { color: "#b0b0ff", intensity: 0.3 }, eye: { expression: neutral,   intensity: [1, 2] } }
-  sleepy:     { lean_bias: 1, led_bias: { color: "#605080", intensity: 0.2 }, eye: { expression: sleepy,    intensity: [1, 2] } }
-  grumpy:     { lean_bias: 2, led_bias: { color: "#c06040", intensity: 0.3 }, eye: { expression: angry,     intensity: [1, 2] } }
-  excited:    { lean_bias: 7, led_bias: { color: "#ffb030", intensity: 0.6 }, eye: { expression: excited,   intensity: [3, 4] } }
+  calm:       { led_bias: { color: "#a0c0ff", intensity: 0.3 }, led_overlay: cool,   eye: { expression: content,   intensity: [1, 2] } }
+  happy:      { led_bias: { color: "#ffd060", intensity: 0.5 }, led_overlay: warm,   eye: { expression: happy,     intensity: [2, 3] } }
+  playful:    { led_bias: { color: "#ff90c0", intensity: 0.5 }, led_overlay: warm,   eye: { expression: excited,   intensity: [2, 3] } }
+  curious:    { led_bias: { color: "#90e0ff", intensity: 0.4 }, led_overlay: cool,   eye: { expression: curious,   intensity: [2, 3] } }
+  thoughtful: { led_bias: { color: "#b0b0ff", intensity: 0.3 }, led_overlay: cool,   eye: { expression: neutral,   intensity: [1, 2] } }
+  sleepy:     { led_bias: { color: "#605080", intensity: 0.2 }, led_overlay: cool,   eye: { expression: sleepy,    intensity: [1, 2] } }
+  grumpy:     { led_bias: { color: "#c06040", intensity: 0.3 }, led_overlay: hot,    eye: { expression: angry,     intensity: [1, 2] } }
+  excited:    { led_bias: { color: "#ffb030", intensity: 0.6 }, led_overlay: bright, eye: { expression: excited,   intensity: [3, 4] } }
 
-# ALL ActivityState values — one base posture each. `working` is
-# nested by submode (thinking | delegating).
+# ALL ActivityState values — one COMPLETE base posture each (Story 7.3).
+# `working` is nested by submode (thinking | delegating). Each leaf
+# carries a full neck (pan/tilt/roll) AND ears (left/right pan/tilt)
+# block so "what OLAF is doing" reads from the body alone (AC#1/#2).
+#
+# This is the absolute ACTIVITY BASE layer; the render loop eases toward
+# it and ADDS the (subtle) mood lean + (additive) speech_emotion bias on
+# top (§5.1). Values sit within the hardened adapter clamps (neck
+# pan±80 / tilt±20 / roll±15; ears pan±50 / tilt−60..90) AND keep
+# right_pan ≤50 (SCS0009 binds ≥65 — project memory). ears: pan 0=up/+out;
+# tilt +fwd/−back. eye.expression is a canonical name the AR10
+# eye_adapter table resolves to a device EXPR (activity eyes reuse the
+# existing device set — no new device eye authored this story).
+#
+# Posture vocabulary (bear convention, Story 7.3 Dev Notes):
+#   sleeping/going_to_sleep = head dipped, ears drooped back;
+#   waking = half-up from sleep; listening = neutral neck, ears
+#   forward-perked (attentive); thinking = head turned LEFT + left ear
+#   cocked (introspective, asymmetric); delegating = head turned RIGHT,
+#   ears forward (outward-facing); speaking = head up, ears strongly
+#   perked (animated/engaged).
 activity:
-  starting:       { pose: {}, eye: { expression: boot }, led: { pattern: boot_seq } }
-  sleeping:       { pose: { neck: { tilt: -25 } }, eye: { expression: closed }, led: { pattern: breathe_slow } }
-  waking:         { pose: { neck: { tilt: 0 } }, eye: { expression: waking }, led: { pattern: fade_in } }
-  listening:      { pose: { neck: { tilt: 5 } }, eye: { expression: open }, led: { pattern: ear_breathe } }
+  # BOOT = SLEEP MODE (Story 7.3, Kamal 2026-05-22): the bot boots
+  # asleep and "wakes up from" this pose, so `starting` shares the
+  # `sleeping` body (dropped head + drooped ears) + sleepy eye + IDLE
+  # (dark) strip. Intentionally the same posture as `sleeping`.
+  starting:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: boot,     intensity: 3 }, led: { pattern: boot_seq } }
+  sleeping:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: closed,   intensity: 1 }, led: { pattern: breathe_slow } }
+  waking:         { pose: { neck: { pan: 0,   tilt: -4,  roll: 0 },  ears: { left_pan: 22, left_tilt: -5,  right_pan: 22, right_tilt: -5 } },  eye: { expression: waking,   intensity: 2 }, led: { pattern: fade_in } }
+  listening:      { pose: { neck: { pan: 0,   tilt: 2,   roll: 0 },  ears: { left_pan: 3,  left_tilt: 14,  right_pan: 3,  right_tilt: 14 } },  eye: { expression: curious,  intensity: 2 }, led: { pattern: ear_breathe } }
   working:
-    thinking:     { pose: { neck: { pan: -12 } }, eye: { expression: focused }, led: { pattern: pulse_blue } }
-    delegating:   { pose: { neck: { pan: 12 } }, eye: { expression: distant }, led: { pattern: spinner } }
-  speaking:       { pose: { neck: { tilt: 3 } }, eye: { expression: animated }, led: { pattern: warm_active } }
-  going_to_sleep: { pose: { neck: { tilt: -15 } }, eye: { expression: closing }, led: { pattern: fade_out } }
+    thinking:     { pose: { neck: { pan: -8,  tilt: 4,   roll: -3 }, ears: { left_pan: 14, left_tilt: 18,  right_pan: 8,  right_tilt: 4 } },   eye: { expression: focused,  intensity: 3 }, led: { pattern: pulse_blue } }
+    delegating:   { pose: { neck: { pan: 8,   tilt: 0,   roll: 3 },  ears: { left_pan: 10, left_tilt: 18,  right_pan: 12, right_tilt: 18 } },  eye: { expression: distant,  intensity: 3 }, led: { pattern: spinner } }
+  # speaking authors NO eye — the eye is driven by whatever speech_emotion
+  # is active (Story 7.3). Activity contributes only the body pose + the
+  # SPEAKING system_status (LED); the eye defers to speech (neutral
+  # default if nothing is speaking yet).
+  speaking:       { pose: { neck: { pan: 0,   tilt: 4,   roll: 0 },  ears: { left_pan: 10, left_tilt: 24,  right_pan: 10, right_tilt: 24 } }, led: { pattern: warm_active } }
+  going_to_sleep: { pose: { neck: { pan: 0,   tilt: -10, roll: 0 },  ears: { left_pan: 25, left_tilt: -12, right_pan: 25, right_tilt: -7 } },  eye: { expression: closing,  intensity: 1 }, led: { pattern: fade_out } }
 
 # ALL 12 first-class speech-emotion names — overlay on the mood base.
 # Each carries BOTH a neck bias and an ear pose.

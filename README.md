@@ -27,6 +27,13 @@
 
 ---
 
+## 📹 Demo Videos
+
+### May 2026
+- **OLAF expression cycling** — *2026-05-20* — the expression engine cycling through OLAF's authored emotions on real hardware (OLED eyes, articulated ears, 3-DOF neck). [▶ Watch on YouTube](https://youtube.com/shorts/9D4Txb85EnM)
+
+---
+
 ## What is OLAF?
 
 OLAF is a **personality-first robotics framework** that brings AI agents into physical form. Think R2D2's charm meeting modern AI capabilities—a 2-3 foot tall companion that communicates through expressive OLED eyes, articulated ears (Chappie-inspired), animated heart display, R2D2-style beeps, and LED indicators for status visualization.

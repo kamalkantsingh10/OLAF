@@ -69,14 +69,14 @@ neck:
       model: STS3215
       function: "Left linkage servo (tilt/roll via universal joint)"
       center_position: 3096  # Recalibrated 2026-05-17: head physically leveled (Story 5.3 follow-up)
-      min_angle: -20
-      max_angle: 20
+      min_angle: -28  # Story 7.3: raised ±20→±28 (Kamal-confirmed linkage reaches 28° tilt safely)
+      max_angle: 28
       direction: 1    # +counts = chin up (tilt up)
     right_linkage:
       id: 13
       model: STS3215
       function: "Right linkage servo (tilt/roll via universal joint)"
       center_position: 370  # Recalibrated 2026-05-17: head physically leveled (Story 5.3 follow-up)
-      min_angle: -20
-      max_angle: 20
+      min_angle: -28  # Story 7.3: raised ±20→±28 (Kamal-confirmed linkage reaches 28° tilt safely)
+      max_angle: 28
       direction: -1   # +counts = chin down; for tilt up, needs negative movement

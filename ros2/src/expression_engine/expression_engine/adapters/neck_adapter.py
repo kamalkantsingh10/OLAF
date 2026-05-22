@@ -32,22 +32,37 @@ _JOINTS = ("pan", "tilt", "roll")
 # defence-in-depth + an operator-visible warning, mirroring ears.
 _LIMITS = {
     "pan": (-80.0, 80.0),
-    "tilt": (-20.0, 20.0),
+    # tilt raised to ±28 (Story 7.3, Kamal-confirmed the linkage reaches
+    # 28° without binding) so the sleep pose can droop deeper. Matches
+    # config/servo-ids.yaml linkage min/max ±28.
+    "tilt": (-28.0, 28.0),
     "roll": (-15.0, 15.0),
 }
+
+
+# Per-joint "currently clamping" flags so the clamp warning logs ONCE
+# per out-of-range episode instead of every ~100Hz tick. Story 6.5: the
+# idle micro-drift nudges the neck past the tilt limit while it rests at
+# the full sleep droop (-28), which otherwise floods journald.
+_clamp_warned: dict[str, bool] = {}
 
 
 def _clamp(joint: str, deg: float) -> float:
     lo, hi = _LIMITS[joint]
     c = max(lo, min(hi, deg))
     if c != deg:
-        log_event(
-            logging.WARNING,
-            "neck_target_clamped",
-            joint=joint,
-            requested=deg,
-            clamped=c,
-        )
+        if not _clamp_warned.get(joint):
+            log_event(
+                logging.WARNING,
+                "neck_target_clamped",
+                joint=joint,
+                requested=round(deg, 2),
+                clamped=c,
+                note="further clamps for this joint suppressed until in-range",
+            )
+            _clamp_warned[joint] = True
+    else:
+        _clamp_warned[joint] = False
     return c
 
 

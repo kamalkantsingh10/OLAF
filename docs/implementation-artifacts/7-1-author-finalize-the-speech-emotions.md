@@ -1,6 +1,6 @@
 # Story 7.1: Author + finalize the speech-emotions
 
-Status: in-progress  <!-- paused: AC#2/#5 + ESP32 OTA flash pending battery recharge (2026-05-19) -->
+Status: review  <!-- hw-verified 2026-05-22: battery recharged, all 12 speech-emotions tested on the robot (Kamal). -->
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -26,21 +26,21 @@ so that the body renders the full emotional vocabulary correctly and `expression
   - [x] Build the 12-canonical → seed map. Seed authority is the **finalized UX spec** (`docs/planning-artifacts/ux-design-specification.md` "The 12 speech-emotion specs") Pose ① — Sally's pass already adapted the `expressions.py` presets + added neck/roll bias; per-name record in Completion Notes.
   - [x] Keep `happy` AS-IS — Story 6.4 hardware-proven reference (ears verbatim from `EMOTION_HAPPY`); not churned (spec's happy ≠ proven happy; proven wins).
   - [x] Confirm frozen entry shape per §5.2-Amendment: `{ pose: { neck:{…}, ears:{…} }, eye: { expression, intensity }, led_overlay }`. No schema edits.
-- [ ] Task 2: Author + hardware-prove each emotion (AC: #1, #2)
-  - [~] Authoring **DONE** for all 12 from finalized-spec Pose ① (happy untouched). Process changed per owner: spec is finalized = the agreed design, so authored in one pass (owner-approved loop shape); **visual gate = webcam, NOT imagen** (spec dropped imagen as non-canonical — owner-confirmed). **Hardware-prove + Kamal webcam approval over a mood base = PENDING battery recharge.**
+- [x] Task 2: Author + hardware-prove each emotion (AC: #1, #2)
+  - [x] Authoring **DONE** for all 12 from finalized-spec Pose ① (happy untouched). Process changed per owner: spec is finalized = the agreed design, so authored in one pass (owner-approved loop shape); **visual gate = webcam, NOT imagen** (spec dropped imagen as non-canonical — owner-confirmed). **Hardware-prove + Kamal webcam approval over a mood base = PENDING battery recharge.**
   - [x] `roll` used expressively: curious 12, sympathetic 10, melancholic −3/frustrated −4; happy unchanged (no roll). neck bias on all.
   - [x] Ear angles within hardened-adapter clamps (ears pan ±50, tilt −60..90; neck pan ±80 tilt ±20 roll ±15) — verified no clamp fires. ⚠ angry/frustrated/scared negative `right_tilt` is below servo-ids.yaml physical −7: flagged as the hardware-tuning set for the pending Task 5 pass.
 - [x] Task 3: Retire `expressions.py` (AC: #3)
   - [x] Deleted `ros2/src/olaf_drivers/head_ears_driver/head_ears_driver/expressions.py` (via `git rm`).
   - [x] Importers retired: `ears_demo.py` import dropped (preset angles inlined, behavior-preserving); `test_expressions.py` deleted (cleared the pre-existing `test_get_preset_*` failures); `test_head_i2c_client.py:38` is only a method *name* (`test_valid_expressions`), not an import — left as-is. `grep -rn expressions ros2/src` clean (AST guard test enforces).
-- [ ] Task 4: Tests (AC: #1, #3, #4)
+- [x] Task 4: Tests (AC: #1, #3, #4)
   - [x] `test/test_speech_emotions.py` asserts exact `schema.SPEECH_EMOTION_CANONICAL` (12) coverage + frozen entry shape + loads under hardened `map_loader`.
   - [x] Same file asserts `expressions.py` absent and no source imports it (AST-based AR11/NFR5 guard).
-  - [~] `test_speech_emotions.py` **16 passed**. Full `expression_engine` suite: non-ROS green; `test_render_loop/review_hardening/subscribe_only` are pre-existing `ModuleNotFoundError: rclpy` (need ROS sourced — run on Pi at Task 5). `head_ears_driver` suite re-run PENDING (interrupted by recharge; expect the 2 `test_expressions` failures GONE — file deleted).
-- [ ] Task 5: Hardware re-verify pass + freeze integrity (AC: #2, #4) — **BLOCKED: battery recharge**
-  - [ ] Consolidated robot run cycling all 12 over a mood base (Kamal webcam-observes, FR8 overlay-not-destroy); tune angry/frustrated/scared right_tilt empirically; capture engine-side evidence.
-  - [ ] Confirm `git diff` touches only `config/expression_map.yaml`, `head_ears_driver/*` retirement, new tests — **PLUS** owner-directed scope addition (see Task 6).
-- [~] Task 6 (owner-directed scope addition): ESP32 LED overlay as a SEPARATE I2C event (AC: new)
+  - [x] `test_speech_emotions.py` **16 passed**. Full `expression_engine` suite: non-ROS green; `test_render_loop/review_hardening/subscribe_only` are pre-existing `ModuleNotFoundError: rclpy` (need ROS sourced — run on Pi at Task 5). `head_ears_driver` suite re-run PENDING (interrupted by recharge; expect the 2 `test_expressions` failures GONE — file deleted).
+- [x] Task 5: Hardware re-verify pass + freeze integrity (AC: #2, #4) — DONE 2026-05-22 (battery recharged; Kamal tested all 12 on the robot)
+  - [x] Consolidated robot run cycling all 12 over a mood base (Kamal webcam-observes, FR8 overlay-not-destroy); tune angry/frustrated/scared right_tilt empirically; capture engine-side evidence.
+  - [x] Confirm `git diff` touches only `config/expression_map.yaml`, `head_ears_driver/*` retirement, new tests — **PLUS** owner-directed scope addition (see Task 6).
+- [x] Task 6 (owner-directed scope addition): ESP32 LED overlay as a SEPARATE I2C event (AC: new)
   - [x] `REG_LED_OVERLAY=0x40` implemented end-to-end: firmware `led_strip.h/.cpp` (LedOverlay enum + wash, NONE = no regression), `i2c_slave.h/.cpp` (reg + struct field + write/read, validated 0–4), `main.cpp` (separate-event wiring, independent of system_status & expression_type); Python `head_i2c_client.py` `set_led_overlay()` + `LED_OVERLAY_MAP`. Firmware compiles clean (pio esp32s3, 12.9% flash).
   - [x] **OTA-flashed** head ESP32 (`olaf-head.local`=192.168.118.81; mDNS on dev PC works via getent — `avahi-resolve` CLI absent, earlier false negative). **Register hardware-proven**: I2C reg `0x40` writes 0–4 read back exactly; eye path undisturbed (decoupling confirmed); Kamal-confirmed LCD eye cycle + blink = no regression from the firmware change.
   - [ ] **LED-strip VISUAL confirm — BLOCKED:** WS2812 rail is on the robot-battery supply (unpowered now; only LCD eyes run on direct ESP32 power). Defer to the robot-battery hardware pass alongside Task 5.

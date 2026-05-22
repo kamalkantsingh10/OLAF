@@ -32,8 +32,11 @@ EyeExpressionEngine eyes;
 uint32_t frame_count = 0;
 uint32_t fps_report_ms = 0;
 
-// Demo mode: cycle through statuses for testing without Pi
-bool demo_mode = true;
+// Demo mode: cycle through statuses for testing without Pi.
+// Story 7.3: OFF by default — boot asleep and stay until the first I2C
+// command (the Pi/engine drives every transition). Auto-cycling fought
+// I2C control and woke the head during the Pi/ESP32 boot-order race.
+bool demo_mode = false;
 uint32_t demo_last_change_ms = 0;
 uint8_t demo_status = 0;
 
@@ -116,10 +119,11 @@ void processI2CCommands() {
         last_led_overlay = cmd.led_overlay;
     }
 
-    // Expression (only effective when status = SPEAKING)
-    if (eyes.getSystemStatus() == 4) {
-        eyes.setExpression(cmd.expression_type, cmd.intensity);
-    }
+    // Expression — the engine owns the eye in EVERY state (Story 7.3):
+    // resting eyes outside speech + speech_emotion during speech. No
+    // status gate (was SPEAKING-only, which blocked all engine-driven
+    // resting eyes).
+    eyes.setExpression(cmd.expression_type, cmd.intensity);
 
     // Look direction
     eyes.setLookDirection(cmd.look_x, cmd.look_y);
@@ -160,16 +164,16 @@ void setup() {
     i2c_slave.begin(I2C_SLAVE_ADDRESS, kI2cSdaPin, kI2cSclPin);
     i2c_slave.setStatus(STATUS_READY);
 
-    // Start in IDLE (asleep), then immediately wake up
-    setStatus(0);  // IDLE
-    delay(200);
-    setStatus(1);  // WOKE_UP
+    // Boot asleep (IDLE) and STAY until the first I2C command (Story
+    // 7.3). No auto-wake, no demo cycle — the Pi/engine drives every
+    // transition over I2C; defaulting to sleep keeps OLAF dormant
+    // through the Pi/ESP32 boot-order race window.
+    setStatus(0);  // IDLE (asleep)
 
     demo_last_change_ms = millis();
-    demo_status = 1;  // Currently in WOKE_UP
+    demo_status = 0;
 
-    Serial.println("[HEAD] Setup complete — starting in demo mode");
-    Serial.println("[HEAD] Send any I2C command to switch to I2C control");
+    Serial.println("[HEAD] Setup complete — asleep, awaiting I2C");
 
     fps_report_ms = millis();
 }

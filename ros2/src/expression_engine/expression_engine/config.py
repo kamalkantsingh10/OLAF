@@ -51,6 +51,24 @@ class AnimationConfig:
 
 
 @dataclass(frozen=True)
+class IdleConfig:
+    """`[idle]` drift-to-sleep decay — Story 6.5 (architecture §7/§8).
+
+    When idle (not speaking/processing), the whole head decays toward the
+    `sleeping` pose along a fixed expression path at a random per-step
+    pace, with sub-degree mood-modulated micro-movement, then loops at
+    deep sleep so it's never statue-still. Tunable, sane defaults.
+    """
+
+    idle_after_seconds: float = 60.0     # quiet time before decay starts (listening etc.)
+    step_min_seconds: float = 10.0       # random per-step pace, min
+    step_max_seconds: float = 30.0       # random per-step pace, max
+    ease_seconds: float = 2.0            # gentle per-step transition (dreamy, not a jerk)
+    drift_amplitude_deg: float = 0.6     # sub-degree micro-movement amplitude
+    drift_period_seconds: float = 4.0    # breath-like micro-movement period
+
+
+@dataclass(frozen=True)
 class EngineConfig:
     """Resolved engine configuration.
 
@@ -61,11 +79,13 @@ class EngineConfig:
             keyed by every entry in :data:`REQUIRED_TOPICS`.
         animation: `[animation]` timing (Story 6.3) — defaults applied
             for any absent key.
+        idle: `[idle]` drift-to-sleep tuning (Story 6.5).
     """
 
     domain_id: int
     topics: dict[str, str]
     animation: AnimationConfig = AnimationConfig()
+    idle: IdleConfig = IdleConfig()
 
 
 def load_config(path: str | Path) -> EngineConfig:
@@ -133,6 +153,7 @@ def load_config(path: str | Path) -> EngineConfig:
         domain_id=domain_id,
         topics=topics,
         animation=_parse_animation(raw.get("animation")),
+        idle=_parse_idle(raw.get("idle")),
     )
 
 
@@ -204,3 +225,47 @@ _ANIM_BOUNDS = {
     "gesture_attack_ms": (1.0, 5000.0),
     "gesture_settle_ms": (1.0, 10000.0),
 }
+
+#: Sane operating ranges for `[idle]` (Story 6.5). Lower bounds allow 0
+#: where it's meaningful (idle_after_seconds=0 → decay immediately;
+#: drift_amplitude_deg=0 → no micro-movement).
+_IDLE_BOUNDS = {
+    "idle_after_seconds": (0.0, 3600.0),
+    "step_min_seconds": (0.1, 600.0),
+    "step_max_seconds": (0.1, 600.0),
+    "ease_seconds": (0.1, 30.0),
+    "drift_amplitude_deg": (0.0, 5.0),
+    "drift_period_seconds": (0.5, 60.0),
+}
+
+
+def _parse_idle(section: object) -> IdleConfig:
+    """Parse `[idle]` leniently — defaults for any absent key; a
+    present-but-mistyped/out-of-range value is fatal (NFR7)."""
+    if section is None:
+        return IdleConfig()
+    if not isinstance(section, dict):
+        raise ValueError("[idle] must be a TOML table")
+    defaults = IdleConfig()
+    values: dict[str, float] = {}
+    for field_name in _IDLE_BOUNDS:
+        if field_name not in section:
+            values[field_name] = getattr(defaults, field_name)
+            continue
+        raw_val = section[field_name]
+        if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+            raise ValueError(
+                f"[idle].{field_name} must be a number, got {raw_val!r}"
+            )
+        lo, hi = _IDLE_BOUNDS[field_name]
+        if not lo <= raw_val <= hi:
+            raise ValueError(
+                f"[idle].{field_name} must be in [{lo}, {hi}], got {raw_val!r}"
+            )
+        values[field_name] = float(raw_val)
+    if values["step_min_seconds"] > values["step_max_seconds"]:
+        raise ValueError(
+            f"[idle].step_min_seconds ({values['step_min_seconds']}) must be "
+            f"<= step_max_seconds ({values['step_max_seconds']})"
+        )
+    return IdleConfig(**values)

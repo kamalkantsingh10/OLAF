@@ -88,11 +88,15 @@ void EyeExpressionEngine::begin(GC9A01DualDriver* driver) {
     Serial.println("[Eyes] ERROR: Sprite allocation failed!");
   }
 
-  current_expression_ = EXPR_NEUTRAL;
-  current_intensity_  = 2;
-  target_expression_  = EXPR_NEUTRAL;
-  target_intensity_   = 2;
-  current_params_     = {EXPR_NEUTRAL, 2};
+  // Boot default = asleep (EXPR_SLEEPY, heavy half-lid) at L3, NOT
+  // neutral. Until the first I2C set_expression lands this is what
+  // shows — including during the Pi/ESP32 boot-order race window
+  // (Story 9.1). Overridden the moment an expression is set over I2C.
+  current_expression_ = EXPR_SLEEPY;
+  current_intensity_  = 3;
+  target_expression_  = EXPR_SLEEPY;
+  target_intensity_   = 3;
+  current_params_     = {EXPR_SLEEPY, 3};
   target_params_      = current_params_;
 
   look_x_ = 0;
@@ -212,7 +216,10 @@ void EyeExpressionEngine::setLookDirection(int8_t x, int8_t y) {
 }
 
 void EyeExpressionEngine::triggerBlink() {
-  if (blink_state_.active || wake_level_ < 0.5f) return;
+  if (blink_state_.active) return;
+  // EXPR_SLEEPY blinks even while asleep (drowsy lid dip); every other
+  // expression needs the eyes meaningfully open (wake_level ≥ 0.5).
+  if (wake_level_ < 0.5f && current_expression_ != EXPR_SLEEPY) return;
 
   // Per-emotion blink DURATION (close→open ms), spec-row midpoint
   // ± jitter ("The 12 speech-emotion specs").
@@ -285,6 +292,16 @@ uint32_t EyeExpressionEngine::update() {
     last_blink_millis_ = now;
   }
 
+  // Drowsy sleepy blink — slow, random 4–9 s, even while asleep
+  // (Story 7.3). The per-emotion sleepy blink duration (~320 ms) gives a
+  // heavy, slow lid dip from the resting half-lid to shut and back.
+  if (current_expression_ == EXPR_SLEEPY && !blink_state_.active &&
+      (now - last_blink_millis_ >= next_blink_interval_ms_)) {
+    triggerBlink();
+    next_blink_interval_ms_ = 4000 + random(5001);  // 4000–9000 ms
+    last_blink_millis_ = now;
+  }
+
   if (blink_state_.active) updateBlinkAnimation();
 
   renderFrame();
@@ -328,7 +345,18 @@ float EyeExpressionEngine::computeClosedness() {
     else if (p < 0.75f) blink_amount = 1.0f - (p - 0.5f) / 0.25f;
     else                blink_amount = 0.0f;
   }
-  return fmaxf(blink_amount, 1.0f - wake_level_);
+  float wake_closed = 1.0f - wake_level_;
+  // EXPR_SLEEPY rests as a drowsy HEAVY HALF-LID, never a fully-shut
+  // line: when asleep (wake_level → 0) the wake contribution would hit
+  // 1.0 and collapse the eye to a flat line (drawClosedLine at >0.85),
+  // hiding the sleepy shape. Cap the WAKE part ONLY (Story 7.3) so the
+  // half-lid stays readable — blinks still close fully (the drowsy
+  // sleepy blink dips from the half-lid to shut and back). Tune 0.45 for
+  // how "heavy" the resting sleep lid should look.
+  if (current_expression_ == EXPR_SLEEPY && wake_closed > 0.45f) {
+    wake_closed = 0.45f;
+  }
+  return fmaxf(blink_amount, wake_closed);
 }
 
 // ============================================================================
@@ -409,15 +437,19 @@ void EyeExpressionEngine::buildEye(uint8_t type, bool viewer_left,
       break;
 
     case EXPR_CONTENT:
-      // Pleased (ref R1C5): oval with ~30% top cut, bigger pupil,
-      // noticeable colour tint (L2).
-      g.halfW    = BASE_HALF * 1.05f;
-      g.halfH    = BASE_HALF * 0.95f;
+      // Pleased (ref R1C5) — calm/satisfied, deliberately distinct from
+      // excited's big bright sparkle (Kamal 2026-05-22: content read too
+      // like excited). A SMALLER, squatter, gently top-cropped circle
+      // with a MODERATE pupil (NOT excited's huge 0.48) + warm tint
+      // (L2+), no sparkle. Calmer reads as content; bigger/brighter
+      // reads as excited.
+      g.halfW    = BASE_HALF * 0.96f;
+      g.halfH    = BASE_HALF * 0.84f;       // squatter than excited's full round
       g.crop     = CROP_TOP;
-      g.cropFrac = 0.30f;
-      g.pupR     = g.halfW * 0.36f;        // ~10% bigger than excited
-      g.pupX     = nasal * g.halfW * 0.22f; // pull closer to each other
-      g.pupY     = g.halfH * 0.18f;
+      g.cropFrac = 0.35f;                    // relaxed upper lid
+      g.pupR     = g.halfW * 0.32f;          // calm — clearly < excited (0.48)
+      g.pupX     = nasal * g.halfW * 0.20f;  // cozy, slightly nasal
+      g.pupY     = g.halfH * 0.20f;
       break;
 
     case EXPR_EXCITED:

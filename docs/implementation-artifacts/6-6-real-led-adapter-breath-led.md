@@ -1,6 +1,21 @@
 # Story 6.6: Real LED adapter + breath-LED
 
-Status: ready-for-dev
+Status: done
+
+> **SUPERSEDED 2026-05-22 (Kamal — "we do not need 6.6").** This story
+> assumed an ENGINE-OWNED WS2812 on the Pi (GPIO18), rendered frame-by-
+> frame behind the `SurfaceAdapter` Protocol. In reality the strip lives
+> on the **HEAD ESP32** (`modules/head/firmware/led_strip.cpp`) as a
+> SMART PERIPHERAL: the engine drives it SEMANTICALLY over I2C via
+> `system_status` (pattern + lit/dark) and `led_overlay` (mood tint),
+> both wired in **Story 7.3**. So there is no engine-side `led_adapter` /
+> `SurfaceFrame` LED rendering, and no Pi-side WS2812 lib/privilege
+> question. "Breath-LED" is replaced by the 7.3/6.5 decision: idle =
+> strip OFF; the lit patterns (listening/processing/speaking, symmetric,
+> mood-tinted) are firmware-owned. The toml `[hardware]`
+> `led_strip_count`/`led_strip_pin` are vestigial (no Pi-side strip).
+> **Goal "mood + state visible on the strip" = MET via 7.3.** No code
+> written for this story.
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

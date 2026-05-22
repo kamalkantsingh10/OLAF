@@ -649,7 +649,9 @@ class TestCompose:
 class TestIdleIntegration:
     def test_idle_engages_after_quiet_and_forces_led_off(self):
         # listening + nothing heard for >idle_after_seconds (30s default)
-        # → decay engages, the strip is forced OFF (system_status idle).
+        # → decay engages; the strip goes OFF but the eyes stay OPEN
+        # (status "woke_up" = eyes-open + strip-dark, NOT "idle" which
+        # would shut the eyes to a flat line).
         st = EngineState()
         ck = SimClock()
         lp = _loop(st, ck)
@@ -659,7 +661,7 @@ class TestIdleIntegration:
         ck.advance(31.0)
         lp.tick(ck())                      # quiet >30s → idle engages
         assert lp._idle.active
-        assert lp._eye.statuses[-1][1] == "idle"   # LED off
+        assert lp._eye.statuses[-1][1] == "woke_up"   # strip dark, eyes open
 
     def test_speech_emotion_resets_idle(self):
         st = EngineState()

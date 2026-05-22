@@ -615,9 +615,13 @@ class RenderLoop:
         self._a.step(act_target, activity_tau, dt)
 
         # Head system_status (Story 7.3) — idle-aware (Story 6.5): while
-        # decaying the strip goes OFF (idle); otherwise the activity's
-        # status. Fire-on-change; nothing before the first activity.
-        eff_status = "idle" if idle_stage is not None else (
+        # decaying we want the strip OFF but the EYES OPEN (so the decay
+        # expressions neutral→content→sleepy are visible, drooping, not a
+        # flat shut line). `woke_up` is the eyes-open + strip-dark status
+        # (only listening/processing/speaking light the strip); `idle`
+        # would also force wake_level→0 and shut the eyes. Fire-on-change;
+        # nothing before the first activity.
+        eff_status = "woke_up" if idle_stage is not None else (
             EyeAdapter.status_for_activity(act_state)
             if act_state is not None else None
         )

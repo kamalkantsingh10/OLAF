@@ -32,7 +32,10 @@ _JOINTS = ("pan", "tilt", "roll")
 # defence-in-depth + an operator-visible warning, mirroring ears.
 _LIMITS = {
     "pan": (-80.0, 80.0),
-    "tilt": (-20.0, 20.0),
+    # tilt raised to ±28 (Story 7.3, Kamal-confirmed the linkage reaches
+    # 28° without binding) so the sleep pose can droop deeper. Matches
+    # config/servo-ids.yaml linkage min/max ±28.
+    "tilt": (-28.0, 28.0),
     "roll": (-15.0, 15.0),
 }
 

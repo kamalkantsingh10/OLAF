@@ -101,7 +101,7 @@ class TestMapValueValidation:
 # P4 — neck adapter clamps to a safe envelope
 class TestNeckClamp:
     def test_neck_target_clamped(self):
-        from expression_engine.adapters.neck_adapter import NeckAdapter
+        from expression_engine.adapters.neck_adapter import NeckAdapter, _LIMITS
 
         class FakeNeck:
             def __init__(s):
@@ -119,7 +119,10 @@ class TestNeckClamp:
         a.connect()
         a.apply({"pan": 200.0, "tilt": 99.0, "roll": -90.0})
         pan, tilt, roll = fake.last
-        assert pan == 80.0 and tilt == 20.0 and roll == -15.0
+        # Clamp to the adapter envelope (tilt raised to ±28 in Story 7.3).
+        assert pan == _LIMITS["pan"][1]
+        assert tilt == _LIMITS["tilt"][1]
+        assert roll == _LIMITS["roll"][0]
 
 
 # P8 — eye wake failure is a fatal connect error

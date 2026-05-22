@@ -23,7 +23,7 @@ class TestLoadShippedConfig:
 
     def test_domain_id(self):
         cfg = load_config(PACKAGE_TOML)
-        assert cfg.domain_id == 0
+        assert cfg.domain_id == 42
 
     def test_all_four_topic_names(self):
         cfg = load_config(PACKAGE_TOML)

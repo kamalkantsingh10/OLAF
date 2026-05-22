@@ -213,7 +213,12 @@ def main(args=None) -> None:
         )
         sys.exit(1)
 
-    rclpy.init(args=args)
+    # Apply the configured DDS domain. The toml [dds].domain_id is the
+    # authoritative contract value — the body always joins ITS domain,
+    # not whatever ambient ROS_DOMAIN_ID happens to be set. Must match
+    # the producer (contract/INTERFACE.md). Previously this was loaded +
+    # logged but never applied (rclpy fell back to ROS_DOMAIN_ID).
+    rclpy.init(args=args, domain_id=config.domain_id)
     node = ExpressionEngineNode(config, expression_map)
     log_event(
         logging.INFO,

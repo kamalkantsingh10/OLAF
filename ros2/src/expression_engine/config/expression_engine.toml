@@ -14,13 +14,20 @@ schema_version = 1
 # not-yet-consumed sections so this file does not churn per story.
 
 [dds]
-# Default DDS domain. Configurable on both sides; the companion's
-# publisher uses [publisher].dds_domain_id (Appendix A.1). Must match.
-domain_id = 0
+# OLAF DDS domain (0..232). Configurable on both sides; the producer's
+# publisher uses [publisher].dds_domain_id (Appendix A.1) and MUST match
+# this — mismatch = body hears nothing while looking alive.
+domain_id = 42
 
 [topics]
-# Topic names MUST match the companion's [publisher.topics] block
-# (Appendix A.2). Subscribe-only — the engine never publishes here.
+# Topic names MUST match the producer's [publisher.topics] block (see
+# contract/INTERFACE.md). Subscribe-only — the engine never publishes.
+#
+# Story 7.6: these may instead be RELATIVE names (no leading slash,
+# e.g. "expression/mood"); the node namespace then scopes them per
+# robot — run with `--ros-args -r __ns:=/olaf_2` — so multiple bodies
+# coexist on one DDS graph. The absolute /olaf/* names below are the
+# default (backward-compatible with the current companion).
 mood = "/olaf/mood"
 activity = "/olaf/activity"
 speech_emotion = "/olaf/speech_emotion"

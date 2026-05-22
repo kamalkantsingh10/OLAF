@@ -49,7 +49,7 @@ _CANONICAL_TO_ESP32: dict[str, str] = {
     "melancholic": "melancholic",
     # ── activity eye states (expression_map.yaml `activity.*.eye`) ──
     # Map onto the device set; not required distinct.
-    "boot": "neutral",
+    "boot": "sleepy",         # ← asleep at boot/startup (Story 7.3); agrees with firmware default
     "closed": "sleepy",
     "waking": "neutral",
     "open": "neutral",
@@ -59,6 +59,23 @@ _CANONICAL_TO_ESP32: dict[str, str] = {
     "closing": "sleepy",
 }
 _ESP32_FALLBACK = "neutral"
+
+# AR10-style device translation (Story 7.3): canonical ActivityState →
+# Head ESP32 system_status name (head_i2c_client.STATUS_MAP). The
+# system_status drives the device's wake level (eye openness) AND the
+# WS2812 strip pattern (lit only for listening/processing/speaking;
+# dark for idle/woke_up/going_idle). `working` (both submodes) → the
+# single PROCESSING status. The render loop sends this on activity
+# change (fire-on-change); the map stays canonical (NFR6).
+_ACTIVITY_TO_STATUS: dict[str, str] = {
+    "starting": "idle",
+    "sleeping": "idle",
+    "waking": "woke_up",
+    "listening": "listening",
+    "working": "processing",
+    "speaking": "speaking",
+    "going_to_sleep": "going_idle",
+}
 
 
 def _default_client_factory():
@@ -120,6 +137,33 @@ class EyeAdapter:
             )
             return _ESP32_FALLBACK
         return esp
+
+    @staticmethod
+    def status_for_activity(state: str) -> Optional[str]:
+        """ActivityState → Head system_status name (Story 7.3).
+
+        Unknown state → None (the render loop simply sends nothing —
+        the device holds its current status). `working` maps the same
+        for both submodes (thinking/delegating → processing)."""
+        return _ACTIVITY_TO_STATUS.get(state)
+
+    def set_system_status(self, status: str) -> None:
+        """Drive the Head ESP32 system_status (wake level + WS2812 strip).
+
+        Story 7.3 — sent by the render loop on activity change. Unknown
+        status names are handled (WARN + no-op) by the client."""
+        if self._client is not None:
+            self._client.set_system_status(status)
+
+    def set_led_overlay(self, overlay: str) -> None:
+        """Drive the WS2812 emotional colour wash (Story 7.3 / 6.6).
+
+        Sent by the render loop on mood change — the mood's nearest tint
+        bucket (none/warm/cool/hot/bright). A SEPARATE event from
+        system_status; the firmware layers it on the active strip
+        animation."""
+        if self._client is not None:
+            self._client.set_led_overlay(overlay)
 
     def set_expression(self, canonical_name: str, intensity: int) -> None:
         if self._client is None:

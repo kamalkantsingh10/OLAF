@@ -9,8 +9,10 @@
  * distance 0 = center pair (indices 3,4)
  * distance 3 = edge pair   (indices 0,7)
  *
- * Color theme: White (matching eye color) for all states except SPEAKING,
- * which uses full-spectrum color for expressive personality.
+ * Color theme: White base for every lit state, tinted to the current
+ * mood colour by the emotional overlay (Story 7.3). Strip is LIT only
+ * for LISTENING / PROCESSING / SPEAKING; idle / woke_up / going_idle
+ * render dark.
  *
  * Brightness: base kLedDefaultBrightness (~10%), peaks during transient
  * effects, always returns to base.
@@ -219,10 +221,12 @@ static void animateProcessing() {
 }
 
 // ============================================================================
-// SPEAKING — Colorful overlapping waves + sparkle  (looping)
+// SPEAKING — Overlapping white waves + sparkle  (looping)
 //
-// The ONE state that breaks from cyan — full-spectrum personality.
-// Dual waves at different speeds, slowly rotating hue, random sparkle.
+// Dual waves at different speeds + random sparkle with a trail fade for
+// a lively "talking" feel. Rendered in WHITE so the mood overlay
+// (applyOverlay) tints it to the current mood colour (Story 7.3) —
+// every lit state shares the mood hue; SPEAKING is the liveliest motion.
 // ============================================================================
 
 static void animateSpeaking() {
@@ -232,7 +236,6 @@ static void animateSpeaking() {
     }
 
     uint32_t now = millis();
-    uint8_t hue_base = (now / 40) & 0xFF;
 
     float w1 = ((now % 500) / 500.0f) * 5.5f;
     float w2 = ((now % 800) / 800.0f) * 5.5f;
@@ -241,18 +244,18 @@ static void animateSpeaking() {
         float b1 = w1 - (float)d;
         if (b1 >= 0.0f && b1 < 1.5f) {
             float intensity = sinf((b1 / 1.5f) * PI);
-            addSymPair(d, CHSV(hue_base, 200, (uint8_t)(intensity * 255)));
+            addSymPair(d, whiteAt(intensity));
         }
 
         float b2 = w2 - (float)d;
         if (b2 >= 0.0f && b2 < 1.5f) {
             float intensity = sinf((b2 / 1.5f) * PI);
-            addSymPair(d, CHSV(hue_base + 90, 220, (uint8_t)(intensity * 200)));
+            addSymPair(d, whiteAt(intensity * 0.8f));
         }
     }
 
     if (random(100) < 30) {
-        addSymPair(random(4), CHSV(random(256), 180, 220));
+        addSymPair(random(4), whiteAt(0.85f));
     }
 
     active_brightness = kLedDefaultBrightness;
@@ -397,17 +400,28 @@ LedOverlay ledStripGetOverlay() {
 }
 
 void ledStripUpdate() {
+    // Story 7.3: the strip is LIT only for listening / working
+    // (processing) / speaking; idle / woke_up / going_idle render dark.
+    bool lit = (current_state == LedState::LISTENING ||
+                current_state == LedState::PROCESSING ||
+                current_state == LedState::SPEAKING);
+
     switch (current_state) {
-        case LedState::SPEAKING:   animateSpeaking();    break;
+        case LedState::LISTENING:  animateListening();  break;
+        case LedState::PROCESSING: animateProcessing(); break;
+        case LedState::SPEAKING:   animateSpeaking();   break;
         default:
             clearAll();
             active_brightness = kLedDefaultBrightness;
             break;
     }
 
-    // Emotional overlay is layered LAST and is independent of the
-    // state above (separate I2C event — REG_LED_OVERLAY).
-    applyOverlay();
+    // Emotional overlay (mood tint) is layered LAST — but ONLY on the
+    // lit states, so dark states stay truly off (no wash floor). It's a
+    // separate I2C event (REG_LED_OVERLAY), independent of the state.
+    if (lit) {
+        applyOverlay();
+    }
 
     FastLED.setBrightness(active_brightness);
     FastLED.show();

@@ -28,6 +28,7 @@ from typing import Any, Callable, Optional
 
 from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.adapters.base import ContinuousAdapter, DelegatingAdapter
+from expression_engine.adapters.eye_adapter import EyeAdapter
 from expression_engine.config import AnimationConfig
 from expression_engine.logging_setup import log_event
 from expression_engine.map_loader import ExpressionMap
@@ -359,6 +360,11 @@ class RenderLoop:
         self._wake_until = 0.0
         self._last_tick: float | None = None
         self.tick_count = 0
+        # Story 7.3 — head system_status (activity-driven) + WS2812 LED
+        # overlay (mood-driven). Fire-on-change: only push to the head
+        # peripheral when the mapped value actually changes.
+        self._last_status: str | None = None
+        self._last_overlay: str | None = None
 
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -480,12 +486,35 @@ class RenderLoop:
                         # audio anchor (NFR2 anticipatory window).
                         self._speech_smooth_s = sized
 
-        # activity: wake short-circuit (sleeping→waking, NFR1).
+        # activity: wake short-circuit (sleeping→waking, NFR1) + drive
+        # the head system_status (Story 7.3 — wake level + WS2812 strip
+        # lit/dark + pattern). Fire-on-change so two activities mapping
+        # to the same status (starting/sleeping → idle) don't re-write.
         act = self._changed(snap, "activity")
         if act is not None:
             p = act.payload
             if p.from_state == "sleeping" and p.state == "waking":
                 self._wake_until = now + _WAKE_WINDOW_S
+            status = EyeAdapter.status_for_activity(p.state)
+            if status is not None and status != self._last_status:
+                self._last_status = status
+                set_status = getattr(self._eye, "set_system_status", None)
+                if callable(set_status):
+                    set_status(status)
+
+        # mood: drive the WS2812 colour wash (Story 7.3) — the current
+        # mood's nearest tint bucket. Separate event from system_status;
+        # only visibly tints the active (listening/working/speaking)
+        # strip animation. Fire-on-change.
+        mood_evt = self._changed(snap, "mood")
+        if mood_evt is not None:
+            entry = self._map.mood.get(mood_evt.payload.mood)
+            overlay = entry.get("led_overlay") if isinstance(entry, dict) else None
+            if overlay is not None and overlay != self._last_overlay:
+                self._last_overlay = overlay
+                set_overlay = getattr(self._eye, "set_led_overlay", None)
+                if callable(set_overlay):
+                    set_overlay(overlay)
 
         # vocalization: map-driven, randomized parametric transient
         # (Story 7.2 — replaces _Gesture.SHAPES).

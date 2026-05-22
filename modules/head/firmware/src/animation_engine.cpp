@@ -88,11 +88,15 @@ void EyeExpressionEngine::begin(GC9A01DualDriver* driver) {
     Serial.println("[Eyes] ERROR: Sprite allocation failed!");
   }
 
-  current_expression_ = EXPR_NEUTRAL;
-  current_intensity_  = 2;
-  target_expression_  = EXPR_NEUTRAL;
-  target_intensity_   = 2;
-  current_params_     = {EXPR_NEUTRAL, 2};
+  // Boot default = asleep (EXPR_SLEEPY, heavy half-lid) at L3, NOT
+  // neutral. Until the first I2C set_expression lands this is what
+  // shows — including during the Pi/ESP32 boot-order race window
+  // (Story 9.1). Overridden the moment an expression is set over I2C.
+  current_expression_ = EXPR_SLEEPY;
+  current_intensity_  = 3;
+  target_expression_  = EXPR_SLEEPY;
+  target_intensity_   = 3;
+  current_params_     = {EXPR_SLEEPY, 3};
   target_params_      = current_params_;
 
   look_x_ = 0;

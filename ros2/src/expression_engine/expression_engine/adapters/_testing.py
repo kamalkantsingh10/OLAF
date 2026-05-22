@@ -68,6 +68,10 @@ class RecordingDelegatingAdapter:
         self.expressions: list[tuple[float, str, int]] = []
         self.blinks: list[float] = []
         self.looks: list[tuple[float, int, int]] = []
+        # Story 7.3 — head system_status + LED overlay (driven by the
+        # render loop on activity / mood change, fire-on-change).
+        self.statuses: list[tuple[float, str]] = []
+        self.overlays: list[tuple[float, str]] = []
 
     def connect(self) -> None:
         self.connected = True
@@ -83,6 +87,12 @@ class RecordingDelegatingAdapter:
 
     def look(self, x: int, y: int) -> None:
         self.looks.append((self._clock(), x, y))
+
+    def set_system_status(self, status: str) -> None:
+        self.statuses.append((self._clock(), status))
+
+    def set_led_overlay(self, overlay: str) -> None:
+        self.overlays.append((self._clock(), overlay))
 
 
 class NullContinuousAdapter:
@@ -118,6 +128,10 @@ class NullDelegatingAdapter:
     def blink(self) -> None: ...
 
     def look(self, x: int, y: int) -> None: ...
+
+    def set_system_status(self, status: str) -> None: ...
+
+    def set_led_overlay(self, overlay: str) -> None: ...
 
 
 class RecordingSurfaceAdapter:

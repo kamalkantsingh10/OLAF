@@ -591,7 +591,8 @@ class TestDeterministicSampling:
 
 class TestWakeShortCircuit:
     def test_wake_begins_motion_within_100ms(self):
-        # Precondition: engine settled in 'sleeping' (neck tilt ≈ -25).
+        # Precondition: engine settled in 'sleeping' (neck tilt per the
+        # authored sleeping pose; Story 7.3 = -18, was -25).
         st = EngineState()
         ck = SimClock()
         lp = _loop(st, ck)
@@ -600,7 +601,7 @@ class TestWakeShortCircuit:
         sleeping_tilt = lp._a.value["tilt"]
         waking_tilt = float(EMAP.activity["waking"]["pose"]["neck"]["tilt"])
         gap = abs(waking_tilt - sleeping_tilt)
-        assert gap > 15  # sanity: there IS a real move to make
+        assert gap > 10  # sanity: there IS a real move to make
 
         # Transition sleeping→waking, measure motion over next 100ms.
         _push(st, "activity", {"state": "waking", "from_state": "sleeping"})

@@ -1,6 +1,19 @@
 # Story 7.4: Mood → subtle ambient modifier
 
-Status: ready-for-dev
+Status: review
+
+> **RE-SCOPED 2026-05-22 (Kamal):** mood is NO LONGER a head/body
+> modifier. The head already has activity + speech_emotion +
+> vocalization competing for it, so a mood neck-lean added little and
+> actively interfered (the happy lean was reducing the sleep droop).
+> **Decision:** mood's emotional display moves to the **HEART (Epic
+> 8.1)**; on the head it keeps only the **WS2812 colour tint**
+> (`led_overlay`, already wired in 7.3) and, later, **idle-drift
+> modulation (Story 6.5)**. `mood.eye` stays (consumed only by nod/shake
+> vocalizations, Story 7.2). The `lean_bias` field + the render-loop
+> mood→neck channel were REMOVED. The original ACs below (mood as a
+> subtle *neck/LED* modifier) are superseded by this de-scope; what
+> shipped is the removal + the LED-tint/heart/idle handoff.
 
 <!-- Created 2026-05-20 after 7.1a/b/c froze the per-emotion look.
 Validates that the 8 `mood.*` entries in expression_map.yaml act as
@@ -58,17 +71,24 @@ moment expression.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: **Spec audit** — confirm every `mood.*` has only
-  `lean_bias` + `led_bias`. Add a per-mood comment cross-
-  referencing intent (calm = cool blue, happy = warm gold, …).
-- [ ] Task 2: **Subtlety invariants in code** — add a
-  module-level constants/asserts (or a load-time validation) for
-  `lean_bias_max=8.0`, `led_intensity_max=0.7`, `no_eye_field`.
-- [ ] Task 3: **Tests** — invariant tests (bounds, slow ease >
-  activity/speech, no-eye-field). Existing suites stay green.
-- [ ] Task 4: **Hardware verify** — small helper / one-liner to
-  set `mood` from the Pi while `neutral` + `listening` is
-  running; Kamal walks all 8 and locks values.
+- [x] Task 1: **Spec audit** — DONE. Found `mood.*` carried
+  `lean_bias` + `led_bias` + `led_overlay` (7.3) + `eye` (7.2). The
+  AC#4 "no eye field" conflicts with 7.2's nod/shake mood-eye → led to
+  the re-scope decision above.
+- [x] Task 2: ~~Subtlety invariants~~ → SUPERSEDED by de-scope.
+  `lean_bias` removed entirely (mood doesn't touch the body), so the
+  ≤8°/≤0.7 bounds are moot. `mood.eye` kept for nod/shake; mood never
+  drives the ambient eye (guaranteed in `_compose`, which no longer has
+  a mood branch).
+- [x] Task 3: **Tests** — DONE. Removed the mood-neck-ease test;
+  repurposed the snapshot + namespacing tests to the mood→`led_overlay`
+  path (mood drives the LED tint only, never the neck). Full host suite
+  green (302).
+- [x] Task 4: ~~Hardware verify (walk 8 moods on the head)~~ →
+  SUPERSEDED. Mood no longer changes the head body; the LED tint was
+  already verified on hardware during the 7.3 walk (baseline mood=happy
+  → warm strip). Mood's hardware verification now belongs to the HEART
+  (Epic 8.1) and idle drift (Story 6.5).
 
 ## Dev Notes
 
@@ -110,12 +130,49 @@ moment expression.
 
 ### Progress
 
-(none yet)
+- 2026-05-22: Re-scoped (see banner). Removed mood→neck layer; mood is
+  now LED-tint (head) + heart (8.1) + idle (6.5). Host suite green (302).
 
 ### Agent Model Used
 
-### Debug Log References
+claude-opus-4-7 (1M context)
 
 ### Completion Notes List
 
+- Removed the render-loop mood→neck channel: `_EaseChannel self._m`,
+  `_ComposedTarget.mood_neck`, the `_compose` mood branch, the tick
+  `self._m.step(...)`, and the `_m.value` term in `neck_out`.
+- Removed `lean_bias` from all 8 `mood.*` entries in
+  `expression_map.yaml`; kept `led_bias` (heart), `led_overlay` (head
+  tint), `eye` (nod/shake). Map-loader still ALLOWS an optional
+  `lean_bias` (NFR5 extensibility) — just unused.
+- `mood_ease_seconds` config retained (unused by the render loop now;
+  may serve the heart/idle later).
+- Tests: removed `test_mood_eases_over_seconds_never_steps`; repurposed
+  `test_snapshot_per_tick_last_write_wins` and
+  `test_topic_namespacing_mood_vs_speech_happy` to the mood→`led_overlay`
+  path; updated `test_map_loader` namespacing assertion (lean_bias →
+  led_bias). AC#4 conflict resolved by re-scope (mood.eye kept for
+  nod/shake; mood never drives the ambient eye).
+
 ### File List
+
+- `ros2/src/expression_engine/expression_engine/render_loop.py`
+  (modified — removed the mood→neck channel)
+- `ros2/src/expression_engine/config/expression_map.yaml` (modified —
+  dropped `lean_bias` from the 8 moods; re-scope comment)
+- `ros2/src/expression_engine/test/test_render_loop.py` (modified —
+  removed mood-ease test; repurposed snapshot + namespacing tests)
+- `ros2/src/expression_engine/test/test_map_loader.py` (modified —
+  namespacing assertion lean_bias → led_bias)
+- `ros2/src/expression_engine/test/e2e_activity_run.py` (modified —
+  baseline-mood comment: mood no longer touches the body)
+- `docs/implementation-artifacts/7-4-mood-to-subtle-ambient-modifier.md`
+  (modified — re-scope banner, tasks, this record)
+- `docs/implementation-artifacts/sprint-status.yaml` (modified — 7-4 → review)
+
+### Change Log
+
+- 2026-05-22: Story 7.4 RE-SCOPED — mood is no longer a head/body
+  modifier (removed neck-lean layer + lean_bias). Mood → heart (8.1) +
+  head LED tint (7.3) + idle drift (6.5). Host suite green (302).

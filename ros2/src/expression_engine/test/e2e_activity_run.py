@@ -71,8 +71,9 @@ _NECK = ("pan", "tilt", "roll")
 _EARS = ("left_pan", "left_tilt", "right_pan", "right_tilt")
 
 # A baseline mood so the WS2812 strip shows its mood TINT during the lit
-# states (listening/working/speaking). happy → warm. Mood adds only a
-# small neck lean_bias; the activity postures still read clearly.
+# states (listening/working/speaking). happy → warm. Mood no longer
+# touches the body (Story 7.4 de-scope) — it only sets the LED tint, so
+# the activity postures read at full depth.
 _BASELINE_MOOD = "happy"
 
 # Leaf label → activity payload. `from_state` chains the previous state

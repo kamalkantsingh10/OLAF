@@ -130,11 +130,12 @@ class TestTickLoop:
         lp = _loop(st, ck)
         for m in ("calm", "happy", "playful", "excited"):
             _push(st, "mood", {"mood": m})  # 4 writes, 0 ticks
-        _run(lp, ck, 12.0)  # converge
-        # Mood layer settled on 'excited' (last write), not calm/happy.
-        assert lp._m.value["tilt"] == pytest.approx(
-            float(EMAP.mood["excited"]["lean_bias"]), abs=0.4
-        )
+        _run(lp, ck, 1.0)
+        # The loop sees only the LAST mood write (excited) — its LED tint
+        # is what gets sent, not calm/happy/playful. (Mood drives only the
+        # LED tint now — Story 7.4 de-scope; no neck lean.)
+        assert lp._eye.overlays, "no mood LED overlay sent"
+        assert lp._eye.overlays[-1][1] == EMAP.mood["excited"]["led_overlay"]
 
     def test_threaded_driver_is_separate_thread(self):
         st = EngineState()
@@ -158,28 +159,9 @@ class TestTickLoop:
 
 
 class TestEasing:
-    def test_mood_eases_over_seconds_never_steps(self):
-        st = EngineState()
-        _push(st, "mood", {"mood": "excited"})  # lean_bias 7
-        ck = SimClock()
-        lp = _loop(st, ck)
-        target = float(EMAP.resolve("mood", "excited")["lean_bias"])
-        prev = 0.0
-        max_step = 0.0
-        reached_t = None
-        dt = 0.01
-        for i in range(800):  # up to 8s
-            lp.tick(ck())
-            cur = lp._m.value["tilt"]
-            max_step = max(max_step, abs(cur - prev))
-            prev = cur
-            if reached_t is None and abs(cur - target) < 0.05 * target:
-                reached_t = i * dt
-            ck.advance(dt)
-        # never snaps: no single 100Hz tick covers a big fraction
-        assert max_step < target * 0.05
-        # eases over ≥2s (NFR3: mood 2–4s)
-        assert reached_t is not None and reached_t >= 2.0
+    # (Removed test_mood_eases_over_seconds_never_steps — Story 7.4
+    # de-scope: mood no longer drives the neck, so there is no mood neck
+    # ease to assert. Mood now only sets the LED tint via _handle_events.)
 
     def test_continuous_does_not_jump_on_first_tick(self):
         st = EngineState()
@@ -637,14 +619,17 @@ class TestCompose:
         assert out["tilt"] == pytest.approx(base + overlay, abs=0.5)
 
     def test_topic_namespacing_mood_vs_speech_happy(self):
-        # mood.happy → lean bias only; speech.happy → ear pose overlay.
+        # mood.happy → LED tint ONLY (no body/eye — Story 7.4 de-scope);
+        # speech.happy → ear pose overlay. Distinct topics, distinct
+        # effects.
         st = EngineState()
         ck = SimClock()
         lp = _loop(st, ck)
         _push(st, "mood", {"mood": "happy"})
-        _run(lp, ck, 12.0)  # mood smooth_time 3.0 → ~4× to settle
-        assert lp._m.value["tilt"] == pytest.approx(
-            float(EMAP.mood["happy"]["lean_bias"]), abs=0.4)
+        _run(lp, ck, 2.0)
+        # mood drives the LED tint, NOT the neck.
+        assert lp._eye.overlays[-1][1] == EMAP.mood["happy"]["led_overlay"]
+        assert lp._neck.applied[-1][1]["tilt"] == pytest.approx(0.0, abs=0.3)
         assert lp._neck.applied[-1][1]["pan"] == pytest.approx(0.0, abs=0.3)
 
     def test_unknown_speech_name_falls_back_no_crash(self):

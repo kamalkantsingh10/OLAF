@@ -110,7 +110,6 @@ class _EaseChannel:
 class _ComposedTarget:
     activity_neck: dict[str, float]
     activity_ears: dict[str, float]
-    mood_neck: dict[str, float]
     speech_neck: dict[str, float]
     speech_ears: dict[str, float]
     eye_expression: str
@@ -350,7 +349,6 @@ class RenderLoop:
         self._rng = rng if rng is not None else random.Random()
 
         self._a = _EaseChannel()   # activity (absolute)
-        self._m = _EaseChannel()   # mood bias (additive)
         self._s = _EaseChannel()   # speech overlay (additive)
 
         self._last_evt: dict[str, object] = {}
@@ -411,16 +409,13 @@ class RenderLoop:
                 eye_expr = entry["eye"].get("expression", eye_expr)
                 eye_int = int(entry["eye"].get("intensity", eye_int))
 
-        mood_neck = {j: 0.0 for j in _NECK}
-        mood = snap.get("mood")
-        if mood is not None:
-            entry = self._map.resolve("mood", mood.payload.mood)
-            # Mood is a SUBTLE modifier (§5.1): lean_bias → small
-            # forward neck tilt only.
-            lean = entry.get("lean_bias", 0)
-            if isinstance(lean, (int, float)) and not isinstance(lean, bool):
-                mood_neck["tilt"] = float(lean)
-
+        # Mood does NOT touch the body/eye (Story 7.4 de-scope, 2026-05-22):
+        # the head already has activity + speech_emotion + vocalization
+        # competing for it. Mood's emotional display is the HEART (Epic
+        # 8.1); its only head presence is the WS2812 colour tint (sent in
+        # _handle_events as led_overlay) and, later, idle-drift modulation
+        # (Story 6.5). The nod/shake transient still sources its eye from
+        # mood.eye via _handle_events.
         speech_neck = {j: 0.0 for j in _NECK}
         speech_ears = {j: 0.0 for j in _EARS}
         speech_active = False
@@ -436,7 +431,7 @@ class RenderLoop:
             speech_active = True
 
         return _ComposedTarget(
-            act_neck, act_ears, mood_neck,
+            act_neck, act_ears,
             speech_neck, speech_ears, eye_expr, eye_int, speech_active,
         )
 
@@ -576,7 +571,6 @@ class RenderLoop:
             self._a.vel = {j: 0.0 for j in act_target}
             self._activity_primed = True
         self._a.step(act_target, activity_tau, dt)
-        self._m.step(target.mood_neck, self._anim.mood_ease_seconds, dt)
         self._s.step(
             {**target.speech_neck, **target.speech_ears},
             self._speech_smooth_s,
@@ -603,7 +597,6 @@ class RenderLoop:
 
         neck_out = {
             j: self._a.value.get(j, 0.0)
-            + self._m.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)
             + gest_neck.get(j, 0.0)
             for j in _NECK

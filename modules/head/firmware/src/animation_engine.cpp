@@ -437,15 +437,19 @@ void EyeExpressionEngine::buildEye(uint8_t type, bool viewer_left,
       break;
 
     case EXPR_CONTENT:
-      // Pleased (ref R1C5): oval with ~30% top cut, bigger pupil,
-      // noticeable colour tint (L2).
-      g.halfW    = BASE_HALF * 1.05f;
-      g.halfH    = BASE_HALF * 0.95f;
+      // Pleased (ref R1C5) — calm/satisfied, deliberately distinct from
+      // excited's big bright sparkle (Kamal 2026-05-22: content read too
+      // like excited). A SMALLER, squatter, gently top-cropped circle
+      // with a MODERATE pupil (NOT excited's huge 0.48) + warm tint
+      // (L2+), no sparkle. Calmer reads as content; bigger/brighter
+      // reads as excited.
+      g.halfW    = BASE_HALF * 0.96f;
+      g.halfH    = BASE_HALF * 0.84f;       // squatter than excited's full round
       g.crop     = CROP_TOP;
-      g.cropFrac = 0.30f;
-      g.pupR     = g.halfW * 0.36f;        // ~10% bigger than excited
-      g.pupX     = nasal * g.halfW * 0.22f; // pull closer to each other
-      g.pupY     = g.halfH * 0.18f;
+      g.cropFrac = 0.35f;                    // relaxed upper lid
+      g.pupR     = g.halfW * 0.32f;          // calm — clearly < excited (0.48)
+      g.pupX     = nasal * g.halfW * 0.20f;  // cozy, slightly nasal
+      g.pupY     = g.halfH * 0.20f;
       break;
 
     case EXPR_EXCITED:

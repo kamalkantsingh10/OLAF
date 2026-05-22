@@ -75,14 +75,14 @@ mood:
 #   perked (animated/engaged).
 activity:
   starting:       { pose: { neck: { pan: 0,   tilt: -2,  roll: 0 },  ears: { left_pan: 15, left_tilt: 0,   right_pan: 15, right_tilt: 0 } },   eye: { expression: boot,     intensity: 3 }, led: { pattern: boot_seq } }
-  sleeping:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -25 } }, eye: { expression: closed,   intensity: 1 }, led: { pattern: breathe_slow } }
+  sleeping:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: closed,   intensity: 1 }, led: { pattern: breathe_slow } }
   waking:         { pose: { neck: { pan: 0,   tilt: -4,  roll: 0 },  ears: { left_pan: 22, left_tilt: -5,  right_pan: 22, right_tilt: -5 } },  eye: { expression: waking,   intensity: 2 }, led: { pattern: fade_in } }
   listening:      { pose: { neck: { pan: 0,   tilt: 2,   roll: 0 },  ears: { left_pan: 3,  left_tilt: 14,  right_pan: 3,  right_tilt: 14 } },  eye: { expression: curious,  intensity: 2 }, led: { pattern: ear_breathe } }
   working:
-    thinking:     { pose: { neck: { pan: -15, tilt: 4,   roll: -3 }, ears: { left_pan: 14, left_tilt: 18,  right_pan: 8,  right_tilt: 4 } },   eye: { expression: focused,  intensity: 3 }, led: { pattern: pulse_blue } }
-    delegating:   { pose: { neck: { pan: 15,  tilt: 0,   roll: 3 },  ears: { left_pan: 10, left_tilt: 18,  right_pan: 12, right_tilt: 18 } },  eye: { expression: distant,  intensity: 3 }, led: { pattern: spinner } }
+    thinking:     { pose: { neck: { pan: -8,  tilt: 4,   roll: -3 }, ears: { left_pan: 14, left_tilt: 18,  right_pan: 8,  right_tilt: 4 } },   eye: { expression: focused,  intensity: 3 }, led: { pattern: pulse_blue } }
+    delegating:   { pose: { neck: { pan: 8,   tilt: 0,   roll: 3 },  ears: { left_pan: 10, left_tilt: 18,  right_pan: 12, right_tilt: 18 } },  eye: { expression: distant,  intensity: 3 }, led: { pattern: spinner } }
   speaking:       { pose: { neck: { pan: 0,   tilt: 4,   roll: 0 },  ears: { left_pan: 10, left_tilt: 24,  right_pan: 10, right_tilt: 24 } },  eye: { expression: animated, intensity: 4 }, led: { pattern: warm_active } }
-  going_to_sleep: { pose: { neck: { pan: 0,   tilt: -10, roll: 0 },  ears: { left_pan: 25, left_tilt: -12, right_pan: 25, right_tilt: -12 } }, eye: { expression: closing,  intensity: 1 }, led: { pattern: fade_out } }
+  going_to_sleep: { pose: { neck: { pan: 0,   tilt: -10, roll: 0 },  ears: { left_pan: 25, left_tilt: -12, right_pan: 25, right_tilt: -7 } },  eye: { expression: closing,  intensity: 1 }, led: { pattern: fade_out } }
 
 # ALL 12 first-class speech-emotion names — overlay on the mood base.
 # Each carries BOTH a neck bias and an ear pose.

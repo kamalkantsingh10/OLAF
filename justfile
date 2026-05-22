@@ -23,6 +23,12 @@ help:
     @echo ""
     @echo "Testing:"
     @echo "  just test             Run all tests (ROS2 + firmware)"
+    @echo "  just exp-test         expression_engine host tests (poetry)"
+    @echo ""
+    @echo "Robot (run ON the Pi — drives real hardware):"
+    @echo "  just activity-walk    Story 7.3 — walk every ActivityState"
+    @echo "  just voc-run          Story 7.2 — fire each vocalization"
+    @echo "  just exp-run <script> Run any expression_engine script"
     @echo ""
     @echo "Cleanup:"
     @echo "  just clean            Clean all build artifacts"
@@ -83,6 +89,36 @@ firmware-all:
 test: ros-test
     @echo "✅ All tests complete"
     @echo "Note: Firmware tests not yet implemented"
+
+# expression_engine host tests (poetry env + ROS PYTHONPATH). Extra
+# pytest args pass through, e.g. `just exp-test -k activity`.
+exp-test *args:
+    PYTHONPATH="ros2/src/expression_engine:${PYTHONPATH}" \
+        poetry run python -m pytest ros2/src/expression_engine/test/ {{args}}
+
+# ==============================================================================
+# Robot Commands — RUN ON THE Pi (olaf.local). These drive the real
+# I2C head + servos, so they only work where the hardware is attached.
+# `poetry` + `just` both resolve via ~/.local/bin on the Pi's login PATH.
+# ==============================================================================
+
+# Full PYTHONPATH for expression_engine on hardware (engine + drivers + libs).
+exp_pp := "ros2/src/expression_engine:ros2/src/olaf_drivers/neck_driver:ros2/src/olaf_drivers/head_ears_driver:libs"
+
+# Run any expression_engine script on the robot (path relative to the
+# package). Usage: just exp-run test/e2e_activity_run.py [args...]
+exp-run script *args:
+    PYTHONPATH="{{exp_pp}}" poetry run python ros2/src/expression_engine/{{script}} {{args}}
+
+# Story 7.3 hardware walk — step every ActivityState (posture + eyes +
+# LEDs). Optional leaf labels for a subset:
+#   just activity-walk listening speaking
+activity-walk *args:
+    PYTHONPATH="{{exp_pp}}" poetry run python ros2/src/expression_engine/test/e2e_activity_run.py {{args}}
+
+# Story 7.2 — fire each vocalization on the robot. Optional tag subset.
+voc-run *args:
+    PYTHONPATH="{{exp_pp}}" poetry run python ros2/src/expression_engine/test/e2e_vocalization_run.py {{args}}
 
 # ==============================================================================
 # Cleanup Commands

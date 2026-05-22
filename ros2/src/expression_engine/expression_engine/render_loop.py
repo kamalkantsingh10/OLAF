@@ -368,7 +368,9 @@ class RenderLoop:
         # Story 6.5 — idle drift-to-sleep. Its own RNG so step pacing
         # never perturbs the vocalization RNG. The `sleeping` activity
         # pose is the droop target the whole head decays toward.
-        self._idle = IdleController(idle or IdleConfig(), rng=random.Random())
+        _idle_cfg = idle or IdleConfig()
+        self._idle = IdleController(_idle_cfg, rng=random.Random())
+        self._idle_ease = _idle_cfg.ease_seconds   # gentle dreamy idle transitions
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
         self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
         self._sleep_ears = _overlay({j: 0.0 for j in _EARS}, _spose.get("ears"))
@@ -593,6 +595,9 @@ class RenderLoop:
             now, act_state, (target.eye_expression, target.eye_intensity)
         )
         if idle_stage is not None:
+            # Idle transitions ease GENTLY (dreamy), not at the brisk
+            # active tau — a sudden wake/stir read as jarring (Kamal).
+            activity_tau = self._idle_ease
             d = idle_stage.droop
             act_target = {
                 **{j: target.activity_neck[j]

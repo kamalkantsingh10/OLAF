@@ -63,6 +63,7 @@ class IdleConfig:
     idle_after_seconds: float = 60.0     # quiet time before decay starts (listening etc.)
     step_min_seconds: float = 10.0       # random per-step pace, min
     step_max_seconds: float = 30.0       # random per-step pace, max
+    ease_seconds: float = 2.0            # gentle per-step transition (dreamy, not a jerk)
     drift_amplitude_deg: float = 0.6     # sub-degree micro-movement amplitude
     drift_period_seconds: float = 4.0    # breath-like micro-movement period
 
@@ -232,6 +233,7 @@ _IDLE_BOUNDS = {
     "idle_after_seconds": (0.0, 3600.0),
     "step_min_seconds": (0.1, 600.0),
     "step_max_seconds": (0.1, 600.0),
+    "ease_seconds": (0.1, 30.0),
     "drift_amplitude_deg": (0.0, 5.0),
     "drift_period_seconds": (0.5, 60.0),
 }

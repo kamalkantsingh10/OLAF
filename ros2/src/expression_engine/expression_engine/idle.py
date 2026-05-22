@@ -61,7 +61,7 @@ class IdleController:
         self._active = False
         self._stages: tuple[IdleStage, ...] = ()
         self._idx = 0
-        self._tail_start = 0
+        self._stir_start = 0
         self._next_step_at = 0.0
         self._last_active_at: Optional[float] = None
 
@@ -135,7 +135,15 @@ class IdleController:
             frac = (i + 1) / (len(wind) + 1)
             prefix.append(IdleStage(expr, lvl, 0.15 * frac))
         self._stages = tuple(prefix) + _TAIL
-        self._tail_start = len(prefix)
+        # Shallow stir: once it reaches sleepy L3, loop back only as far
+        # as CONTENT — i.e. content L1 ↔ sleepy L1/L2/L3 — a gentle
+        # breathing, NOT a full wake to neutral. neutral is traversed
+        # once (the initial wind-down). (Kamal 2026-05-22: full-neutral
+        # stir read as "waking up", too much.)
+        self._stir_start = next(
+            (i for i, s in enumerate(self._stages) if s.eye_expr == "content"),
+            len(prefix),
+        )
         self._idx = 0
         self._active = True
         self._schedule(now)
@@ -144,7 +152,7 @@ class IdleController:
         if self._idx < len(self._stages) - 1:
             self._idx += 1
         else:
-            self._idx = self._tail_start   # loop the tail (the stir)
+            self._idx = self._stir_start   # loop only the sleepy stages
         self._schedule(now)
 
     def _schedule(self, now: float) -> None:

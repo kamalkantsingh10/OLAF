@@ -54,5 +54,6 @@ gesture_settle_ms = 200
 idle_after_seconds = 60.0      # quiet time before decay starts (listening etc.)
 step_min_seconds = 10.0        # random per-step pace, min
 step_max_seconds = 30.0        # random per-step pace, max
+ease_seconds = 2.0             # gentle per-step transition (dreamy, not a sudden jerk)
 drift_amplitude_deg = 0.6      # sub-degree mood-modulated micro-movement
 drift_period_seconds = 4.0     # breath-like micro-movement period

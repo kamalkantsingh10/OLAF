@@ -109,12 +109,14 @@ def test_low_level_entry_skips_winddown():
 
 
 def test_loops_at_sleepy_l3():
-    # From a neutral entry the path IS the tail; after sleepy@3 it must
-    # wrap back to the tail start (neutral) — never freezes.
+    # Shallow stir: after sleepy@3 it loops back only to CONTENT (not all
+    # the way to neutral) — content L1 ↔ sleepy L1/L2/L3. neutral is
+    # traversed ONCE (the initial decay); content is part of the loop.
     seq = [(e, lvl) for (e, lvl, _) in _walk(_ctrl(), ("neutral", 1), n=20)]
     first_deep = seq.index(("sleepy", 3))
-    # the next distinct stage after sleepy@3 is the tail start, neutral
-    assert seq[first_deep + 1] == ("neutral", 1)
+    assert seq[first_deep + 1] == ("content", 1)
+    assert seq.count(("neutral", 1)) == 1     # only the initial wind-down
+    assert seq.count(("content", 1)) >= 2     # content is in the stir loop
 
 
 # ── reset ───────────────────────────────────────────────────────────

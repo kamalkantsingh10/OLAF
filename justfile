@@ -26,6 +26,7 @@ help:
     @echo "  just exp-test         expression_engine host tests (poetry)"
     @echo ""
     @echo "Robot (run ON the Pi — drives real hardware):"
+    @echo "  just body-up          Boot the body — bring the engine node up & ready"
     @echo "  just activity-walk    Story 7.3 — walk every ActivityState"
     @echo "  just voc-run          Story 7.2 — fire each vocalization"
     @echo "  just idle-run         Story 6.5 — watch the head drift to sleep"
@@ -107,6 +108,23 @@ exp-test *args:
 
 # Package paths prepended to PYTHONPATH (engine + drivers + libs).
 exp_pp := "ros2/src/expression_engine:ros2/src/olaf_drivers/neck_driver:ros2/src/olaf_drivers/head_ears_driver:libs"
+
+# This IS the §9 startup (expression_engine/node.py:main): load config +
+# the expression map, connect every adapter in sequence — neck, ears,
+# head/eye I2C (EyeAdapter.connect WAKES the head ESP32) — then subscribe
+# to the producer's 4 topics and start the render loop. After this the
+# body is LIVE, rendering whatever a producer publishes (see
+# contract/INTERFACE.md). Fatal-fast (NFR7): a bad config/map or an
+# adapter that won't connect exits non-zero — fix and re-run. Foreground;
+# Ctrl-C to stop. Run ON the Pi. Args pass through as ROS args, e.g. a
+# namespaced 2nd body (Story 7.6): just body-up --ros-args -r __ns:=/olaf_2
+
+# Boot the body (engine node) & leave it ready to render — Pi only.
+body-up *args:
+    #!/usr/bin/env bash
+    source /opt/ros/jazzy/setup.bash
+    PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
+        poetry run python -m expression_engine.node {{args}}
 
 # Run any expression_engine script on the robot (path relative to the
 # package). Usage: just exp-run test/e2e_activity_run.py [args...]

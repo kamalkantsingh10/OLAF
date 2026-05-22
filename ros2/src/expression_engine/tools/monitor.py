@@ -20,7 +20,7 @@ from __future__ import annotations
 import sys
 
 import rclpy
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import String
 
@@ -79,8 +79,8 @@ def main(args=None) -> None:
     executor.add_node(node)
     try:
         executor.spin()
-    except KeyboardInterrupt:
-        pass
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass  # Ctrl-C (SIGINT) or kill/systemd (SIGTERM) — clean exit
     finally:
         node.destroy_node()
         if rclpy.ok():

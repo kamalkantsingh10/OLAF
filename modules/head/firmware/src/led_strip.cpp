@@ -185,9 +185,9 @@ static void animateListening() {
 static void animateProcessing() {
     clearAll();
 
-    float t = (millis() % 2200) / 2200.0f;                  // slow ~2.2 s
+    float t = (millis() % 2600) / 2600.0f;                  // slow ~2.6 s
     float pulse = 0.5f * (1.0f - cosf(t * 2.0f * PI));       // smooth 0→1→0
-    float level = 0.06f + 0.22f * pulse;                    // dim: ~0.06–0.28
+    float level = 0.04f + 0.10f * pulse;                    // subtle: ~0.04–0.14
 
     for (uint8_t d = 0; d <= 3; d++) {
         setSymPair(d, whiteAt(level));

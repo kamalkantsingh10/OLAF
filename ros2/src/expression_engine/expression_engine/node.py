@@ -40,6 +40,9 @@ from expression_engine.adapters._testing import (
     NullContinuousAdapter,
     NullDelegatingAdapter,
 )
+from expression_engine.adapters.ears_adapter import EarsAdapter
+from expression_engine.adapters.eye_adapter import EyeAdapter
+from expression_engine.adapters.neck_adapter import NeckAdapter
 from expression_engine.map_loader import ExpressionMap, load_expression_map
 from expression_engine.render_loop import RenderLoop
 from expression_engine.state import EngineState
@@ -219,7 +222,26 @@ def main(args=None) -> None:
     # the producer (contract/INTERFACE.md). Previously this was loaded +
     # logged but never applied (rclpy fell back to ROS_DOMAIN_ID).
     rclpy.init(args=args, domain_id=config.domain_id)
-    node = ExpressionEngineNode(config, expression_map)
+    # Real hardware adapters are the production default — main() IS the
+    # body's entrypoint (start-body.sh / `just body-up`). Previously
+    # main() always fell back to the NULL no-op adapters, so the body
+    # received events but moved NOTHING. Set OLAF_NULL_ADAPTERS=1 to run
+    # the pipeline off-hardware (no-op adapters — dev/comms test only).
+    if os.environ.get("OLAF_NULL_ADAPTERS"):
+        log_event(
+            logging.WARNING,
+            "null_adapters_enabled",
+            hint="OLAF_NULL_ADAPTERS set — hardware will NOT be driven",
+        )
+        node = ExpressionEngineNode(config, expression_map)
+    else:
+        node = ExpressionEngineNode(
+            config,
+            expression_map,
+            neck=NeckAdapter(),
+            ears=EarsAdapter(),
+            eye=EyeAdapter(),
+        )
     log_event(
         logging.INFO,
         "engine_started",

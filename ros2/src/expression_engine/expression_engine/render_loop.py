@@ -29,7 +29,12 @@ from typing import Any, Callable, Optional
 from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.adapters.base import ContinuousAdapter, DelegatingAdapter
 from expression_engine.adapters.eye_adapter import EyeAdapter
-from expression_engine.config import AnimationConfig, IdleConfig, ListeningConfig
+from expression_engine.config import (
+    AnimationConfig,
+    IdleConfig,
+    ListeningConfig,
+    SpeakingConfig,
+)
 from expression_engine.idle import IdleController
 from expression_engine.logging_setup import log_event
 from expression_engine.map_loader import ExpressionMap
@@ -335,6 +340,7 @@ class RenderLoop:
         rng: Optional[random.Random] = None,
         idle: Optional[IdleConfig] = None,
         listening: Optional[ListeningConfig] = None,
+        speaking: Optional[SpeakingConfig] = None,
     ) -> None:
         self._state = state
         self._map = expression_map
@@ -381,6 +387,18 @@ class RenderLoop:
         self._listen_roll_target = 0.0   # sampled signed amplitude this swing
         self._listen_roll_ease = self._listening.roll_ease_max_s  # sampled ease
         self._listen_roll_next_flip = 0.0
+        # Story 7.6 — subtle "talking motion" while speaking: neck nods +
+        # glances + ear perk-twitches, procedural, re-sampled per move.
+        self._speaking = speaking or SpeakingConfig()
+        self._speak_rng = random.Random()
+        self._speak_neck_val = {"pan": 0.0, "tilt": 0.0}
+        self._speak_neck_vel = {"pan": 0.0, "tilt": 0.0}
+        self._speak_neck_target = {"pan": 0.0, "tilt": 0.0}
+        self._speak_ears_val = {"left_tilt": 0.0, "right_tilt": 0.0}
+        self._speak_ears_vel = {"left_tilt": 0.0, "right_tilt": 0.0}
+        self._speak_ears_target = {"left_tilt": 0.0, "right_tilt": 0.0}
+        self._speak_ease = self._speaking.ease_max_s
+        self._speak_next_move = 0.0
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
         self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
         self._sleep_ears = _overlay({j: 0.0 for j in _EARS}, _spose.get("ears"))
@@ -627,6 +645,66 @@ class RenderLoop:
         )
         return self._listen_roll
 
+    def _speaking_motion(
+        self, snap: dict, now: float, dt: float, suppressed: bool
+    ) -> tuple[dict, dict]:
+        """Subtle 'talking motion' while speaking — random neck nods
+        (tilt) + glances (pan) + ear perk-twitches, re-sampled per move.
+        Returns ``(neck_offsets, ear_offsets)`` — zero/empty when not
+        speaking, during idle decay (``suppressed``), or disabled.
+        """
+        cfg = self._speaking
+        if (
+            cfg.tilt_amp_max_deg <= 0.0
+            and cfg.pan_amp_max_deg <= 0.0
+            and cfg.ear_amp_max_deg <= 0.0
+        ):
+            return {}, {}
+        act = snap.get("activity")
+        speaking = (
+            not suppressed
+            and act is not None
+            and getattr(act.payload, "state", None) == "speaking"
+        )
+        rng = self._speak_rng
+        if speaking:
+            if now >= self._speak_next_move:
+                self._speak_neck_target = {
+                    "tilt": rng.choice((-1.0, 1.0))
+                    * rng.uniform(cfg.tilt_amp_min_deg, cfg.tilt_amp_max_deg),
+                    "pan": rng.choice((-1.0, 1.0))
+                    * rng.uniform(cfg.pan_amp_min_deg, cfg.pan_amp_max_deg),
+                }
+                ear = rng.choice((-1.0, 1.0)) * rng.uniform(
+                    cfg.ear_amp_min_deg, cfg.ear_amp_max_deg
+                )
+                self._speak_ears_target = {
+                    "left_tilt": ear * rng.uniform(0.7, 1.0),
+                    "right_tilt": ear * rng.uniform(0.7, 1.0),
+                }
+                self._speak_ease = rng.uniform(cfg.ease_min_s, cfg.ease_max_s)
+                self._speak_next_move = now + rng.uniform(
+                    cfg.period_min_s, cfg.period_max_s
+                )
+            neck_t = self._speak_neck_target
+            ears_t = self._speak_ears_target
+            ease = self._speak_ease
+        else:
+            neck_t = {"pan": 0.0, "tilt": 0.0}
+            ears_t = {"left_tilt": 0.0, "right_tilt": 0.0}
+            ease = cfg.ease_max_s
+        for k, tgt in neck_t.items():
+            self._speak_neck_val[k], self._speak_neck_vel[k] = smooth_damp(
+                self._speak_neck_val.get(k, 0.0), tgt,
+                self._speak_neck_vel.get(k, 0.0), ease, dt,
+            )
+        for k, tgt in ears_t.items():
+            self._speak_ears_val[k], self._speak_ears_vel[k] = smooth_damp(
+                self._speak_ears_val.get(k, 0.0), tgt,
+                self._speak_ears_vel.get(k, 0.0), ease, dt,
+            )
+        return dict(self._speak_neck_val), dict(self._speak_ears_val)
+
     # ── the tick ───────────────────────────────────────────────────
 
     def tick(self, now: float) -> dict[str, float]:
@@ -734,6 +812,13 @@ class RenderLoop:
         drift["roll"] += self._listening_roll(
             snap, now, dt, suppressed=idle_stage is not None
         )
+        # Story 7.6 — subtle "talking motion" while speaking: neck nods +
+        # glances and ear perk-twitches (suppressed during idle decay).
+        speak_neck, speak_ears = self._speaking_motion(
+            snap, now, dt, suppressed=idle_stage is not None
+        )
+        drift["pan"] += speak_neck.get("pan", 0.0)
+        drift["tilt"] += speak_neck.get("tilt", 0.0)
         neck_out = {
             j: self._a.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)
@@ -745,6 +830,7 @@ class RenderLoop:
             j: self._a.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)
             + gest_ears.get(j, 0.0)
+            + speak_ears.get(j, 0.0)
             for j in _EARS
         }
 

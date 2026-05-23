@@ -76,3 +76,19 @@ roll_period_min_s = 4.0    # min seconds before swinging to the other side
 roll_period_max_s = 10.0   # max seconds before swinging
 roll_ease_min_s = 0.8      # fastest swing
 roll_ease_max_s = 3.0      # slowest swing (WALL-E slow)
+
+[speaking]
+# Subtle procedural "talking motion" while the activity is `speaking`
+# (Story 7.6) so OLAF doesn't look frozen mid-reply: small random neck
+# nods (tilt) + glances (pan) + ear perk-twitches, re-sampled each move.
+# Procedural, NOT audio-synced. Set all *_amp_max_deg to 0 to disable.
+tilt_amp_min_deg = 1.5     # smallest nod (neck tilt)
+tilt_amp_max_deg = 4.0     # largest nod
+pan_amp_min_deg = 1.0      # smallest glance (neck pan)
+pan_amp_max_deg = 3.0      # largest glance
+ear_amp_min_deg = 2.0      # smallest ear perk-twitch
+ear_amp_max_deg = 6.0      # largest ear perk-twitch
+period_min_s = 1.0         # min seconds between moves (livelier than listening)
+period_max_s = 3.0         # max seconds between moves
+ease_min_s = 0.4           # fastest move
+ease_max_s = 1.0           # slowest move

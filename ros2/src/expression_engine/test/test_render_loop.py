@@ -25,7 +25,7 @@ from expression_engine.adapters._testing import (
     neck_test_adapter,
     ears_test_adapter,
 )
-from expression_engine.config import AnimationConfig, ListeningConfig
+from expression_engine.config import AnimationConfig, ListeningConfig, SpeakingConfig
 from expression_engine.map_loader import load_expression_map
 from expression_engine.node import _default_map_path
 from expression_engine.render_loop import RenderLoop, smooth_damp
@@ -95,6 +95,20 @@ def _loop_listen(state, clock, listening):
     return lp, neck
 
 
+def _loop_speak(state, clock, speaking):
+    neck = neck_test_adapter(clock)
+    ears = ears_test_adapter(clock)
+    lp = RenderLoop(
+        state, EMAP, ANIM,
+        neck=neck,
+        ears=ears,
+        eye=RecordingDelegatingAdapter(clock),
+        clock=clock,
+        speaking=speaking,
+    )
+    return lp, neck, ears
+
+
 class TestListeningRoll:  # Story 7.6 — WALL-E side-to-side head cock
     _CFG = dict(
         roll_amp_min_deg=10.0, roll_amp_max_deg=14.0,
@@ -148,6 +162,37 @@ class TestListeningRoll:  # Story 7.6 — WALL-E side-to-side head cock
         _run(lp, clock, 20.0)
         rolls = [t.get("roll", 0.0) for _, t, _ in neck.applied]
         assert max(abs(r) for r in rolls) < 1e-6
+
+
+class TestSpeakingMotion:  # Story 7.6 — talking motion (neck + ears)
+    def test_neck_and_ears_move_while_speaking(self):
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "speaking", "from_state": "working"})
+        lp, neck, ears = _loop_speak(state, clock, SpeakingConfig())
+        _run(lp, clock, 30.0)
+        base_pan = neck.applied[0][1].get("pan", 0.0)
+        pans = [t.get("pan", 0.0) - base_pan for _, t, _ in neck.applied]
+        tilts = [t.get("tilt", 0.0) for _, t, _ in neck.applied]
+        base_et = ears.applied[0][1].get("left_tilt", 0.0)
+        ear_tilts = [t.get("left_tilt", 0.0) - base_et for _, t, _ in ears.applied]
+        assert max(abs(v) for v in pans) > 0.8       # glances
+        assert (max(tilts) - min(tilts)) > 0.8       # nods
+        assert max(abs(v) for v in ear_tilts) > 0.8  # ear perk-twitches
+
+    def test_disabled_no_speaking_motion(self):
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "speaking", "from_state": "working"})
+        lp, neck, ears = _loop_speak(
+            state, clock,
+            SpeakingConfig(tilt_amp_max_deg=0.0, pan_amp_max_deg=0.0,
+                           ear_amp_max_deg=0.0),
+        )
+        _run(lp, clock, 6.0)
+        # After the base settles, ears must be perfectly still (no twitch).
+        tail = [t.get("left_tilt", 0.0) for _, t, _ in ears.applied][-100:]
+        assert max(tail) - min(tail) < 1e-6
 
 
 # ── smooth_damp unit ────────────────────────────────────────────────

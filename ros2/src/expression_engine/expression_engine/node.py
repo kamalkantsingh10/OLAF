@@ -136,6 +136,7 @@ class ExpressionEngineNode(Node):
             eye=self._eye,
             idle=config.idle,
             listening=config.listening,
+            speaking=config.speaking,
         )
 
     def wire_subscriptions(self) -> None:

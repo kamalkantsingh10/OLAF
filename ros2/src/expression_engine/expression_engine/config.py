@@ -69,6 +69,30 @@ class ListeningConfig:
 
 
 @dataclass(frozen=True)
+class SpeakingConfig:
+    """`[speaking]` ambient "talking motion" (Story 7.6).
+
+    Subtle procedural head movement while the activity is ``speaking`` so
+    OLAF doesn't look frozen mid-reply: small random nods (neck TILT) +
+    slight glances (neck PAN) + ear perk-twitches, each re-sampled every
+    ``period_*`` seconds with a random ease. Layered on the speaking pose.
+    Procedural, not audio-synced. Set all ``*_amp_max_deg`` to 0 to
+    disable.
+    """
+
+    tilt_amp_min_deg: float = 1.5    # smallest nod (neck tilt)
+    tilt_amp_max_deg: float = 4.0    # largest nod
+    pan_amp_min_deg: float = 1.0     # smallest glance (neck pan)
+    pan_amp_max_deg: float = 3.0     # largest glance
+    ear_amp_min_deg: float = 2.0     # smallest ear perk-twitch (ear tilt)
+    ear_amp_max_deg: float = 6.0     # largest ear perk-twitch
+    period_min_s: float = 1.0        # min time between moves (livelier than listening)
+    period_max_s: float = 3.0        # max time between moves
+    ease_min_s: float = 0.4          # fastest move
+    ease_max_s: float = 1.0          # slowest move
+
+
+@dataclass(frozen=True)
 class IdleConfig:
     """`[idle]` drift-to-sleep decay — Story 6.5 (architecture §7/§8).
 
@@ -105,6 +129,7 @@ class EngineConfig:
     animation: AnimationConfig = AnimationConfig()
     idle: IdleConfig = IdleConfig()
     listening: ListeningConfig = ListeningConfig()
+    speaking: SpeakingConfig = SpeakingConfig()
 
 
 def load_config(path: str | Path) -> EngineConfig:
@@ -174,6 +199,7 @@ def load_config(path: str | Path) -> EngineConfig:
         animation=_parse_animation(raw.get("animation")),
         idle=_parse_idle(raw.get("idle")),
         listening=_parse_listening(raw.get("listening")),
+        speaking=_parse_speaking(raw.get("speaking")),
     )
 
 
@@ -187,6 +213,7 @@ _KNOWN_TOP_LEVEL = {
     "animation",
     "idle",
     "listening",
+    "speaking",
 }
 
 
@@ -305,6 +332,59 @@ def _parse_listening(section: object) -> ListeningConfig:
                 f"<= {hi_key} ({values[hi_key]})"
             )
     return ListeningConfig(**values)
+
+
+_SPEAKING_BOUNDS = {
+    "tilt_amp_min_deg": (0.0, 20.0),
+    "tilt_amp_max_deg": (0.0, 20.0),
+    "pan_amp_min_deg": (0.0, 30.0),
+    "pan_amp_max_deg": (0.0, 30.0),
+    "ear_amp_min_deg": (0.0, 40.0),
+    "ear_amp_max_deg": (0.0, 40.0),
+    "period_min_s": (0.2, 60.0),
+    "period_max_s": (0.2, 60.0),
+    "ease_min_s": (0.1, 30.0),
+    "ease_max_s": (0.1, 30.0),
+}
+
+
+def _parse_speaking(section: object) -> SpeakingConfig:
+    """Parse `[speaking]` leniently — defaults for any absent key; a
+    present-but-mistyped/out-of-range value is fatal (NFR7)."""
+    if section is None:
+        return SpeakingConfig()
+    if not isinstance(section, dict):
+        raise ValueError("[speaking] must be a TOML table")
+    defaults = SpeakingConfig()
+    values: dict[str, float] = {}
+    for field_name in _SPEAKING_BOUNDS:
+        if field_name not in section:
+            values[field_name] = getattr(defaults, field_name)
+            continue
+        raw_val = section[field_name]
+        if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+            raise ValueError(
+                f"[speaking].{field_name} must be a number, got {raw_val!r}"
+            )
+        lo, hi = _SPEAKING_BOUNDS[field_name]
+        if not lo <= raw_val <= hi:
+            raise ValueError(
+                f"[speaking].{field_name} must be in [{lo}, {hi}], got {raw_val!r}"
+            )
+        values[field_name] = float(raw_val)
+    for lo_key, hi_key in (
+        ("tilt_amp_min_deg", "tilt_amp_max_deg"),
+        ("pan_amp_min_deg", "pan_amp_max_deg"),
+        ("ear_amp_min_deg", "ear_amp_max_deg"),
+        ("period_min_s", "period_max_s"),
+        ("ease_min_s", "ease_max_s"),
+    ):
+        if values[lo_key] > values[hi_key]:
+            raise ValueError(
+                f"[speaking].{lo_key} ({values[lo_key]}) must be "
+                f"<= {hi_key} ({values[hi_key]})"
+            )
+    return SpeakingConfig(**values)
 
 
 def _parse_idle(section: object) -> IdleConfig:

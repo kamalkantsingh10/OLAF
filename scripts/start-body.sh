@@ -30,9 +30,15 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# ROS 2 (rclpy) overlay. PREPEND the package paths — never clobber the
-# ROS overlay (that would drop rclpy).
+# ROS 2 (rclpy) overlay. setup.bash is NOT nounset-clean — it reads
+# unset vars (AMENT_TRACE_SETUP_FILES, ...), which `set -u` treats as a
+# fatal "unbound variable". Relax -u just for the source, then restore.
+set +u
 source /opt/ros/jazzy/setup.bash
+set -u
+
+# PREPEND the package paths — never clobber the ROS overlay (that would
+# drop rclpy).
 PKG_PATHS="ros2/src/expression_engine:ros2/src/olaf_drivers/neck_driver:ros2/src/olaf_drivers/head_ears_driver:libs"
 export PYTHONPATH="${PKG_PATHS}:${PYTHONPATH:-}"
 

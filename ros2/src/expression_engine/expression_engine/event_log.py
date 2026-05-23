@@ -16,11 +16,13 @@ Append + best-effort: a logging failure must NEVER break the engine.
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from datetime import datetime
 from pathlib import Path
 
+from expression_engine.logging_setup import publish_rosout
 from expression_engine.schema import EventEnvelope
 
 _lock = threading.Lock()
@@ -58,18 +60,16 @@ def _append(filename: str, line: str) -> None:
 
 
 def log_received(topic_key: str, event: EventEnvelope) -> None:
-    """Append one line per accepted ROS message to ``received.log``."""
-    if _logdir() is None:
-        return
+    """Record an accepted ROS message → received.log + /rosout."""
     ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     payload = event.payload.model_dump(exclude_none=True)
-    _append("received.log", f"{ts}  {topic_key:<15} {payload}  src={event.source}")
+    line = f"{topic_key:<15} {payload}  src={event.source}"
+    _append("received.log", f"{ts}  {line}")
+    publish_rosout(logging.INFO, f"rx  {line}")
 
 
 def log_conversation(topic_key: str, event: EventEnvelope) -> None:
-    """Append a readable narrative line to ``conversation.log``."""
-    if _logdir() is None:
-        return
+    """Record a readable narrative line → conversation.log + /rosout."""
     ts = datetime.now().strftime("%H:%M:%S")
     p = event.payload
     line: str | None = None
@@ -85,3 +85,4 @@ def log_conversation(topic_key: str, event: EventEnvelope) -> None:
         line = f"{ts}  *{p.tag}*"
     if line is not None:
         _append("conversation.log", line)
+        publish_rosout(logging.INFO, line)

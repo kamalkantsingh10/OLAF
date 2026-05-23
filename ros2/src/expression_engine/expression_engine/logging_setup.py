@@ -83,6 +83,59 @@ def _choose_formatter() -> logging.Formatter:
     return _JsonFormatter()  # non-TTY (journald/pipe) → JSON (NFR8)
 
 
+#: The node's logger, registered by node.main once the rclpy node
+#: exists. A NODE logger publishes to /rosout; a bare
+#: rclpy.logging.get_logger() does NOT (it only writes the console).
+_ros_logger = None
+
+
+def set_ros_logger(logger) -> None:
+    """Register ``node.get_logger()`` so logs also publish to /rosout.
+
+    Call once, right after the node is created. Until then,
+    :func:`publish_rosout` is a no-op (so host tests stay quiet).
+    """
+    global _ros_logger
+    _ros_logger = logger
+
+
+def publish_rosout(levelno: int, msg: str) -> None:
+    """Publish ``msg`` to the standard ROS ``/rosout`` topic (Story 7.6).
+
+    Lets the body be watched from another machine
+    (``ros2 topic echo /rosout`` / rqt_console). Does NOT violate
+    subscribe-only (the FR3 test permits ``/rosout``). No-op until the
+    node logger is registered via :func:`set_ros_logger`.
+    """
+    logger = _ros_logger
+    if logger is None:
+        return
+    try:
+        from rclpy.logging import LoggingSeverity
+
+        sev = {
+            logging.DEBUG: LoggingSeverity.DEBUG,
+            logging.INFO: LoggingSeverity.INFO,
+            logging.WARNING: LoggingSeverity.WARN,
+            logging.ERROR: LoggingSeverity.ERROR,
+            logging.CRITICAL: LoggingSeverity.FATAL,
+        }.get(levelno, LoggingSeverity.INFO)
+        logger.log(msg, sev)
+    except Exception:
+        pass
+
+
+class _RosoutHandler(logging.Handler):
+    """Forward engine log records to ``/rosout`` (network-visible)."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        extra = getattr(record, "fields", None)
+        kv = ""
+        if isinstance(extra, dict) and extra:
+            kv = "  " + " ".join(f"{k}={v}" for k, v in extra.items())
+        publish_rosout(record.levelno, f"{record.getMessage()}{kv}")
+
+
 def setup_logging() -> logging.Logger:
     """Idempotently configure and return the engine logger."""
     global _configured
@@ -91,6 +144,7 @@ def setup_logging() -> logging.Logger:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(_choose_formatter())
         logger.addHandler(handler)
+        logger.addHandler(_RosoutHandler())  # also publish to /rosout
         logger.setLevel(logging.INFO)
         logger.propagate = False
         _configured = True

@@ -34,7 +34,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 
 from expression_engine.config import EngineConfig, load_config
-from expression_engine.logging_setup import log_event, setup_logging
+from expression_engine.logging_setup import log_event, set_ros_logger, setup_logging
 from expression_engine.schema import SchemaVersionError
 from expression_engine.adapters._testing import (
     NullContinuousAdapter,
@@ -244,6 +244,9 @@ def main(args=None) -> None:
             ears=EarsAdapter(),
             eye=EyeAdapter(),
         )
+    # Route engine logs to /rosout now that the node (with its rosout
+    # publisher) exists — watch remotely with `just bodylog`.
+    set_ros_logger(node.get_logger())
     log_event(
         logging.INFO,
         "engine_started",

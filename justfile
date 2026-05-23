@@ -28,6 +28,7 @@ help:
     @echo "Robot (run ON the Pi — drives real hardware):"
     @echo "  just body-up          Boot the body — bring the engine node up & ready"
     @echo "  just monitor          Live-watch the 4 interface topics (read-only)"
+    @echo "  just bodylog          Watch the body's own logs on /rosout (remote)"
     @echo "  just topics           List the /olaf/* topics on the DDS domain"
     @echo "  just activity-walk    Story 7.3 — walk every ActivityState"
     @echo "  just voc-run          Story 7.2 — fire each vocalization"
@@ -134,6 +135,17 @@ monitor:
     source /opt/ros/jazzy/setup.bash
     PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
         poetry run python ros2/src/expression_engine/tools/monitor.py
+
+# Watch the body's OWN logs (engine events, crashes, received + the
+# conversation narrative) which it publishes to the standard /rosout
+# topic — so you can follow it from ANY machine on domain 42, no SSH.
+# Shows the msg field per entry. GUI alternative: rqt_console.
+
+# Tail the body's /rosout logs (domain 42) — remote, no SSH.
+bodylog:
+    #!/usr/bin/env bash
+    source /opt/ros/jazzy/setup.bash
+    ROS_DOMAIN_ID=42 ros2 topic echo /rosout --field msg
 
 # Quick discovery on domain 42. `-v` adds QoS + pub/sub counts:
 #   just topics -v

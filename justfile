@@ -111,22 +111,16 @@ exp-test *args:
 # Package paths prepended to PYTHONPATH (engine + drivers + libs).
 exp_pp := "ros2/src/expression_engine:ros2/src/olaf_drivers/neck_driver:ros2/src/olaf_drivers/head_ears_driver:libs"
 
-# This IS the §9 startup (expression_engine/node.py:main): load config +
-# the expression map, connect every adapter in sequence — neck, ears,
-# head/eye I2C (EyeAdapter.connect WAKES the head ESP32) — then subscribe
-# to the producer's 4 topics and start the render loop. After this the
-# body is LIVE, rendering whatever a producer publishes (see
-# contract/INTERFACE.md). Fatal-fast (NFR7): a bad config/map or an
-# adapter that won't connect exits non-zero — fix and re-run. Foreground;
-# Ctrl-C to stop. Run ON the Pi. Args pass through as ROS args, e.g. a
-# namespaced 2nd body (Story 7.6): just body-up --ros-args -r __ns:=/olaf_2
+# Thin wrapper over scripts/start-body.sh — the production entrypoint
+# that runs the body to RECEIVE the producer's 4 topics and render them
+# (the §9 startup: load config+map, connect adapters — wakes the head
+# ESP32 — subscribe, render). Fatal-fast; foreground; Ctrl-C to stop.
+# Run ON the Pi. Args pass through as ROS args, e.g. a namespaced 2nd
+# body (Story 7.6): just body-up --ros-args -r __ns:=/olaf_2
 
 # Boot the body (engine node) & leave it ready to render — Pi only.
 body-up *args:
-    #!/usr/bin/env bash
-    source /opt/ros/jazzy/setup.bash
-    PYTHONPATH="{{exp_pp}}:${PYTHONPATH:-}" \
-        poetry run python -m expression_engine.node {{args}}
+    ./scripts/start-body.sh {{args}}
 
 # Joins the engine's configured DDS domain + per-topic QoS, so it sees
 # exactly what the body sees — latched mood/activity replay their

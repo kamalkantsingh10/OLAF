@@ -64,3 +64,12 @@ step_max_seconds = 30.0        # random per-step pace, max
 ease_seconds = 2.0             # gentle per-step transition (dreamy, not a sudden jerk)
 drift_amplitude_deg = 0.6      # sub-degree mood-modulated micro-movement
 drift_period_seconds = 4.0     # breath-like micro-movement period
+
+[listening]
+# WALL-E side-to-side head cock (ROLL) while the activity is `listening`
+# (Story 7.6). Slow swing to a new side every roll_period_* seconds.
+# Neck-only — no ears. Set roll_amp_deg = 0 to disable.
+roll_amp_deg = 10.0        # peak cock to each side (deg; roll clamp is ±15)
+roll_period_min_s = 4.0    # min seconds before swinging to the other side
+roll_period_max_s = 10.0   # max seconds before swinging
+roll_ease_seconds = 1.5    # how slowly it eases to a side (WALL-E slow)

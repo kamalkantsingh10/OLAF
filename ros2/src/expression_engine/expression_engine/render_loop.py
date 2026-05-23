@@ -29,7 +29,7 @@ from typing import Any, Callable, Optional
 from expression_engine.adapters import ears_gestures, neck_gestures
 from expression_engine.adapters.base import ContinuousAdapter, DelegatingAdapter
 from expression_engine.adapters.eye_adapter import EyeAdapter
-from expression_engine.config import AnimationConfig, IdleConfig
+from expression_engine.config import AnimationConfig, IdleConfig, ListeningConfig
 from expression_engine.idle import IdleController
 from expression_engine.logging_setup import log_event
 from expression_engine.map_loader import ExpressionMap
@@ -334,6 +334,7 @@ class RenderLoop:
         audio_anchor_resolver: Optional[Callable[[str], float]] = None,
         rng: Optional[random.Random] = None,
         idle: Optional[IdleConfig] = None,
+        listening: Optional[ListeningConfig] = None,
     ) -> None:
         self._state = state
         self._map = expression_map
@@ -371,6 +372,13 @@ class RenderLoop:
         _idle_cfg = idle or IdleConfig()
         self._idle = IdleController(_idle_cfg, rng=random.Random())
         self._idle_ease = _idle_cfg.ease_seconds   # gentle dreamy idle transitions
+        # Story 7.6 — WALL-E side-to-side head cock (roll) while listening.
+        self._listening = listening or ListeningConfig()
+        self._listen_rng = random.Random()
+        self._listen_roll = 0.0          # current eased roll offset (deg)
+        self._listen_roll_vel = 0.0
+        self._listen_roll_side = 1
+        self._listen_roll_next_flip = 0.0
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
         self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
         self._sleep_ears = _overlay({j: 0.0 for j in _EARS}, _spose.get("ears"))
@@ -577,6 +585,37 @@ class RenderLoop:
                     hint="not in expression_map.vocalization (or no layered_action)",
                 )
 
+    def _listening_roll(self, snap: dict, now: float, dt: float, suppressed: bool) -> float:
+        """WALL-E side-to-side head cock (roll, deg) while listening.
+
+        Swings to a new side every ``roll_period_*`` seconds, easing
+        slowly toward it. Returns 0 when not listening, during idle
+        decay (``suppressed``), or when disabled (``roll_amp_deg == 0``).
+        """
+        cfg = self._listening
+        if cfg.roll_amp_deg <= 0.0:
+            return 0.0
+        act = snap.get("activity")
+        listening = (
+            not suppressed
+            and act is not None
+            and getattr(act.payload, "state", None) == "listening"
+        )
+        if listening:
+            if now >= self._listen_roll_next_flip:
+                self._listen_roll_side = -self._listen_roll_side
+                self._listen_roll_next_flip = now + self._listen_rng.uniform(
+                    cfg.roll_period_min_s, cfg.roll_period_max_s
+                )
+            target = self._listen_roll_side * cfg.roll_amp_deg
+        else:
+            target = 0.0  # ease back to level once listening ends
+        self._listen_roll, self._listen_roll_vel = smooth_damp(
+            self._listen_roll, target, self._listen_roll_vel,
+            cfg.roll_ease_seconds, dt,
+        )
+        return self._listen_roll
+
     # ── the tick ───────────────────────────────────────────────────
 
     def tick(self, now: float) -> dict[str, float]:
@@ -679,6 +718,11 @@ class RenderLoop:
             dp, dtl = self._idle.drift_offset(now, self._mood_energy(snap))
             drift["pan"] = dp
             drift["tilt"] = dtl
+        # Story 7.6 — WALL-E side-to-side head cock (roll) while listening,
+        # suppressed during idle decay; neck-only (no ears).
+        drift["roll"] += self._listening_roll(
+            snap, now, dt, suppressed=idle_stage is not None
+        )
         neck_out = {
             j: self._a.value.get(j, 0.0)
             + self._s.value.get(j, 0.0)

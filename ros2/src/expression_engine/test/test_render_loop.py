@@ -25,7 +25,7 @@ from expression_engine.adapters._testing import (
     neck_test_adapter,
     ears_test_adapter,
 )
-from expression_engine.config import AnimationConfig
+from expression_engine.config import AnimationConfig, ListeningConfig
 from expression_engine.map_loader import load_expression_map
 from expression_engine.node import _default_map_path
 from expression_engine.render_loop import RenderLoop, smooth_damp
@@ -80,6 +80,50 @@ def _run(loop, clock, seconds, hz=100.0):
     for _ in range(n):
         loop.tick(clock())
         clock.advance(dt)
+
+
+def _loop_listen(state, clock, listening):
+    neck = neck_test_adapter(clock)
+    lp = RenderLoop(
+        state, EMAP, ANIM,
+        neck=neck,
+        ears=ears_test_adapter(clock),
+        eye=RecordingDelegatingAdapter(clock),
+        clock=clock,
+        listening=listening,
+    )
+    return lp, neck
+
+
+class TestListeningRoll:  # Story 7.6 — WALL-E side-to-side head cock
+    def test_cocks_both_sides_while_listening(self):
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "listening", "from_state": "waking"})
+        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=10.0))
+        _run(lp, clock, 30.0)  # ≥3 swings even at the 4-10s max period
+        rolls = [t.get("roll", 0.0) for _, t, _ in neck.applied]
+        assert max(rolls) > 5.0    # cocked to one side
+        assert min(rolls) < -5.0   # ... and the other
+
+    def test_returns_to_level_when_not_listening(self):
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "listening", "from_state": "waking"})
+        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=10.0))
+        _run(lp, clock, 8.0)
+        _push(state, "activity", {"state": "speaking", "from_state": "listening"})
+        _run(lp, clock, 6.0)
+        assert abs(neck.last["roll"]) < 2.0  # eased back level
+
+    def test_amp_zero_disables(self):
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "listening", "from_state": "waking"})
+        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=0.0))
+        _run(lp, clock, 20.0)
+        rolls = [t.get("roll", 0.0) for _, t, _ in neck.applied]
+        assert max(abs(r) for r in rolls) < 1e-6
 
 
 # ── smooth_damp unit ────────────────────────────────────────────────

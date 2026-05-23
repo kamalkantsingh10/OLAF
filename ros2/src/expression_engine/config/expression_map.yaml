@@ -167,11 +167,11 @@ vocalization:
   laughter:
     visible_only: false
     layered_action:
-      attack_ms: [60, 120]
-      settle_ms: [440, 1380]
-      eye:           { expression: happy,     intensity: [1, 3] }
-      neck_gesture:  { token: nod,     amp_deg: [14, 20], dur_s: [0.7, 1.2], cycles: [2, 4] }
-      ears_gesture:  { token: flick,   amp_deg: [10, 16], dur_s: [0.5, 0.9] }
+      attack_ms: [50, 90]
+      settle_ms: [1200, 2000]
+      eye:           { expression: happy,     intensity: [3, 4] }
+      neck_gesture:  { token: nod,     amp_deg: [18, 24], dur_s: [1.3, 2.2], cycles: [6, 10] }
+      ears_gesture:  { token: flick,   amp_deg: [16, 22], dur_s: [0.45, 0.80] }
   # Review iter #3 (2026-05-20): eye = neutral (oval-steady). Earlier
   # `content` was visibly indistinguishable from `happy` on the device
   # — firmware comments confirm both are "crescent-up" shapes; only

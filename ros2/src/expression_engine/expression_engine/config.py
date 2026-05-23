@@ -51,6 +51,22 @@ class AnimationConfig:
 
 
 @dataclass(frozen=True)
+class ListeningConfig:
+    """`[listening]` ambient motion — WALL-E side-to-side head cock.
+
+    While the activity is ``listening`` the neck slowly cocks left↔right
+    (ROLL axis), swinging to a new side every ``roll_period_*`` seconds
+    and easing over ``roll_ease_seconds``. Neck-only — no ears.
+    ``roll_amp_deg = 0`` disables it.
+    """
+
+    roll_amp_deg: float = 10.0       # peak cock to each side (roll clamp ±15)
+    roll_period_min_s: float = 4.0   # min time before swinging to the other side
+    roll_period_max_s: float = 10.0  # max time before swinging
+    roll_ease_seconds: float = 1.5   # how slowly it eases to a side (WALL-E slow)
+
+
+@dataclass(frozen=True)
 class IdleConfig:
     """`[idle]` drift-to-sleep decay — Story 6.5 (architecture §7/§8).
 
@@ -86,6 +102,7 @@ class EngineConfig:
     topics: dict[str, str]
     animation: AnimationConfig = AnimationConfig()
     idle: IdleConfig = IdleConfig()
+    listening: ListeningConfig = ListeningConfig()
 
 
 def load_config(path: str | Path) -> EngineConfig:
@@ -154,6 +171,7 @@ def load_config(path: str | Path) -> EngineConfig:
         topics=topics,
         animation=_parse_animation(raw.get("animation")),
         idle=_parse_idle(raw.get("idle")),
+        listening=_parse_listening(raw.get("listening")),
     )
 
 
@@ -166,6 +184,7 @@ _KNOWN_TOP_LEVEL = {
     "hardware",
     "animation",
     "idle",
+    "listening",
 }
 
 
@@ -237,6 +256,46 @@ _IDLE_BOUNDS = {
     "drift_amplitude_deg": (0.0, 5.0),
     "drift_period_seconds": (0.5, 60.0),
 }
+
+
+_LISTENING_BOUNDS = {
+    "roll_amp_deg": (0.0, 15.0),       # 0 disables; clamp ceiling is ±15
+    "roll_period_min_s": (0.5, 120.0),
+    "roll_period_max_s": (0.5, 120.0),
+    "roll_ease_seconds": (0.1, 30.0),
+}
+
+
+def _parse_listening(section: object) -> ListeningConfig:
+    """Parse `[listening]` leniently — defaults for any absent key; a
+    present-but-mistyped/out-of-range value is fatal (NFR7)."""
+    if section is None:
+        return ListeningConfig()
+    if not isinstance(section, dict):
+        raise ValueError("[listening] must be a TOML table")
+    defaults = ListeningConfig()
+    values: dict[str, float] = {}
+    for field_name in _LISTENING_BOUNDS:
+        if field_name not in section:
+            values[field_name] = getattr(defaults, field_name)
+            continue
+        raw_val = section[field_name]
+        if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+            raise ValueError(
+                f"[listening].{field_name} must be a number, got {raw_val!r}"
+            )
+        lo, hi = _LISTENING_BOUNDS[field_name]
+        if not lo <= raw_val <= hi:
+            raise ValueError(
+                f"[listening].{field_name} must be in [{lo}, {hi}], got {raw_val!r}"
+            )
+        values[field_name] = float(raw_val)
+    if values["roll_period_min_s"] > values["roll_period_max_s"]:
+        raise ValueError(
+            f"[listening].roll_period_min_s ({values['roll_period_min_s']}) "
+            f"must be <= roll_period_max_s ({values['roll_period_max_s']})"
+        )
+    return ListeningConfig(**values)
 
 
 def _parse_idle(section: object) -> IdleConfig:

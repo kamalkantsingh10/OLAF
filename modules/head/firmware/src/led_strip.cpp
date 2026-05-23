@@ -14,7 +14,7 @@
  *
  * Brightness hierarchy — the LED is OLAF's "voice" channel (Kamal
  * 2026-05-24): SPEAKING is bright + lively (60% of kLedMaxBrightness);
- * WORKING is a dim, slow thinking-pulse; LISTENING renders DARK — the
+ * WORKING is a dim, slow thinking-pulse on the MIDDLE 2; LISTENING DARK — the
  * LED stays off, the eyes + neck head-cock carry listening. idle /
  * woke_up / going_idle also render dark.
  */
@@ -162,11 +162,12 @@ static void animateWokeUp() {
 // ============================================================================
 
 // ============================================================================
-// PROCESSING (working) — dim, SLOW "thinking" pulse  (looping, ~2.2 s)
+// PROCESSING (working) — dim, SLOW "thinking" pulse on the MIDDLE 2
+// (looping, ~2.6 s)
 //
-// The whole strip breathes together on a slow, gentle sine at LOW level —
-// a calm "I'm thinking" glow, clearly below SPEAKING and clearly more than
-// LISTENING's static ember (motion reads as thinking). Kamal 2026-05-24.
+// Just the centre pair breathes on a slow, gentle sine at LOW level — a
+// calm "I'm thinking" glow, clearly below SPEAKING; LISTENING is dark.
+// Kamal 2026-05-24 (middle-2 only).
 // ============================================================================
 
 static void animateProcessing() {
@@ -176,9 +177,7 @@ static void animateProcessing() {
     float pulse = 0.5f * (1.0f - cosf(t * 2.0f * PI));       // smooth 0→1→0
     float level = 0.04f + 0.10f * pulse;                    // subtle: ~0.04–0.14
 
-    for (uint8_t d = 0; d <= 3; d++) {
-        setSymPair(d, whiteAt(level));
-    }
+    setSymPair(0, whiteAt(level));                          // middle 2 only
 
     active_brightness = kLedDefaultBrightness;
     animation_complete = false;
@@ -375,12 +374,11 @@ void ledStripUpdate() {
             break;
     }
 
-    // Mood tint (overlay) layered LAST — only on WORKING + SPEAKING; every
-    // other state (incl. LISTENING) renders dark, and the overlay floors
-    // EVERY pixel so it must NOT run on dark states. Separate I2C event
-    // (REG_LED_OVERLAY). Kamal 2026-05-24.
-    bool tinted = (current_state == LedState::PROCESSING ||
-                   current_state == LedState::SPEAKING);
+    // Mood/emotion tint (overlay) layered LAST — only on SPEAKING. The
+    // overlay floors EVERY pixel, so it must NOT run on dark states OR on
+    // WORKING (which is just the middle-2 pulse, kept colourless). Separate
+    // I2C event (REG_LED_OVERLAY). Kamal 2026-05-24.
+    bool tinted = (current_state == LedState::SPEAKING);
     if (tinted) {
         applyOverlay();
     }

@@ -565,6 +565,17 @@ class RenderLoop:
                         mood_eye_expression=mood_eye_expr,
                     )
                 )
+            else:
+                # FR13 — unknown tag (or no layered_action): render
+                # nothing, but SAY so (mirrors expression.unmapped_activity)
+                # so a producer/map tag mismatch is visible, not silently
+                # dropped — e.g. the producer sends a tag the map lacks.
+                log_event(
+                    logging.WARNING,
+                    "expression.unmapped_vocalization",
+                    tag=tag,
+                    hint="not in expression_map.vocalization (or no layered_action)",
+                )
 
     # ── the tick ───────────────────────────────────────────────────
 

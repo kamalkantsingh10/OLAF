@@ -42,6 +42,10 @@ set -u
 PKG_PATHS="ros2/src/expression_engine:ros2/src/olaf_drivers/neck_driver:ros2/src/olaf_drivers/head_ears_driver:libs"
 export PYTHONPATH="${PKG_PATHS}:${PYTHONPATH:-}"
 
+# Event logs (received.log + conversation.log) for debugging. Default
+# <repo>/logs; override OLAF_LOG_DIR=/path, or OLAF_LOG_DIR=off to skip.
+export OLAF_LOG_DIR="${OLAF_LOG_DIR:-$REPO_ROOT/logs}"
+
 # `exec` so signals (SIGTERM from systemd) reach the node directly and it
 # shuts the adapters down cleanly. `poetry` resolves via the login PATH
 # on the Pi (~/.local/bin); a systemd unit should use the full path.

@@ -31,6 +31,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
 
+from expression_engine import event_log
 from expression_engine.config import EngineConfig
 from expression_engine.logging_setup import log_event
 from expression_engine.schema import SchemaVersionError, parse_event
@@ -85,6 +86,11 @@ def _make_callback(topic_key: str, state: EngineState):
                 detail=str(exc),
             )
             return
+        # Story 7.6 debug logs — record what we ACTUALLY received +
+        # the readable conversation narrative (opt-in via OLAF_LOG_DIR;
+        # start-body.sh sets it). Best-effort, never breaks the callback.
+        event_log.log_received(topic_key, event)
+        event_log.log_conversation(topic_key, event)
         state.apply(topic_key, event)
 
     return _on_message

@@ -235,8 +235,8 @@ static void animateSpeaking() {
         addSymPair(random(4), whiteAt(0.85f));
     }
 
-    // SPEAKING is the LED's moment — clearly the brightest state.
-    active_brightness = kLedMaxBrightness;
+    // SPEAKING is the LED's moment — bright, but at 60% (Kamal 2026-05-24).
+    active_brightness = (uint8_t)(kLedMaxBrightness * 0.6f);
     animation_complete = false;
 }
 

@@ -13,10 +13,10 @@
  * emotional overlay (Story 7.3) on WORKING / SPEAKING only.
  *
  * Brightness hierarchy — the LED is OLAF's "voice" channel (Kamal
- * 2026-05-24): SPEAKING is bright + lively (kLedMaxBrightness); WORKING
- * is a dim, slow thinking-pulse; LISTENING is a near-off faint middle-2
- * ember (the eyes + neck head-cock carry listening). idle / woke_up /
- * going_idle render dark.
+ * 2026-05-24): SPEAKING is bright + lively (60% of kLedMaxBrightness);
+ * WORKING is a dim, slow thinking-pulse; LISTENING renders DARK — the
+ * LED stays off, the eyes + neck head-cock carry listening. idle /
+ * woke_up / going_idle also render dark.
  */
 
 #include "led_strip.h"
@@ -156,23 +156,10 @@ static void animateWokeUp() {
 }
 
 // ============================================================================
-// LISTENING — near-off faint middle-2 ember  (looping, very slow breath)
-//
-// Just the centre pair on a faint, slow breath — the LED is intentionally
-// quiet while listening; the eyes + neck head-cock carry it (Kamal
-// 2026-05-24). No travelling wave, no outer LEDs.
+// LISTENING — LED OFF. The strip stays DARK while listening (Kamal
+// 2026-05-24); the eyes + neck head-cock carry it. No animation — handled
+// by the `default` (dark) case in ledStripUpdate().
 // ============================================================================
-
-static void animateListening() {
-    clearAll();
-
-    float t = (millis() % 6000) / 6000.0f;                 // slow 6 s breath
-    float breath = 0.04f + 0.05f * (0.5f * (1.0f + sinf(t * 2.0f * PI)));
-    setSymPair(0, whiteAt(breath));                         // middle 2 only, ~0.04–0.09
-
-    active_brightness = kLedDefaultBrightness;
-    animation_complete = false;
-}
 
 // ============================================================================
 // PROCESSING (working) — dim, SLOW "thinking" pulse  (looping, ~2.2 s)
@@ -379,7 +366,7 @@ LedOverlay ledStripGetOverlay() {
 
 void ledStripUpdate() {
     switch (current_state) {
-        case LedState::LISTENING:  animateListening();  break;
+        // LISTENING falls through to `default` → DARK (Kamal 2026-05-24).
         case LedState::PROCESSING: animateProcessing(); break;
         case LedState::SPEAKING:   animateSpeaking();   break;
         default:
@@ -388,10 +375,10 @@ void ledStripUpdate() {
             break;
     }
 
-    // Mood tint (overlay) layered LAST — only on WORKING + SPEAKING, so
-    // LISTENING stays a bare middle-2 ember and dark states stay off (the
-    // overlay floors EVERY pixel, which would defeat "middle 2 only").
-    // Separate I2C event (REG_LED_OVERLAY). Kamal 2026-05-24.
+    // Mood tint (overlay) layered LAST — only on WORKING + SPEAKING; every
+    // other state (incl. LISTENING) renders dark, and the overlay floors
+    // EVERY pixel so it must NOT run on dark states. Separate I2C event
+    // (REG_LED_OVERLAY). Kamal 2026-05-24.
     bool tinted = (current_state == LedState::PROCESSING ||
                    current_state == LedState::SPEAKING);
     if (tinted) {

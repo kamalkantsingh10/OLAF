@@ -199,6 +199,7 @@ def main(args=None) -> None:
             "config_load_failed",
             error=type(exc).__name__,
             detail=str(exc),
+            exc_info=True,
         )
         sys.exit(1)
 
@@ -213,6 +214,7 @@ def main(args=None) -> None:
             "expression_map_load_failed",
             error=type(exc).__name__,
             detail=str(exc),
+            exc_info=True,
         )
         sys.exit(1)
 
@@ -259,6 +261,7 @@ def main(args=None) -> None:
             "adapter_connect_failed",
             error=type(exc).__name__,
             detail=str(exc),
+            exc_info=True,
         )
         node.close_adapters()
         node.destroy_node()
@@ -285,6 +288,7 @@ def main(args=None) -> None:
             found=exc.found,
             supported=exc.supported,
             source=exc.source,
+            exc_info=True,
         )
         exit_code = 1
     finally:

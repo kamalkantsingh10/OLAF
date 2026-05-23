@@ -9,13 +9,14 @@
  * distance 0 = center pair (indices 3,4)
  * distance 3 = edge pair   (indices 0,7)
  *
- * Color theme: White base for every lit state, tinted to the current
- * mood colour by the emotional overlay (Story 7.3). Strip is LIT only
- * for LISTENING / PROCESSING / SPEAKING; idle / woke_up / going_idle
- * render dark.
+ * Color theme: White base, tinted to the current mood colour by the
+ * emotional overlay (Story 7.3) on WORKING / SPEAKING only.
  *
- * Brightness: base kLedDefaultBrightness (~10%), peaks during transient
- * effects, always returns to base.
+ * Brightness hierarchy — the LED is OLAF's "voice" channel (Kamal
+ * 2026-05-24): SPEAKING is bright + lively (kLedMaxBrightness); WORKING
+ * is a dim, slow thinking-pulse; LISTENING is a near-off faint middle-2
+ * ember (the eyes + neck head-cock carry listening). idle / woke_up /
+ * going_idle render dark.
  */
 
 #include "led_strip.h"
@@ -155,54 +156,38 @@ static void animateWokeUp() {
 }
 
 // ============================================================================
-// LISTENING — White sonar pulse from center  (looping, 1.5 s cycle)
+// LISTENING — near-off faint middle-2 ember  (looping, very slow breath)
 //
-// Bell-curve wave radiates outward. Dim cyan glow persists at center.
+// Just the centre pair on a faint, slow breath — the LED is intentionally
+// quiet while listening; the eyes + neck head-cock carry it (Kamal
+// 2026-05-24). No travelling wave, no outer LEDs.
 // ============================================================================
 
 static void animateListening() {
     clearAll();
 
-    float phase = (millis() % 1500) / 1500.0f;
-    float wave_pos = phase * 5.5f;
-
-    for (uint8_t d = 0; d <= 3; d++) {
-        float behind = wave_pos - (float)d;
-
-        if (behind >= 0.0f && behind < 2.0f) {
-            float t = behind / 2.0f;
-            float intensity = sinf(t * PI);
-            intensity *= intensity;
-
-            setSymPair(d, whiteAt(intensity * 0.85f));
-        }
-    }
-
-    // Persistent dim origin glow at center
-    float glow = 0.08f + 0.05f * sinf(millis() / 400.0f);
-    addSymPair(0, whiteAt(glow));
+    float t = (millis() % 6000) / 6000.0f;                 // slow 6 s breath
+    float breath = 0.04f + 0.05f * (0.5f * (1.0f + sinf(t * 2.0f * PI)));
+    setSymPair(0, whiteAt(breath));                         // middle 2 only, ~0.04–0.09
 
     active_brightness = kLedDefaultBrightness;
     animation_complete = false;
 }
 
 // ============================================================================
-// PROCESSING — Whole-strip "thinking" pulse-blink  (looping, ~650 ms)
+// PROCESSING (working) — dim, SLOW "thinking" pulse  (looping, ~2.2 s)
 //
-// All symmetric pairs pulse TOGETHER on a brisk, sharp beat — a busy
-// blink, deliberately distinct from LISTENING's smooth wave travelling
-// outward. A low floor keeps a dim mood-tinted background present between
-// pulses (the overlay tints the whole strip). Story 7.3 (Kamal: working
-// LED must differ clearly from listening).
+// The whole strip breathes together on a slow, gentle sine at LOW level —
+// a calm "I'm thinking" glow, clearly below SPEAKING and clearly more than
+// LISTENING's static ember (motion reads as thinking). Kamal 2026-05-24.
 // ============================================================================
 
 static void animateProcessing() {
     clearAll();
 
-    float phase = (millis() % 650) / 650.0f;
-    float pulse = sinf(phase * PI);
-    pulse = pulse * pulse * pulse;            // sharp peak → reads as a blink
-    float level = 0.15f + 0.80f * pulse;      // dim background floor + bright blink
+    float t = (millis() % 2200) / 2200.0f;                  // slow ~2.2 s
+    float pulse = 0.5f * (1.0f - cosf(t * 2.0f * PI));       // smooth 0→1→0
+    float level = 0.06f + 0.22f * pulse;                    // dim: ~0.06–0.28
 
     for (uint8_t d = 0; d <= 3; d++) {
         setSymPair(d, whiteAt(level));
@@ -250,7 +235,8 @@ static void animateSpeaking() {
         addSymPair(random(4), whiteAt(0.85f));
     }
 
-    active_brightness = kLedDefaultBrightness;
+    // SPEAKING is the LED's moment — clearly the brightest state.
+    active_brightness = kLedMaxBrightness;
     animation_complete = false;
 }
 
@@ -392,12 +378,6 @@ LedOverlay ledStripGetOverlay() {
 }
 
 void ledStripUpdate() {
-    // Story 7.3: the strip is LIT only for listening / working
-    // (processing) / speaking; idle / woke_up / going_idle render dark.
-    bool lit = (current_state == LedState::LISTENING ||
-                current_state == LedState::PROCESSING ||
-                current_state == LedState::SPEAKING);
-
     switch (current_state) {
         case LedState::LISTENING:  animateListening();  break;
         case LedState::PROCESSING: animateProcessing(); break;
@@ -408,10 +388,13 @@ void ledStripUpdate() {
             break;
     }
 
-    // Emotional overlay (mood tint) is layered LAST — but ONLY on the
-    // lit states, so dark states stay truly off (no wash floor). It's a
-    // separate I2C event (REG_LED_OVERLAY), independent of the state.
-    if (lit) {
+    // Mood tint (overlay) layered LAST — only on WORKING + SPEAKING, so
+    // LISTENING stays a bare middle-2 ember and dark states stay off (the
+    // overlay floors EVERY pixel, which would defeat "middle 2 only").
+    // Separate I2C event (REG_LED_OVERLAY). Kamal 2026-05-24.
+    bool tinted = (current_state == LedState::PROCESSING ||
+                   current_state == LedState::SPEAKING);
+    if (tinted) {
         applyOverlay();
     }
 

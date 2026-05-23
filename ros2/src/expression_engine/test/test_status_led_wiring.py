@@ -222,6 +222,28 @@ def test_mood_change_drives_led_overlay(mood, expected):
     assert lp._eye.overlays[-1][1] == expected
 
 
+_SPEECH_OVERLAY_CASES = [
+    ("happy", "warm"), ("excited", "bright"), ("sad", "cool"),
+    ("angry", "hot"), ("melancholic", "cool"), ("surprised", "bright"),
+]
+
+
+@pytest.mark.parametrize("emotion,expected", _SPEECH_OVERLAY_CASES)
+def test_speech_emotion_drives_led_overlay(emotion, expected):
+    # LED colour follows the active speech emotion while talking (the LED
+    # is OLAF's voice channel) — Kamal 2026-05-24.
+    st = EngineState()
+    ck = SimClock()
+    lp = _loop(st, ck)
+    _push(st, "speech_emotion", {
+        "emotion": emotion, "source_tag": "t", "raw_tag": "t",
+        "resolved_fallback": None,
+    })
+    lp.tick(ck())
+    assert lp._eye.overlays, "no led_overlay sent on speech_emotion change"
+    assert lp._eye.overlays[-1][1] == expected
+
+
 def test_led_overlay_fire_on_change_skips_same_tint():
     st = EngineState()
     ck = SimClock()

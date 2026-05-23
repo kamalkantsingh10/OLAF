@@ -506,6 +506,14 @@ class RenderLoop:
             return evt
         return None
 
+    def _push_led_overlay(self, token: object) -> None:
+        """Fire-on-change push of a LED colour-tint bucket to the head."""
+        if token is not None and token != self._last_overlay:
+            self._last_overlay = token
+            set_overlay = getattr(self._eye, "set_led_overlay", None)
+            if callable(set_overlay):
+                set_overlay(token)
+
     def _handle_events(self, snap: dict, now: float) -> None:
         # speech_emotion: anticipatory biasing + (the eye is fired by
         # the change-detect below, early — before the anchor).
@@ -513,6 +521,13 @@ class RenderLoop:
         if sp is not None:
             self._speech_smooth_s = _SPEECH_EASE_S
             self._idle.notify_event(now)   # speech resets idle (Story 6.5)
+            # LED colour follows the SPEECH EMOTION while talking (the LED
+            # is OLAF's voice channel) — overrides the mood tint during
+            # speech; mood holds between utterances. Fire-on-change.
+            se = self._map.speech_emotion.get(sp.payload.emotion)
+            self._push_led_overlay(
+                se.get("led_overlay") if isinstance(se, dict) else None
+            )
             fid = sp.payload.audio_frame_id
             if fid is not None and self._anchor_resolver is not None:
                 try:
@@ -560,12 +575,9 @@ class RenderLoop:
         mood_evt = self._changed(snap, "mood")
         if mood_evt is not None:
             entry = self._map.mood.get(mood_evt.payload.mood)
-            overlay = entry.get("led_overlay") if isinstance(entry, dict) else None
-            if overlay is not None and overlay != self._last_overlay:
-                self._last_overlay = overlay
-                set_overlay = getattr(self._eye, "set_led_overlay", None)
-                if callable(set_overlay):
-                    set_overlay(overlay)
+            self._push_led_overlay(
+                entry.get("led_overlay") if isinstance(entry, dict) else None
+            )
 
         # vocalization: map-driven, randomized parametric transient
         # (Story 7.2 — replaces _Gesture.SHAPES).

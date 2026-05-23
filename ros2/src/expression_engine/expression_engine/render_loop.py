@@ -378,6 +378,8 @@ class RenderLoop:
         self._listen_roll = 0.0          # current eased roll offset (deg)
         self._listen_roll_vel = 0.0
         self._listen_roll_side = 1
+        self._listen_roll_target = 0.0   # sampled signed amplitude this swing
+        self._listen_roll_ease = self._listening.roll_ease_max_s  # sampled ease
         self._listen_roll_next_flip = 0.0
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
         self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
@@ -588,12 +590,13 @@ class RenderLoop:
     def _listening_roll(self, snap: dict, now: float, dt: float, suppressed: bool) -> float:
         """WALL-E side-to-side head cock (roll, deg) while listening.
 
-        Swings to a new side every ``roll_period_*`` seconds, easing
-        slowly toward it. Returns 0 when not listening, during idle
-        decay (``suppressed``), or when disabled (``roll_amp_deg == 0``).
+        On each swing samples a RANDOM amplitude, ease (speed) and period,
+        so the cock never looks mechanical. Returns 0 when not listening,
+        during idle decay (``suppressed``), or disabled
+        (``roll_amp_max_deg == 0``).
         """
         cfg = self._listening
-        if cfg.roll_amp_deg <= 0.0:
+        if cfg.roll_amp_max_deg <= 0.0:
             return 0.0
         act = snap.get("activity")
         listening = (
@@ -604,15 +607,23 @@ class RenderLoop:
         if listening:
             if now >= self._listen_roll_next_flip:
                 self._listen_roll_side = -self._listen_roll_side
+                amp = self._listen_rng.uniform(
+                    cfg.roll_amp_min_deg, cfg.roll_amp_max_deg
+                )
+                self._listen_roll_target = self._listen_roll_side * amp
+                self._listen_roll_ease = self._listen_rng.uniform(
+                    cfg.roll_ease_min_s, cfg.roll_ease_max_s
+                )
                 self._listen_roll_next_flip = now + self._listen_rng.uniform(
                     cfg.roll_period_min_s, cfg.roll_period_max_s
                 )
-            target = self._listen_roll_side * cfg.roll_amp_deg
+            target = self._listen_roll_target
+            ease = self._listen_roll_ease
         else:
             target = 0.0  # ease back to level once listening ends
+            ease = cfg.roll_ease_max_s
         self._listen_roll, self._listen_roll_vel = smooth_damp(
-            self._listen_roll, target, self._listen_roll_vel,
-            cfg.roll_ease_seconds, dt,
+            self._listen_roll, target, self._listen_roll_vel, ease, dt,
         )
         return self._listen_roll
 

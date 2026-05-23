@@ -67,9 +67,12 @@ drift_period_seconds = 4.0     # breath-like micro-movement period
 
 [listening]
 # WALL-E side-to-side head cock (ROLL) while the activity is `listening`
-# (Story 7.6). Slow swing to a new side every roll_period_* seconds.
-# Neck-only — no ears. Set roll_amp_deg = 0 to disable.
-roll_amp_deg = 10.0        # peak cock to each side (deg; roll clamp is ±15)
+# (Story 7.6). Each swing samples a RANDOM amplitude, ease (speed) AND
+# period, so it never looks mechanical. Neck-only — no ears. Set both
+# roll_amp_min_deg and roll_amp_max_deg to 0 to disable.
+roll_amp_min_deg = 3.0     # smallest cock (deg)
+roll_amp_max_deg = 14.0    # largest cock (deg; roll clamp is ±15)
 roll_period_min_s = 4.0    # min seconds before swinging to the other side
 roll_period_max_s = 10.0   # max seconds before swinging
-roll_ease_seconds = 1.5    # how slowly it eases to a side (WALL-E slow)
+roll_ease_min_s = 0.8      # fastest swing
+roll_ease_max_s = 3.0      # slowest swing (WALL-E slow)

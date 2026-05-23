@@ -54,16 +54,18 @@ class AnimationConfig:
 class ListeningConfig:
     """`[listening]` ambient motion — WALL-E side-to-side head cock.
 
-    While the activity is ``listening`` the neck slowly cocks left↔right
-    (ROLL axis), swinging to a new side every ``roll_period_*`` seconds
-    and easing over ``roll_ease_seconds``. Neck-only — no ears.
-    ``roll_amp_deg = 0`` disables it.
+    While the activity is ``listening`` the neck cocks left↔right (ROLL
+    axis). Each swing samples a RANDOM amplitude (large range), a RANDOM
+    ease (speed) and a random period, so it never looks mechanical.
+    Neck-only — no ears. ``roll_amp_max_deg = 0`` disables it.
     """
 
-    roll_amp_deg: float = 10.0       # peak cock to each side (roll clamp ±15)
+    roll_amp_min_deg: float = 3.0    # smallest cock (deg)
+    roll_amp_max_deg: float = 14.0   # largest cock (deg; roll clamp is ±15)
     roll_period_min_s: float = 4.0   # min time before swinging to the other side
     roll_period_max_s: float = 10.0  # max time before swinging
-    roll_ease_seconds: float = 1.5   # how slowly it eases to a side (WALL-E slow)
+    roll_ease_min_s: float = 0.8     # fastest swing (quick cock)
+    roll_ease_max_s: float = 3.0     # slowest swing (slow drift)
 
 
 @dataclass(frozen=True)
@@ -259,10 +261,12 @@ _IDLE_BOUNDS = {
 
 
 _LISTENING_BOUNDS = {
-    "roll_amp_deg": (0.0, 15.0),       # 0 disables; clamp ceiling is ±15
+    "roll_amp_min_deg": (0.0, 15.0),   # set both to 0 to disable; ±15 ceiling
+    "roll_amp_max_deg": (0.0, 15.0),
     "roll_period_min_s": (0.5, 120.0),
     "roll_period_max_s": (0.5, 120.0),
-    "roll_ease_seconds": (0.1, 30.0),
+    "roll_ease_min_s": (0.1, 30.0),
+    "roll_ease_max_s": (0.1, 30.0),
 }
 
 
@@ -290,11 +294,16 @@ def _parse_listening(section: object) -> ListeningConfig:
                 f"[listening].{field_name} must be in [{lo}, {hi}], got {raw_val!r}"
             )
         values[field_name] = float(raw_val)
-    if values["roll_period_min_s"] > values["roll_period_max_s"]:
-        raise ValueError(
-            f"[listening].roll_period_min_s ({values['roll_period_min_s']}) "
-            f"must be <= roll_period_max_s ({values['roll_period_max_s']})"
-        )
+    for lo_key, hi_key in (
+        ("roll_amp_min_deg", "roll_amp_max_deg"),
+        ("roll_period_min_s", "roll_period_max_s"),
+        ("roll_ease_min_s", "roll_ease_max_s"),
+    ):
+        if values[lo_key] > values[hi_key]:
+            raise ValueError(
+                f"[listening].{lo_key} ({values[lo_key]}) must be "
+                f"<= {hi_key} ({values[hi_key]})"
+            )
     return ListeningConfig(**values)
 
 

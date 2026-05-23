@@ -96,31 +96,55 @@ def _loop_listen(state, clock, listening):
 
 
 class TestListeningRoll:  # Story 7.6 — WALL-E side-to-side head cock
+    _CFG = dict(
+        roll_amp_min_deg=10.0, roll_amp_max_deg=14.0,
+        roll_ease_min_s=0.5, roll_ease_max_s=1.5,
+    )
+
     def test_cocks_both_sides_while_listening(self):
         clock = SimClock()
         state = EngineState()
         _push(state, "activity", {"state": "listening", "from_state": "waking"})
-        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=10.0))
+        lp, neck = _loop_listen(state, clock, ListeningConfig(**self._CFG))
         _run(lp, clock, 30.0)  # ≥3 swings even at the 4-10s max period
         rolls = [t.get("roll", 0.0) for _, t, _ in neck.applied]
         assert max(rolls) > 5.0    # cocked to one side
         assert min(rolls) < -5.0   # ... and the other
 
+    def test_random_amplitude_varies(self):
+        # Each swing samples a fresh amplitude → distinct peaks, not one
+        # fixed value. Collect per-swing extremes and check they differ.
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "listening", "from_state": "waking"})
+        lp, neck = _loop_listen(
+            state, clock,
+            ListeningConfig(roll_amp_min_deg=4.0, roll_amp_max_deg=14.0,
+                            roll_ease_min_s=0.4, roll_ease_max_s=1.0),
+        )
+        _run(lp, clock, 60.0)
+        rolls = [round(t.get("roll", 0.0), 1) for _, t, _ in neck.applied]
+        peaks = {abs(r) for r in rolls if abs(r) > 3.0}
+        assert len(peaks) > 5  # many distinct magnitudes → randomised
+
     def test_returns_to_level_when_not_listening(self):
         clock = SimClock()
         state = EngineState()
         _push(state, "activity", {"state": "listening", "from_state": "waking"})
-        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=10.0))
+        lp, neck = _loop_listen(state, clock, ListeningConfig(**self._CFG))
         _run(lp, clock, 8.0)
         _push(state, "activity", {"state": "speaking", "from_state": "listening"})
-        _run(lp, clock, 6.0)
+        _run(lp, clock, 8.0)
         assert abs(neck.last["roll"]) < 2.0  # eased back level
 
     def test_amp_zero_disables(self):
         clock = SimClock()
         state = EngineState()
         _push(state, "activity", {"state": "listening", "from_state": "waking"})
-        lp, neck = _loop_listen(state, clock, ListeningConfig(roll_amp_deg=0.0))
+        lp, neck = _loop_listen(
+            state, clock,
+            ListeningConfig(roll_amp_min_deg=0.0, roll_amp_max_deg=0.0),
+        )
         _run(lp, clock, 20.0)
         rolls = [t.get("roll", 0.0) for _, t, _ in neck.applied]
         assert max(abs(r) for r in rolls) < 1e-6

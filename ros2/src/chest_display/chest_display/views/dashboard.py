@@ -12,6 +12,7 @@ import pygame
 
 from ..layout import dashboard_slots
 from ..view_manager import View
+from ..widgets.heart import HeartWidget
 
 # Dark base so the heart's warm glow (8.2) stays the focal point; logs cool/dim.
 COLOR_BG = (12, 10, 14)
@@ -29,6 +30,9 @@ class DashboardView(View):
         self.slots = dashboard_slots(*size)
         # slot_name -> widget exposing draw(surface, rect) [+ optional update(dt)]
         self.widgets: dict = widgets or {}
+        # The heart band gets the living heart widget by default (Story 8.2).
+        if "heart" not in self.widgets:
+            self.widgets["heart"] = HeartWidget()
         self._font: pygame.font.Font | None = None
 
     def _ensure_font(self) -> None:
@@ -52,7 +56,11 @@ class DashboardView(View):
         for slot, rect in self.slots.items():
             widget = self.widgets.get(slot)
             if widget is not None:
+                # Clip each widget to its cell so nothing spills into neighbours.
+                prev = surface.get_clip()
+                surface.set_clip(pygame.Rect(rect.as_tuple()))
                 widget.draw(surface, rect)
+                surface.set_clip(prev)
             else:
                 self._draw_placeholder(surface, slot, rect)
         self._draw_separators(surface)

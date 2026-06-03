@@ -1,6 +1,6 @@
 # Story 8.2: Animated anatomical heart widget
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,27 +23,27 @@ so that my chest reads as alive and warm — not as a clinical organ diagram.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Heart art + glow-from-within (AC: #1)
-  - [ ] Render a stylized anatomical heart centered in the TL cell; warm palette (crimson→coral→amber), rounded/simplified, no clinical detail
-  - [ ] Inner glow via a **pre-rendered radial gradient** blitted additively under/over the heart body (fake SSS); glow brightness is the focal pulse [Saved Question #1 — art source]
-- [ ] Task 2: Lub-dub beat engine (AC: #2)
-  - [ ] Drive a beat phase clock; map phase → (scale, glow) with **asymmetric easing** (fast systolic contraction, short gap, smaller S2, slow diastolic relaxation)
-  - [ ] Contraction = scale down ~8% + glow flash; relaxation = slow ease back to baseline
-- [ ] Task 3: Always-alive resting beat + jitter (AC: #3)
-  - [ ] Default resting rate ~60–80 bpm feel; apply ±5–8% per-interval jitter so it is never metronomic [Saved Question #2 — exact bpm/jitter, Kamal-tuned]
-  - [ ] Beats with zero external input (no engine, no data) — the resting beat is the fallback, not an add-on
-- [ ] Task 4: Wake animation (AC: #4)
-  - [ ] One-shot on first show: glow ignites from dark → first lub-dub → settle into resting cadence
-- [ ] Task 5: Performance (AC: #5)
-  - [ ] Pre-render the glow gradient once; use hardware/additive blits; **no per-pixel Python** in the loop
-  - [ ] Confirm ≥30 fps on the Pi 5 with the heart animating in the dashboard
-- [ ] Task 6: Input interface for 8.4 (AC: #6)
-  - [ ] `set_beat_rate(bpm)`, `set_intensity(level)`, `set_tint(color)` — mirror the frozen `expression_map.yaml` `heart: {bpm, intensity, color}` fields so 8.4 maps the forwarded state 1:1
-  - [ ] Defaults produce the resting beat; methods present but unused this story (no engine link)
-- [ ] Task 7: Tests / verification (AC: #2, #3, #6)
-  - [ ] Unit: beat-phase function is periodic and asymmetric (systole faster than diastole); jitter stays within bounds and is non-zero
-  - [ ] Unit: `set_beat_rate/intensity/tint` change the widget's target state (no display needed)
-  - [ ] On the Pi: visually warm (not clinical), glow pulses with the beat, never static, ≥30 fps
+> **Design evolved during the live build (Kamal feedback) — see Completion Notes.** Net: **no glow** (removed — it spilled and Kamal didn't want it); the heart is a **per-emotion PNG image** (calm/neutral/content = glossy 3D red heart) rather than a procedural anatomical+glow shape; the beat is an **amplitude-scaled size throb** (extreme = 110%↔40%); the input API became **bpm + amplitude + image** (`set_profile`).
+
+- [x] Task 1: Heart art (AC: #1) — *glow removed; art = per-emotion image*
+  - [x] Heart rendered centered in the heart band — final look is a **per-emotion PNG** (`assets/heart_calm.png`, glossy 3D red), swappable via `set_image`. (Procedural anatomical + glow-from-within was built first, then dropped — Kamal: "we do not need the glow", and the glow circle spilled into other blocks.)
+  - [x] No glow / no spill — each widget is also clipped to its cell as a safety net
+- [x] Task 2: Lub-dub beat engine (AC: #2)
+  - [x] Beat phase clock → contraction via asymmetric lub-dub envelope (fast systole, smaller dub, slow diastole) — `heart_beat.py`, tested
+  - [x] Beat drives **scale** (amplitude-scaled throb), not glow
+- [x] Task 3: Always-alive resting beat + jitter (AC: #3)
+  - [x] Resting beat (~62 bpm default) with ±5% per-beat jitter; never metronomic — **Saved Q#2 defaults set, Kamal-tunable**
+  - [x] Beats with zero external input — the calm resting beat is the fallback, not an add-on
+- [x] Task 4: Wake animation (AC: #4)
+  - [x] One-shot fade-in on first show (alpha ramp over 0.8s) — glow-ignite replaced by image fade-in (no glow)
+- [x] Task 5: Performance (AC: #5)
+  - [x] `smoothscale` of the transparent PNG per frame + alpha; **≥30 fps confirmed** (service render loop runs at 30 fps on the Pi)
+- [x] Task 6: Input interface for 8.4 (AC: #6) — *API evolved to the emotion model*
+  - [x] `set_beat_rate(bpm)`, `set_amplitude(a)`, `set_image(path)`, `set_profile(image, bpm, amplitude)` — emotion drives **bpm + amplitude + image** (replaces the original bpm/intensity/color). **Saved Q#1 resolved: per-emotion images** (map references image by name; chest app owns the PNGs).
+  - [x] Defaults = calm resting beat; not yet engine-driven (that is Story 8.4)
+- [x] Task 7: Tests / verification (AC: #2, #3, #6)
+  - [x] Unit: lub-dub envelope asymmetric + bounded; jitter deterministic-with-seed; scale within amplitude bounds; extreme = 110%↔40%; wake ramp; setters — **11 beat tests + asset test (27 total in the package)**
+  - [x] On the Pi: heart renders (glossy 3D — Kamal: "looks perfect"), beats, fades in, never static, 30 fps; emotion image/bpm/amplitude path smoke-tested
 
 ## Dev Notes
 
@@ -102,8 +102,38 @@ Builds on the 8.1 package skeleton. [Source: Story 8.1 Project Structure Notes]
 
 ### Agent Model Used
 
+claude-opus-4-8 (1M context)
+
 ### Debug Log References
+
+- `python3 -m pytest test/ -o addopts=""` → **27 passed** (dev PC and Pi). Headless smoke-render (SDL `dummy`) of the dashboard + heart + profile change: OK.
 
 ### Completion Notes List
 
+**Design evolution (all Kamal live feedback on hardware, 2026-06-03) — recorded because it diverges from the written ACs:**
+1. **Glow removed (AC#1).** Built the procedural anatomical heart with glow-from-within first; the glow rendered as a big circle that **spilled into the other blocks**, and Kamal said "we do not need the glow." → removed the glow entirely; added per-cell clipping in the dashboard as a safety net. The beat now reads purely through the **size throb**.
+2. **Per-emotion image, not procedural (AC#1 / Saved Q#1).** The look is a **full-colour PNG that swaps per emotion** (calm/neutral/content = a glossy 3D red heart, sourced). The widget owns the asset files; the expression map will reference an image by **name** (8.4). Tried a tintable white-silhouette first, but Kamal chose distinct per-emotion images.
+3. **Amplitude model (AC#6).** Emotion drives **bpm + amplitude + image** (not the original `bpm/intensity/color`). `amplitude` scales the throb: at **1.0 (extreme)** the heart swings **relaxed 110% ↔ full-contraction 40%**; calm uses a small amplitude. `set_profile(image, bpm, amplitude)` is the one-call hook for 8.4.
+4. **Wake** is now an alpha **fade-in** of the image (the glow-ignite is gone with the glow).
+
+**Consequence for 8.4 (the next emotion-config story):** the frozen `expression_map.yaml` `heart:` schema `{bpm, intensity, color}` must be **amended to `{image, bpm, amplitude}`** (documented amendment to the §5.2 freeze), then authored per emotion; the engine forwards the eased values and the chest app calls `set_profile`.
+
+**ACs:** #2 (lub-dub), #3 (always-alive + jitter), #4 (wake fade-in), #5 (≥30 fps), #6 (reactive API) — met. #1's *intent* (a warm, alive, non-clinical heart) is met via the 3D image + throb; the literal "glow-from-within" was dropped by owner choice.
+
 ### File List
+
+_New (under `ros2/src/chest_display/`):_
+- `chest_display/heart_beat.py` — pure lub-dub/jitter/wake/amplitude model
+- `chest_display/widgets/__init__.py`, `chest_display/widgets/heart.py` — HeartWidget (image + beat)
+- `chest_display/assets/heart_calm.png` — calm/neutral/content heart image
+- `test/test_heart_beat.py`, `test/test_heart_asset.py`
+
+_Modified:_
+- `chest_display/views/dashboard.py` — instantiate HeartWidget in the `heart` slot; per-cell clipping
+- `setup.py` — add `widgets` package + `assets/*.png` package data
+- `docs/implementation-artifacts/sprint-status.yaml` (8-2 → review)
+
+### Change Log
+
+- 2026-06-03: Implemented 8.2 — lub-dub beat engine + HeartWidget; 27 tests green; verified on the panel.
+- 2026-06-03 (Kamal live feedback): removed glow (spilled); switched to per-emotion PNG (glossy 3D heart); reworked to bpm+amplitude+image model (extreme throb 110%↔40%) with `set_profile`. **Story 8.2 → review.** Emotion config + engine wiring deferred to 8.4 (requires amending the `heart:` map schema to `{image,bpm,amplitude}`).

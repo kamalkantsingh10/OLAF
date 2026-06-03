@@ -92,7 +92,7 @@ development_status:
   # Frozen §4 Protocols + §5.2 map freeze unchanged. See sprint-change-proposal-2026-06-03.md.
   epic-8: in-progress
   8-1-chest-display-foundation: review           # DONE on hw: boot-to-app + 4-block dashboard + view-manager (15 tests)
-  8-2-animated-anatomical-heart-widget: ready-for-dev  # living lub-dub heart, glow-from-within
+  8-2-animated-anatomical-heart-widget: review         # DONE on hw: lub-dub 3D heart, per-emotion image + bpm/amplitude (no glow)
   8-3-log-panels: ready-for-dev                  # 3 placeholder LogPanel widgets (dummy data)
   # Deferred (later stories, not MVP): 8-4 reactive heart, 8-5 fullscreen-takeover,
   # 8-6 capacitive touch, 8-7 regression-lock, 8-8 boot/runtime hardening.

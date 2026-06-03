@@ -7,7 +7,9 @@ package_name = 'chest_display'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=[package_name, package_name + '.views'],
+    packages=[package_name, package_name + '.views', package_name + '.widgets'],
+    package_data={package_name: ['assets/*.png']},
+    include_package_data=True,
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

@@ -13,12 +13,39 @@ import pygame
 from ..layout import dashboard_slots
 from ..view_manager import View
 from ..widgets.heart import HeartWidget
+from ..widgets.log_panel import LogPanel
 
 # Dark base so the heart's warm glow (8.2) stays the focal point; logs cool/dim.
 COLOR_BG = (12, 10, 14)
 COLOR_SEPARATOR = (40, 36, 44)
 COLOR_PLACEHOLDER = (90, 84, 96)
 COLOR_CELL_BORDER = (28, 25, 32)
+
+
+def _seed_lines(title: str) -> list[str]:
+    return [f"{title.lower()} log started", "waiting for data…"]
+
+
+class _DummyFeeder:
+    """Placeholder data so the panels visibly scroll (Story 8.3).
+
+    Replaced by real feeds in 8.4+ (which just call panel.push(...) instead).
+    """
+
+    def __init__(self, panels, interval: float = 1.3):
+        self.panels = panels
+        self.interval = interval
+        self._t = 0.0
+        self._n = 0
+
+    def update(self, dt: float) -> None:
+        self._t += dt
+        if self._t >= self.interval:
+            self._t = 0.0
+            self._n += 1
+            stamp = self._n * self.interval
+            for panel in self.panels:
+                panel.push(f"t+{stamp:5.1f}s  {panel.title.lower()} evt {self._n:03d}")
 
 
 class DashboardView(View):
@@ -33,6 +60,15 @@ class DashboardView(View):
         # The heart band gets the living heart widget by default (Story 8.2).
         if "heart" not in self.widgets:
             self.widgets["heart"] = HeartWidget()
+        # The three log areas get placeholder log panels (Story 8.3).
+        for slot, title in (("log_mid", "SYSTEM"), ("log_bl", "SPEECH"), ("log_br", "SENSORS")):
+            if slot not in self.widgets:
+                panel = LogPanel(title=title)
+                panel.set_lines(_seed_lines(title))
+                self.widgets[slot] = panel
+        self._dummy = _DummyFeeder(
+            [self.widgets[s] for s in ("log_mid", "log_bl", "log_br") if s in self.widgets]
+        )
         self._font: pygame.font.Font | None = None
 
     def _ensure_font(self) -> None:
@@ -46,6 +82,7 @@ class DashboardView(View):
         self.widgets[slot] = widget
 
     def update(self, dt: float) -> None:
+        self._dummy.update(dt)   # placeholder data (Story 8.3); real feeds in 8.4+
         for widget in self.widgets.values():
             if hasattr(widget, "update"):
                 widget.update(dt)

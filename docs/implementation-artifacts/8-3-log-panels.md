@@ -1,6 +1,6 @@
 # Story 8.3: Log panels (three placeholder panels)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -22,19 +22,19 @@ so that the dashboard layout and legibility can be evaluated now and real feeds 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `LogPanel` widget (AC: #1, #3)
-  - [ ] Titled panel: small title bar + monospace body, dim/cool palette; draws within a given 240×400 rect
-  - [ ] Bounded ring buffer of lines; newest-first scroll; wrap or truncate lines to the cell width (no overflow into neighbors) [Saved Question #2 — font/size for portrait legibility]
-- [ ] Task 2: Feed API (AC: #4)
-  - [ ] `push(line: str)` appends one line (evicts oldest past the cap); `set_lines(lines: list[str])` replaces the buffer
-  - [ ] No data source baked in — the panel only knows how to display lines it is given
-- [ ] Task 3: Dummy content (AC: #2)
-  - [ ] Instantiate three panels in TR/BL/BR with placeholder titles `SYSTEM` / `SPEECH` / `SENSORS` and rotating dummy lines (timestamps + sample messages) so scrolling/legibility are visible [Saved Question #1 — real feed identities]
-- [ ] Task 4: Visual hierarchy (AC: #5)
-  - [ ] Tune panel colors dim/cool so the heart's warm glow stays the focal point; verify the four-cell composition together
-- [ ] Task 5: Tests / verification (AC: #3, #4)
-  - [ ] Unit: ring buffer caps correctly; `push`/`set_lines` behave; long-line wrap/truncate stays within width (no headless display needed)
-  - [ ] On the Pi: three panels scroll dummy lines, text stays inside cells, heart still reads as the focal element
+- [x] Task 1: `LogPanel` widget (AC: #1, #3)
+  - [x] Titled panel: title bar + rule + monospace body, cool/dim palette; draws within any given rect — `widgets/log_panel.py`
+  - [x] Bounded ring buffer (`LogBuffer`, deque maxlen); **terminal-tail** scroll (newest at the bottom); long lines **truncated to width with `…`** (no overflow; dashboard also clips each cell)
+- [x] Task 2: Feed API (AC: #4)
+  - [x] `push(line)` (evicts oldest past cap) + `set_lines(lines)` (replaces, keeps newest within cap); coerces to str
+  - [x] No data source baked in — the panel only displays lines it is given (real feeds in 8.4+ call these)
+- [x] Task 3: Dummy content (AC: #2)
+  - [x] Three panels in **`log_mid` (`SYSTEM`) / `log_bl` (`SPEECH`) / `log_br` (`SENSORS`)**; a `_DummyFeeder` pushes a timestamped line ~every 1.3s so scrolling/legibility are visible. **Saved Q#1 (real feed identities) still open** — titles are placeholders.
+- [x] Task 4: Visual hierarchy (AC: #5)
+  - [x] Cool/dim panel palette; heart stays the focal point — verified on the panel together (Kamal: "looks perfect")
+- [x] Task 5: Tests / verification (AC: #3, #4)
+  - [x] Unit: ring-buffer cap/eviction, `push`/`set_lines`, ordering, str-coercion — **5 tests** (`test_log_panel.py`); 32 total in the package
+  - [x] On the Pi: three panels scroll dummy lines, text stays inside cells, heart reads as focal — confirmed
 
 ## Dev Notes
 
@@ -86,8 +86,31 @@ Builds on the 8.1 skeleton and sits beside the 8.2 heart widget. [Source: Story 
 
 ### Agent Model Used
 
+claude-opus-4-8 (1M context)
+
 ### Debug Log References
+
+- `python3 -m pytest test/ -o addopts=""` → **32 passed** (dev PC + Pi). Headless smoke (SDL `dummy`): dummy feeder accumulates lines and the panels render without spill.
 
 ### Completion Notes List
 
+- **One reusable `LogPanel` (+ pure `LogBuffer`) used three times**, in the **`log_mid` / `log_bl` / `log_br`** areas (the 8.1 4-block layout, not the original "TR/BL/BR 240×400 quarters" AC text). Titles `SYSTEM` / `SPEECH` / `SENSORS` are placeholders (Saved Q#1 open).
+- **Scroll is terminal-tail** (newest at the bottom) — read of AC#3's "newest-first"; easy to flip if preferred.
+- Long lines **truncate to width with `…`**; the dashboard also **clips each cell**, so nothing spills (AC#3).
+- **Data-source-agnostic:** real feeds in 8.4+ just call `panel.push(...)` / `set_lines(...)`. The `_DummyFeeder` (in `dashboard.py`) is placeholder-only and gets removed/replaced when real data lands.
+- **Hierarchy (AC#5):** cool/dim palette keeps the heart focal — Kamal confirmed "looks perfect" with all four blocks live. (Note AC#5 says "warm glow" — the heart has no glow now; it's the 3D image, per 8.2.)
+- ACs #1–#5 met (with the layout/scroll/glow wording reconciled above).
+
 ### File List
+
+_New:_
+- `ros2/src/chest_display/chest_display/widgets/log_panel.py` — `LogBuffer` (pure) + `LogPanel` (pygame)
+- `ros2/src/chest_display/test/test_log_panel.py`
+
+_Modified:_
+- `ros2/src/chest_display/chest_display/views/dashboard.py` — instantiate 3 log panels + `_DummyFeeder`
+- `docs/implementation-artifacts/sprint-status.yaml` (8-3 → review)
+
+### Change Log
+
+- 2026-06-03: Implemented 8.3 — reusable `LogPanel`/`LogBuffer`, three placeholder panels (SYSTEM/SPEECH/SENSORS) with a dummy feeder; 5 buffer tests (32 total); verified scrolling + hierarchy on the panel. **Story 8.3 → review.** Dashboard MVP (heart + logs) complete; real feeds + emotion wiring = 8.4.

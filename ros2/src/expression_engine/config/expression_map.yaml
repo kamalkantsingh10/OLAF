@@ -107,26 +107,26 @@ activity:
 # the hardened neck/ears adapter clamps (neck pan±80 tilt±20 roll±15;
 # ears pan±50 tilt−60..90) so no clamp fires.
 speech_emotion:
-  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 5,  left_tilt: 0,   right_pan: 5,  right_tilt: 0 } },   eye: { expression: neutral,     intensity: 3 }, led_overlay: none }
-  content:     { pose: { neck: { pan: 0,  tilt: 6,   roll: 0 },  ears: { left_pan: 10, left_tilt: 8,   right_pan: 10, right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm }
-  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: 0 },  ears: { left_pan: 22, left_tilt: 18,  right_pan: 22, right_tilt: 18 } }, eye: { expression: excited,     intensity: 5 }, led_overlay: bright }
-  sad:         { pose: { neck: { pan: 0,  tilt: -16, roll: 0 },  ears: { left_pan: 30, left_tilt: -10, right_pan: 30, right_tilt: -10 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool }
+  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 5,  left_tilt: 0,   right_pan: 5,  right_tilt: 0 } },   eye: { expression: neutral,     intensity: 2 }, led_overlay: none }
+  content:     { pose: { neck: { pan: 0,  tilt: 8,   roll: 4 },  ears: { left_pan: 10, left_tilt: 8,   right_pan: 10, right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm }
+  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: -6 },  ears: { left_pan: 22, left_tilt: 18,  right_pan: 22, right_tilt: 18 } }, eye: { expression: excited,     intensity: 3 }, led_overlay: bright }
+  sad:         { pose: { neck: { pan: 0,  tilt: -22, roll: 0 },  ears: { left_pan: 30, left_tilt: -10, right_pan: 30, right_tilt: -10 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool }
   # ⚠ angry/frustrated/scared carry negative right_tilt; servo-ids.yaml
   # right_tilt physical min is -7 (adapter clamp is wider, -60). These
   # three are the hardware-tuning set for the Task 5 robot pass.
-  angry:       { pose: { neck: { pan: 0,  tilt: -10, roll: 0 },  ears: { left_pan: 8,  left_tilt: -14, right_pan: 8,  right_tilt: -14 } }, eye: { expression: angry,       intensity: 4 }, led_overlay: hot }
-  scared:      { pose: { neck: { pan: 0,  tilt: -6,  roll: 0 },  ears: { left_pan: 10, left_tilt: -20, right_pan: 10, right_tilt: -20 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool }
+  angry:       { pose: { neck: { pan: 0,  tilt: -20, roll: 0 },  ears: { left_pan: 8,  left_tilt: -14, right_pan: 8,  right_tilt: -14 } }, eye: { expression: angry,       intensity: 2 }, led_overlay: hot }
+  scared:      { pose: { neck: { pan: -14, tilt: 12, roll: 0 },  ears: { left_pan: 10, left_tilt: -20, right_pan: 10, right_tilt: -20 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool }
   # Story 6.4 REFERENCE expression — KEPT AS-IS (do not churn). Ears
   # seeded verbatim from head_ears_driver/expressions.py EMOTION_HAPPY
   # (left_pan 20, left_tilt 18, right_pan 20, right_tilt 18;
   # right_pan ≤50 safe). neck bias is a modest joyful chin-up.
   # Proven end-to-end on hardware in Story 6.4 Task 5.
-  happy:       { pose: { neck: { tilt: 6 },          ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 4 }, led_overlay: warm }
-  curious:     { pose: { neck: { pan: 10, tilt: 6,   roll: 12 }, ears: { left_pan: 6,  left_tilt: 16,  right_pan: 30, right_tilt: 6 } },  eye: { expression: curious,     intensity: 4 }, led_overlay: none }
-  sympathetic: { pose: { neck: { pan: 6,  tilt: 2,   roll: 10 }, ears: { left_pan: 12, left_tilt: 8,   right_pan: 12, right_tilt: 8 } },   eye: { expression: sympathetic, intensity: 3 }, led_overlay: warm }
-  surprised:   { pose: { neck: { pan: 0,  tilt: 16,  roll: 0 },  ears: { left_pan: 28, left_tilt: 6,   right_pan: 28, right_tilt: 6 } },   eye: { expression: surprised,   intensity: 5 }, led_overlay: bright }
-  frustrated:  { pose: { neck: { pan: 18, tilt: -4,  roll: -4 }, ears: { left_pan: 14, left_tilt: -6,  right_pan: 20, right_tilt: -10 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot }
-  melancholic: { pose: { neck: { pan: -8, tilt: -12, roll: -3 }, ears: { left_pan: 24, left_tilt: -6,  right_pan: 24, right_tilt: -6 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool }
+  happy:       { pose: { neck: { tilt: 12, roll: 4 }, ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 2 }, led_overlay: warm }
+  curious:     { pose: { neck: { pan: 24, tilt: 8,   roll: 14 }, ears: { left_pan: 6,  left_tilt: 16,  right_pan: 30, right_tilt: 6 } },  eye: { expression: curious,     intensity: 2 }, led_overlay: none }
+  sympathetic: { pose: { neck: { pan: 8,  tilt: 0,   roll: 14 }, ears: { left_pan: 12, left_tilt: 8,   right_pan: 12, right_tilt: 8 } },   eye: { expression: sympathetic, intensity: 2 }, led_overlay: warm }
+  surprised:   { pose: { neck: { pan: 10, tilt: 16,  roll: 0 },  ears: { left_pan: 28, left_tilt: 6,   right_pan: 28, right_tilt: 6 } },   eye: { expression: surprised,   intensity: 2 }, led_overlay: bright }
+  frustrated:  { pose: { neck: { pan: 30, tilt: -10, roll: -12 }, ears: { left_pan: 14, left_tilt: -6,  right_pan: 20, right_tilt: -10 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot }
+  melancholic: { pose: { neck: { pan: -20, tilt: -16, roll: -12 }, ears: { left_pan: 24, left_tilt: -6,  right_pan: 24, right_tilt: -6 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool }
 
 # ALL vocalization tags. Story 7.2 authors `layered_action` for each:
 # a CRISP transient (total window attack_ms+settle_ms ∈ [500, 1500]ms)
@@ -222,3 +222,19 @@ vocalization:
       attack_ms: [60, 120]
       settle_ms: [440, 1380]
       neck_gesture:  { token: shake,   amp_deg: [14, 20], dur_s: [0.5, 1.0] }
+  # v2 PREP (companion Epic 6 / DR-004, brief Body Story 6.3): the
+  # pipeline will emit vocalization(tag="emphasis") per LLM-marked word —
+  # a CRISP single head-beat (prosodic stress). Authored EMPHATIC (Kamal
+  # 2026-06-02): strong amplitude single beat — still one decisive nod
+  # (cycles 1, vs [nod]'s multi-cycle 1-3) so it reads as punctuation,
+  # not a held pose. This entry is harmless until the companion ships the
+  # tag (render_loop logs unmapped_vocalization meanwhile — no crash;
+  # emphasis is an EXTRA tag, not in the canonical set, so the
+  # completeness check ignores it). Fixed amplitude for now; amplitude
+  # scaled by speech_emotion+mood is later code (brief 6.3c).
+  emphasis:
+    visible_only: true
+    layered_action:
+      attack_ms: [40, 80]
+      settle_ms: [200, 380]
+      neck_gesture:  { token: nod,     amp_deg: [11, 17], dur_s: [0.24, 0.42], cycles: 1 }

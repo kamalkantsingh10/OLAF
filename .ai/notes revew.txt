@@ -39,3 +39,77 @@ for Wink use Devious (last row column 2)
 
 
 
+update -- i thing the perception of left and right this wrong - the pupils are actually mooving away from each other in the cases
+
+
+Happy must be upper arc as it was before you changed it jut add  visible pupil thats is on touching the lower curve
+  2 must not have sparkeles .. th yellow colorer must be closer to  yellow tint 
+  3 only the right eye must have sparkle deep yellow na 200% bigger and on the righter edge of the lcd
+
+
+content- 
+  1. good - just move the pupil closer to each outher
+  2. 2 must be just a hint of yellow no fx
+  3. i like the outer animation bu remove the pink dot 
+
+
+
+Happy - make the yellow color of eye (sparkle color is good) even more muted ( just barely noticable yellow). the pupil must be 50% smaller #fdffdd
+
+Content is the best one just must be 	#edf2d8
+
+
+
+excited - get rid of white dot from the pupil (we already ahve sparkle)
+1.  must have black sparkle too 
+2.  yellow - #fcffcd
+3.  yellow - #fcffcd- the animation is too much.. jut make the sparkles all over the background (animated, deep yellow)
+
+
+
+Sad.. lets make the eye shape of both the eye cropped and curved down crop (Same radious as left top crop). the color is good 2
+no purple lines ecept for what you have in right eye of 2.. no tears in 2, for 3 it is fine
+
+melanholixc and sypethic is good
+
+
+angry -- the shape must be like thhis (the oupil must be as it is  noow - Just change the shape.. slanted curved crop)
+1- keep the color white
+2- the current red is good but same shape as 1 no additional shape
+3- the shape of 1(as we discussed) and keep the smoke - remove the additional plus like shape you have
+
+----
+
+
+scare is good.. jut remove the crop- jut round eyes with what we have currently
+curious is ok too
+surprized is ok
+sleepy is good
+
+wink- the right eye must be smaller and bot eyes mut have curved crop and slightly slanted- outer edges higher .. rest is fine
+
+flirty is cool
+
+
+--- 
+laughter must have more up  and down motion..  I mostly see heepy in eyes not sure why 
+for sigh the eye must not be happy but content or frustrated
+gasp must be not be with excited - but lets make it sympethic
+
+for clear throat do not move earths mus just minor jerks sideways
+
+
+node should be mor and (1-3 iteration - amplitude random but stays same for 1 fire)
+no sis good 
+
+
+
+sigh is sometimes showing happy sometimes angry...  it should alswas show content
+clear thouat must stay speech emotion - may be just remove eye completely
+node is ok - but keep the speech emotion - may be just remove eye completely
+same with shake - remoce eye gesture completely
+
+
+
+u
+

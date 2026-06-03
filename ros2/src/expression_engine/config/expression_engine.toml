@@ -52,6 +52,11 @@ mood_ease_seconds = 3.0
 emotion_anticipatory_ms = 50
 gesture_attack_ms = 80
 gesture_settle_ms = 200
+# Head "suddenness" — smooth_damp time-constants (s). Lower = snappier,
+# less WALL-E. Defaults (absent) are 0.5 / 0.15; tuned down here so pose
+# changes land crisply. Floor is 0.02 (~60ms arrival, snappy not a jerk).
+activity_ease_seconds = 0.22   # activity pose transitions (was 0.5)
+speech_ease_seconds   = 0.08   # speech_emotion pose snap (was 0.15)
 
 [idle]
 # Drift-to-sleep decay (Story 6.5). Left alone (not speaking/working),
@@ -66,29 +71,39 @@ drift_amplitude_deg = 0.6      # sub-degree mood-modulated micro-movement
 drift_period_seconds = 4.0     # breath-like micro-movement period
 
 [listening]
-# WALL-E side-to-side head cock (ROLL) while the activity is `listening`
-# (Story 7.6). Each swing samples a RANDOM amplitude, ease (speed) AND
-# period, so it never looks mechanical. Neck-only — no ears. Set both
-# roll_amp_min_deg and roll_amp_max_deg to 0 to disable.
-roll_amp_min_deg = 3.0     # smallest cock (deg)
-roll_amp_max_deg = 14.0    # largest cock (deg; roll clamp is ±15)
-roll_period_min_s = 4.0    # min seconds before swinging to the other side
-roll_period_max_s = 10.0   # max seconds before swinging
-roll_ease_min_s = 0.8      # fastest swing
-roll_ease_max_s = 3.0      # slowest swing (WALL-E slow)
+# Head motion while the activity is `listening` (Story 7.6). A side-to-
+# side cock (ROLL) PLUS sharp pan/tilt darts so OLAF reads as alert and
+# reactive, not slow-WALL-E. Each swing samples random amplitude, ease
+# (speed) and period so it never looks mechanical; darts re-sample on the
+# same swing and ease in fast. Neck-only — no ears. Set roll_amp_*=0 to
+# kill the cock, pan/tilt_amp_*=0 to kill the darts.
+# Tuned STRONG/theatrical (Kamal 2026-06-02): bigger + faster + snappier.
+roll_amp_min_deg = 6.0     # smallest cock (deg)
+roll_amp_max_deg = 14.0    # largest cock (deg; roll clamp is ±15, 1° headroom)
+roll_period_min_s = 1.5    # min seconds before swinging to the other side
+roll_period_max_s = 5.0    # max seconds before swinging
+roll_ease_min_s = 0.25     # fastest swing (sudden)
+roll_ease_max_s = 1.2      # slowest swing
+pan_amp_min_deg = 2.0      # sharp sideways dart, min (0 disables darts)
+pan_amp_max_deg = 8.0      # sharp sideways dart, max
+tilt_amp_min_deg = 1.5     # sharp up/down dart, min
+tilt_amp_max_deg = 6.0     # sharp up/down dart, max
 
 [speaking]
-# Subtle procedural "talking motion" while the activity is `speaking`
-# (Story 7.6) so OLAF doesn't look frozen mid-reply: small random neck
-# nods (tilt) + glances (pan) + ear perk-twitches, re-sampled each move.
-# Procedural, NOT audio-synced. Set all *_amp_max_deg to 0 to disable.
-tilt_amp_min_deg = 1.5     # smallest nod (neck tilt)
-tilt_amp_max_deg = 4.0     # largest nod
-pan_amp_min_deg = 1.0      # smallest glance (neck pan)
-pan_amp_max_deg = 3.0      # largest glance
-ear_amp_min_deg = 2.0      # smallest ear perk-twitch
+# Procedural "talking motion" while the activity is `speaking` (Story
+# 7.6) so OLAF doesn't look frozen mid-reply: random neck nods (tilt) +
+# glances (pan) + ear perk-twitches, re-sampled each move. Procedural,
+# NOT audio-synced. The amplitude AND pace are scaled at render time by
+# the active speech_emotion's energy (excited swings big/fast, sad
+# small/slow — render_loop._speech_energy). Set all *_amp_max_deg to 0
+# to disable. Tuned STRONG (Kamal 2026-06-02) — bigger + livelier base.
+tilt_amp_min_deg = 2.5     # smallest nod (neck tilt) — ×energy at render
+tilt_amp_max_deg = 7.0     # largest nod
+pan_amp_min_deg = 2.0      # smallest glance (neck pan)
+pan_amp_max_deg = 6.0      # largest glance
+ear_amp_min_deg = 2.0      # smallest ear perk-twitch (ears parked — base kept)
 ear_amp_max_deg = 6.0      # largest ear perk-twitch
-period_min_s = 1.0         # min seconds between moves (livelier than listening)
-period_max_s = 3.0         # max seconds between moves
-ease_min_s = 0.4           # fastest move
-ease_max_s = 1.0           # slowest move
+period_min_s = 0.6         # min seconds between moves (÷energy → livelier)
+period_max_s = 1.8         # max seconds between moves
+ease_min_s = 0.2           # fastest move (sudden)
+ease_max_s = 0.6           # slowest move

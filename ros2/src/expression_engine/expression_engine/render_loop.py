@@ -43,8 +43,10 @@ from expression_engine.state import EngineState
 _NECK = ("pan", "tilt", "roll")
 _EARS = ("left_pan", "left_tilt", "right_pan", "right_tilt")
 
-# Per-layer ease time-constants (seconds). Mood comes from config
-# (NFR3, 2–4s); activity is medium; speech is short (§6).
+# Per-layer ease time-constant DEFAULTS (seconds). These are now
+# config-tunable ([animation].activity_ease_seconds / speech_ease_seconds,
+# Story: snappier personality); the constants remain as the dataclass
+# defaults so behaviour is unchanged when the keys are absent.
 _ACTIVITY_EASE_S = 0.5
 _SPEECH_EASE_S = 0.15
 # Wake short-circuit: first motion must begin within 100ms (NFR1).
@@ -55,6 +57,25 @@ _WAKE_WINDOW_S = 0.10
 # flood + zombie engine. After this many CONSECUTIVE tick failures,
 # escalate to fatal (NFR7 — systemd restarts) instead of looping.
 _MAX_CONSECUTIVE_TICK_FAILURES = 100
+# Per-speech-emotion liveliness profile (talking-motion amplitude/pace
+# multiplier — see _speech_energy). Arousal, not valence: angry is as
+# "energetic" as excited; sad/melancholic are subdued. Unknown → 1.0.
+# This is the lever that makes speaking head motion read as bipolar.
+_SPEECH_ENERGY = {
+    "excited": 1.6,
+    "surprised": 1.5,
+    "happy": 1.35,
+    "angry": 1.3,
+    "frustrated": 1.2,
+    "curious": 1.15,
+    "scared": 1.1,
+    "neutral": 1.0,
+    "content": 0.95,
+    "sympathetic": 0.85,
+    "sad": 0.6,
+    "melancholic": 0.5,
+}
+
 # Empirically, critically-damped smooth_damp reaches ~98% of a step in
 # ≈2.9 × smooth_time. To make the pose *arrive* (~98%) at the
 # anticipatory deadline we size smooth_time = (deadline-now)/this.
@@ -360,10 +381,19 @@ class RenderLoop:
         self._a = _EaseChannel()   # activity (absolute)
         self._s = _EaseChannel()   # speech overlay (additive)
 
+        # Per-layer ease time-constants — config-tunable for a snappier,
+        # less-WALL-E feel; fall back to the module defaults.
+        self._activity_ease = getattr(
+            animation, "activity_ease_seconds", _ACTIVITY_EASE_S
+        )
+        self._speech_ease = getattr(
+            animation, "speech_ease_seconds", _SPEECH_EASE_S
+        )
+
         self._last_evt: dict[str, object] = {}
         self._last_eye: tuple[str, int] | None = None
         self._vocalizations: list[_VocalizationAction] = []
-        self._speech_smooth_s = _SPEECH_EASE_S
+        self._speech_smooth_s = self._speech_ease
         self._wake_until = 0.0
         self._last_tick: float | None = None
         self.tick_count = 0
@@ -387,6 +417,12 @@ class RenderLoop:
         self._listen_roll_target = 0.0   # sampled signed amplitude this swing
         self._listen_roll_ease = self._listening.roll_ease_max_s  # sampled ease
         self._listen_roll_next_flip = 0.0
+        # Sharp pan/tilt darts layered on the cock (re-sampled per swing,
+        # eased in fast) so listening reads alert, not just slow-WALL-E.
+        self._listen_dart = {"pan": 0.0, "tilt": 0.0}
+        self._listen_dart_vel = {"pan": 0.0, "tilt": 0.0}
+        self._listen_dart_target = {"pan": 0.0, "tilt": 0.0}
+        self._listen_dart_ease = self._listening.roll_ease_min_s
         # Story 7.6 — subtle "talking motion" while speaking: neck nods +
         # glances + ear perk-twitches, procedural, re-sampled per move.
         self._speaking = speaking or SpeakingConfig()
@@ -519,7 +555,7 @@ class RenderLoop:
         # the change-detect below, early — before the anchor).
         sp = self._changed(snap, "speech_emotion")
         if sp is not None:
-            self._speech_smooth_s = _SPEECH_EASE_S
+            self._speech_smooth_s = self._speech_ease
             self._idle.notify_event(now)   # speech resets idle (Story 6.5)
             # LED colour follows the SPEECH EMOTION while talking (the LED
             # is OLAF's voice channel) — overrides the mood tint during
@@ -538,7 +574,7 @@ class RenderLoop:
                     lead = self._anim.emotion_anticipatory_ms / 1000.0
                     deadline = anchor - lead
                     sized = (deadline - now) / _SMOOTHDAMP_SETTLE_RATIO
-                    if sized < _SPEECH_EASE_S:
+                    if sized < self._speech_ease:
                         # Code review 2026-05-17: a stale/late anchor
                         # (deadline already near/past) would clamp to a
                         # ~1ms smooth_time → instant neck/ears SNAP
@@ -551,7 +587,7 @@ class RenderLoop:
                             audio_frame_id=fid,
                             deadline_in_s=round(deadline - now, 4),
                         )
-                        self._speech_smooth_s = _SPEECH_EASE_S
+                        self._speech_smooth_s = self._speech_ease
                     else:
                         # Size the ease so the pose ~arrives (≈98%) AT
                         # the deadline → lands `lead` ms before the
@@ -617,45 +653,85 @@ class RenderLoop:
                     hint="not in expression_map.vocalization (or no layered_action)",
                 )
 
-    def _listening_roll(self, snap: dict, now: float, dt: float, suppressed: bool) -> float:
-        """WALL-E side-to-side head cock (roll, deg) while listening.
+    def _listening_motion(
+        self, snap: dict, now: float, dt: float, suppressed: bool
+    ) -> dict[str, float]:
+        """Head motion while listening — WALL-E side-to-side cock (roll)
+        plus optional sharp pan/tilt darts.
 
-        On each swing samples a RANDOM amplitude, ease (speed) and period,
-        so the cock never looks mechanical. Returns 0 when not listening,
-        during idle decay (``suppressed``), or disabled
-        (``roll_amp_max_deg == 0``).
+        On each swing the roll samples a RANDOM amplitude, ease (speed) and
+        period so it never looks mechanical; the pan/tilt darts re-sample
+        on the same swing and ease in fast (``0.1 s..roll_ease_min_s``) so
+        listening reads alert and reactive, not just slow-WALL-E. Returns
+        ``{pan, tilt, roll}`` offsets — all eased back to 0 when not
+        listening, during idle decay (``suppressed``), or disabled.
         """
         cfg = self._listening
-        if cfg.roll_amp_max_deg <= 0.0:
-            return 0.0
+        roll_on = cfg.roll_amp_max_deg > 0.0
+        darts_on = cfg.pan_amp_max_deg > 0.0 or cfg.tilt_amp_max_deg > 0.0
+        if not roll_on and not darts_on:
+            return {"pan": 0.0, "tilt": 0.0, "roll": 0.0}
         act = snap.get("activity")
         listening = (
             not suppressed
             and act is not None
             and getattr(act.payload, "state", None) == "listening"
         )
+        rng = self._listen_rng
         if listening:
             if now >= self._listen_roll_next_flip:
                 self._listen_roll_side = -self._listen_roll_side
-                amp = self._listen_rng.uniform(
-                    cfg.roll_amp_min_deg, cfg.roll_amp_max_deg
-                )
+                amp = rng.uniform(cfg.roll_amp_min_deg, cfg.roll_amp_max_deg)
                 self._listen_roll_target = self._listen_roll_side * amp
-                self._listen_roll_ease = self._listen_rng.uniform(
+                self._listen_roll_ease = rng.uniform(
                     cfg.roll_ease_min_s, cfg.roll_ease_max_s
                 )
-                self._listen_roll_next_flip = now + self._listen_rng.uniform(
+                self._listen_roll_next_flip = now + rng.uniform(
                     cfg.roll_period_min_s, cfg.roll_period_max_s
                 )
-            target = self._listen_roll_target
-            ease = self._listen_roll_ease
+                # Darts re-sample on the same swing — signed, snappy ease.
+                self._listen_dart_target = {
+                    "pan": rng.choice((-1.0, 1.0))
+                    * rng.uniform(cfg.pan_amp_min_deg, cfg.pan_amp_max_deg),
+                    "tilt": rng.choice((-1.0, 1.0))
+                    * rng.uniform(cfg.tilt_amp_min_deg, cfg.tilt_amp_max_deg),
+                }
+                self._listen_dart_ease = rng.uniform(
+                    0.1, max(0.1, cfg.roll_ease_min_s)
+                )
+            roll_target = self._listen_roll_target
+            roll_ease = self._listen_roll_ease
+            dart_target = self._listen_dart_target
+            dart_ease = self._listen_dart_ease
         else:
-            target = 0.0  # ease back to level once listening ends
-            ease = cfg.roll_ease_max_s
+            roll_target = 0.0  # ease back to level once listening ends
+            roll_ease = cfg.roll_ease_max_s
+            dart_target = {"pan": 0.0, "tilt": 0.0}
+            dart_ease = cfg.roll_ease_max_s
         self._listen_roll, self._listen_roll_vel = smooth_damp(
-            self._listen_roll, target, self._listen_roll_vel, ease, dt,
+            self._listen_roll, roll_target, self._listen_roll_vel, roll_ease, dt,
         )
-        return self._listen_roll
+        for j in ("pan", "tilt"):
+            self._listen_dart[j], self._listen_dart_vel[j] = smooth_damp(
+                self._listen_dart[j], dart_target[j],
+                self._listen_dart_vel[j], dart_ease, dt,
+            )
+        return {
+            "pan": self._listen_dart["pan"],
+            "tilt": self._listen_dart["tilt"],
+            "roll": self._listen_roll,
+        }
+
+    def _speech_energy(self, snap: dict) -> float:
+        """Liveliness scalar for the ACTIVE speech_emotion — how big/fast
+        the speaking talking-motion swings (head motion 'dependent on the
+        speech emotion'). High-arousal emotions (excited/surprised/angry)
+        swing big & quick; low-arousal (sad/melancholic) small & slow.
+        1.0 when nothing is speaking or the name is unknown."""
+        sp = snap.get("speech_emotion")
+        if sp is None:
+            return 1.0
+        return _SPEECH_ENERGY.get(sp.payload.emotion, 1.0)
 
     def _speaking_motion(
         self, snap: dict, now: float, dt: float, suppressed: bool
@@ -681,23 +757,32 @@ class RenderLoop:
         rng = self._speak_rng
         if speaking:
             if now >= self._speak_next_move:
+                # Talking-motion amplitude + pace scale with the active
+                # speech_emotion's energy (head motion 'dependent on the
+                # speech emotion') — excited swings big & quick, sad small
+                # & slow.
+                energy = self._speech_energy(snap)
                 self._speak_neck_target = {
                     "tilt": rng.choice((-1.0, 1.0))
-                    * rng.uniform(cfg.tilt_amp_min_deg, cfg.tilt_amp_max_deg),
+                    * rng.uniform(cfg.tilt_amp_min_deg, cfg.tilt_amp_max_deg)
+                    * energy,
                     "pan": rng.choice((-1.0, 1.0))
-                    * rng.uniform(cfg.pan_amp_min_deg, cfg.pan_amp_max_deg),
+                    * rng.uniform(cfg.pan_amp_min_deg, cfg.pan_amp_max_deg)
+                    * energy,
                 }
                 ear = rng.choice((-1.0, 1.0)) * rng.uniform(
                     cfg.ear_amp_min_deg, cfg.ear_amp_max_deg
-                )
+                ) * energy
                 self._speak_ears_target = {
                     "left_tilt": ear * rng.uniform(0.7, 1.0),
                     "right_tilt": ear * rng.uniform(0.7, 1.0),
                 }
                 self._speak_ease = rng.uniform(cfg.ease_min_s, cfg.ease_max_s)
+                # Higher energy → shorter gap between moves (livelier),
+                # bounded so a quiet emotion never stalls the motion.
                 self._speak_next_move = now + rng.uniform(
                     cfg.period_min_s, cfg.period_max_s
-                )
+                ) / max(0.6, energy)
             neck_t = self._speak_neck_target
             ears_t = self._speak_ears_target
             ease = self._speak_ease
@@ -732,7 +817,7 @@ class RenderLoop:
         dt = 0.0 if self._last_tick is None else now - self._last_tick
         self._last_tick = now
 
-        activity_tau = _ACTIVITY_EASE_S
+        activity_tau = self._activity_ease
         if now < self._wake_until:
             activity_tau = _WAKE_FAST_EASE_S  # begin motion <100ms
 
@@ -819,11 +904,14 @@ class RenderLoop:
             dp, dtl = self._idle.drift_offset(now, self._mood_energy(snap))
             drift["pan"] = dp
             drift["tilt"] = dtl
-        # Story 7.6 — WALL-E side-to-side head cock (roll) while listening,
-        # suppressed during idle decay; neck-only (no ears).
-        drift["roll"] += self._listening_roll(
+        # Story 7.6 — WALL-E side-to-side head cock (roll) + sharp pan/tilt
+        # darts while listening, suppressed during idle decay; neck-only.
+        listen = self._listening_motion(
             snap, now, dt, suppressed=idle_stage is not None
         )
+        drift["pan"] += listen["pan"]
+        drift["tilt"] += listen["tilt"]
+        drift["roll"] += listen["roll"]
         # Story 7.6 — subtle "talking motion" while speaking: neck nods +
         # glances and ear perk-twitches (suppressed during idle decay).
         speak_neck, speak_ears = self._speaking_motion(

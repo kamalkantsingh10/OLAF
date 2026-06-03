@@ -1,246 +1,41 @@
-# Configuration
+# `config/` — repo-root configuration
 
-Runtime configuration files for OLAF's firmware, ROS2 nodes, and I2C bus.
+Machine/hardware configuration that is **not** tied to a single ROS2 package.
+Two files live here:
 
-## Structure
+| File | Owns | Lifecycle |
+|------|------|-----------|
+| [`i2c/addresses.yaml`](i2c/addresses.yaml) | I2C bus settings + the address/description/component map for every module (head_ears `0x08`, neck `0x09`, torso `0x0A`, base `0x0B`). | Hand-edited; changes only when hardware changes. |
+| [`servo-ids.yaml`](servo-ids.yaml) | Feetech servo assignments + per-servo calibration: IDs, `center_position`, directions, angle limits, `counts_per_degree`, speeds. Covers ears (SCS0009) and neck (STS3215). | **Pi-written** — calibration tools and `neck_calibration.py set-center` rewrite it on the robot. Pull/stash carefully to avoid conflicts. |
+
+## Expression / personality config lives elsewhere
+
+How OLAF *emotes* — moods, speech emotions, vocalizations, eye/neck/ear motion,
+LED behaviour — is **not** here. It is package-local to the expression engine,
+because the ROS2 node resolves it through the colcon package share dir:
 
 ```
-config/
-├── i2c/        # I2C bus configuration
-├── ros2/       # ROS2 node parameters
-└── firmware/   # Firmware configuration (WiFi, OTA URLs)
+ros2/src/expression_engine/config/
+├── expression_map.yaml      # ⭐ canonical emotion → body render (the main authoring file)
+├── neck_motion.yaml         # per-emotion neck motion (L1/L2/L3) — frozen
+├── ears_motion.yaml         # per-emotion ears motion (L1/L2/L3)
+└── expression_engine.toml   # engine runtime wiring: DDS domain, topics, tuning knobs
 ```
 
-## I2C Configuration
+See [`ros2/src/expression_engine/config/README.md`](../ros2/src/expression_engine/config/README.md)
+for what each file owns, which code path loads it, and why they stay split.
 
-**Location:** `config/i2c/`
+**To tune personality / expression, edit those files — not this directory.**
 
-### bus_config.yaml
+## Why these aren't merged
 
-I2C bus settings:
+`servo-ids.yaml` (Pi-written calibration) and `i2c/addresses.yaml` (hand-edited
+hardware map) have different owners and lifecycles, so they stay separate. The
+expression files stay in their package so the installed node can find them via
+`get_package_share_directory("expression_engine")` — moving them to repo-root
+`/config` breaks that lookup.
 
-```yaml
-bus_speed: 400000  # 400 kHz (standard) or 1000000 (fast mode)
-bus_number: 1      # /dev/i2c-1 (Raspberry Pi default)
-timeout_ms: 100    # Read/write timeout
+## Related
 
-modules:
-  head_ears:
-    address: 0x08
-    enabled: true
-  neck:
-    address: 0x09
-    enabled: true
-  torso:
-    address: 0x0A
-    enabled: true
-  base:
-    address: 0x0B
-    enabled: true
-```
-
-## ROS2 Configuration
-
-**Location:** `config/ros2/`
-
-### drivers.yaml
-
-Hardware driver node parameters:
-
-```yaml
-head_ears_driver:
-  ros__parameters:
-    i2c_address: 0x08
-    update_rate: 30.0  # Hz
-    projector:
-      default_focus: 128
-      power_timeout: 5.0  # seconds
-    eyes:
-      brightness: 200
-      fps: 60
-
-neck_driver:
-  ros__parameters:
-    i2c_address: 0x09
-    servo_count: 3
-    movement_smoothing: 0.8
-
-# ... more driver configs
-```
-
-Load with:
-```bash
-ros2 launch olaf_bringup drivers.launch.py config:=config/ros2/drivers.yaml
-```
-
-### personality.yaml
-
-Personality engine parameters:
-
-```yaml
-emotion_engine:
-  ros__parameters:
-    default_emotion: neutral
-    transition_time: 1.0  # seconds
-    energy_level: 0.7
-
-expression_sync:
-  ros__parameters:
-    max_latency_ms: 500
-    sync_eyes_ears: true
-```
-
-### navigation.yaml
-
-Nav2 stack parameters (extensive, see Nav2 docs):
-
-```yaml
-controller_server:
-  ros__parameters:
-    use_sim_time: false
-    controller_frequency: 20.0
-    # ... more Nav2 params
-```
-
-## Firmware Configuration
-
-**Location:** `config/firmware/`
-
-### wifi_config.json
-
-WiFi credentials for OTA updates (gitignored, template provided):
-
-```json
-{
-  "ssid": "YourNetworkName",
-  "password": "YourPassword",
-  "hostname": "olaf-robot"
-}
-```
-
-**Security Note:** Never commit this file! Use `wifi_config.json.template` as reference.
-
-### ota_config.yaml
-
-OTA update server configuration:
-
-```yaml
-ota_server:
-  host: "192.168.1.100"  # Raspberry Pi IP
-  port: 8080
-  check_interval: 3600  # seconds (1 hour)
-  auto_update: false
-
-modules:
-  head_ears:
-    firmware_url: "http://192.168.1.100:8080/firmware/head-ears/latest.bin"
-    version_url: "http://192.168.1.100:8080/firmware/head-ears/version.txt"
-  # ... more modules
-```
-
-### module_calibration/
-
-Per-module calibration data:
-
-- `head_ears_servo_cal.json` - Ear servo calibration
-- `neck_servo_cal.json` - Neck servo calibration
-- `base_imu_cal.json` - IMU calibration offsets
-- `camera_intrinsics.yaml` - Camera calibration
-
-Generated by calibration tools (`tools/calibration/`).
-
-## Environment-Specific Configs
-
-Use different configs for dev/production:
-
-```bash
-# Development (with simulator)
-ros2 launch olaf_bringup olaf.launch.py config:=config/ros2/drivers_sim.yaml
-
-# Production (on robot)
-ros2 launch olaf_bringup olaf.launch.py config:=config/ros2/drivers.yaml
-```
-
-## Configuration Priority
-
-1. **Command-line arguments** (highest priority)
-2. **Environment variables**
-3. **Config files** (this directory)
-4. **Default values** (in source code)
-
-Example:
-```bash
-# Override config file setting
-ros2 run olaf_drivers head_ears_driver --ros-args -p i2c_address:=0x10
-```
-
-## Version Control
-
-- **Commit:** Config templates (`.template` suffix), default configs
-- **Gitignore:** Secrets (WiFi passwords), machine-specific settings
-- **Document:** All parameters in config files with comments
-
-## Editing Configs
-
-### YAML Files
-
-Use YAML-aware editor (VS Code with YAML extension):
-
-```bash
-code config/ros2/drivers.yaml
-```
-
-Validate YAML syntax:
-```bash
-yamllint config/ros2/drivers.yaml
-```
-
-### JSON Files
-
-Pretty-print JSON:
-```bash
-python3 -m json.tool config/firmware/wifi_config.json
-```
-
-## Best Practices
-
-1. **Document all parameters** - Add inline comments explaining purpose
-2. **Use meaningful defaults** - Configs should work out-of-the-box
-3. **Validate on load** - Check for missing/invalid values at runtime
-4. **Version configs** - Tag configs with compatible firmware/ROS2 versions
-5. **Keep secrets separate** - Use `.env` files or secrets managers
-
-## Troubleshooting
-
-### Module Not Responding
-
-Check I2C address in config matches firmware:
-```bash
-cat config/i2c/bus_config.yaml | grep address
-i2cdetect -y 1
-```
-
-### ROS2 Node Fails to Start
-
-Validate YAML syntax:
-```bash
-yamllint config/ros2/drivers.yaml
-```
-
-Check parameter names:
-```bash
-ros2 param list /head_ears_driver
-```
-
-### OTA Update Fails
-
-Verify OTA server is reachable:
-```bash
-curl http://192.168.1.100:8080/firmware/head-ears/version.txt
-```
-
-## Resources
-
-- [ROS2 Parameter Guide](https://docs.ros.org/en/humble/Concepts/About-ROS-2-Parameters.html)
-- [YAML Specification](https://yaml.org/spec/1.2.2/)
-- [I2C Protocol Documentation](../docs/api/i2c-protocol.md)
+- Servo calibration guide: [`docs/guides/ear-servo-calibration.md`](../docs/guides/ear-servo-calibration.md)
+- Expression input contract: [`ros2/src/expression_engine/contract/INTERFACE.md`](../ros2/src/expression_engine/contract/INTERFACE.md)

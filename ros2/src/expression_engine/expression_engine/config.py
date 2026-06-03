@@ -48,6 +48,13 @@ class AnimationConfig:
     emotion_anticipatory_ms: float = 50.0
     gesture_attack_ms: float = 80.0
     gesture_settle_ms: float = 200.0
+    # How fast the head snaps between poses (smooth_damp time-constant,
+    # seconds). Lower = more SUDDEN. Defaults match the original
+    # hard-coded render_loop constants so an absent key is behaviour-
+    # preserving; the packaged toml tunes them down for a snappier,
+    # less-WALL-E feel.
+    activity_ease_seconds: float = 0.5   # activity_base pose transitions
+    speech_ease_seconds: float = 0.15    # speech_emotion overlay snap
 
 
 @dataclass(frozen=True)
@@ -58,6 +65,12 @@ class ListeningConfig:
     axis). Each swing samples a RANDOM amplitude (large range), a RANDOM
     ease (speed) and a random period, so it never looks mechanical.
     Neck-only — no ears. ``roll_amp_max_deg = 0`` disables it.
+
+    Sharp pan/tilt "darts" (set ``*_amp_max_deg`` > 0) layer on top of the
+    roll cock so listening reads as alert and reactive rather than the
+    slow WALL-E head-cock alone. Darts re-sample on each roll swing and
+    ease in fast (``0.1 s..roll_ease_min_s``). Both default to 0 (off) so
+    existing configs keep the roll-only behaviour.
     """
 
     roll_amp_min_deg: float = 3.0    # smallest cock (deg)
@@ -66,6 +79,10 @@ class ListeningConfig:
     roll_period_max_s: float = 10.0  # max time before swinging
     roll_ease_min_s: float = 0.8     # fastest swing (quick cock)
     roll_ease_max_s: float = 3.0     # slowest swing (slow drift)
+    pan_amp_min_deg: float = 0.0     # smallest sideways dart (0 disables darts)
+    pan_amp_max_deg: float = 0.0     # largest sideways dart
+    tilt_amp_min_deg: float = 0.0    # smallest up/down dart
+    tilt_amp_max_deg: float = 0.0    # largest up/down dart
 
 
 @dataclass(frozen=True)
@@ -236,6 +253,8 @@ def _parse_animation(section: object) -> AnimationConfig:
         "emotion_anticipatory_ms",
         "gesture_attack_ms",
         "gesture_settle_ms",
+        "activity_ease_seconds",
+        "speech_ease_seconds",
     ):
         if field_name not in section:
             values[field_name] = getattr(defaults, field_name)
@@ -272,6 +291,10 @@ _ANIM_BOUNDS = {
     "emotion_anticipatory_ms": (0.0, 1000.0),
     "gesture_attack_ms": (1.0, 5000.0),
     "gesture_settle_ms": (1.0, 10000.0),
+    # smooth_damp time-constants — floor 0.02s (≈98% arrival in ~60ms,
+    # snappy but not an instant servo SNAP) up to a slow 5s.
+    "activity_ease_seconds": (0.02, 5.0),
+    "speech_ease_seconds": (0.02, 5.0),
 }
 
 #: Sane operating ranges for `[idle]` (Story 6.5). Lower bounds allow 0
@@ -294,6 +317,10 @@ _LISTENING_BOUNDS = {
     "roll_period_max_s": (0.5, 120.0),
     "roll_ease_min_s": (0.1, 30.0),
     "roll_ease_max_s": (0.1, 30.0),
+    "pan_amp_min_deg": (0.0, 40.0),   # darts; 0 disables. neck pan clamp ±80
+    "pan_amp_max_deg": (0.0, 40.0),
+    "tilt_amp_min_deg": (0.0, 20.0),  # neck tilt clamp ±20
+    "tilt_amp_max_deg": (0.0, 20.0),
 }
 
 
@@ -325,6 +352,8 @@ def _parse_listening(section: object) -> ListeningConfig:
         ("roll_amp_min_deg", "roll_amp_max_deg"),
         ("roll_period_min_s", "roll_period_max_s"),
         ("roll_ease_min_s", "roll_ease_max_s"),
+        ("pan_amp_min_deg", "pan_amp_max_deg"),
+        ("tilt_amp_min_deg", "tilt_amp_max_deg"),
     ):
         if values[lo_key] > values[hi_key]:
             raise ValueError(

@@ -1,0 +1,45 @@
+# OLAF chest-display — boot-to-app on the 4.3" DSI panel (Story 8.1, AC #1/#5).
+#
+# Owns the panel instead of the console login: Conflicts/After getty@tty1 so
+# systemd stops the getty (the "please login" text) before launching the app,
+# and the app becomes DRM master on card0/DSI-2.
+#
+# Runtime: SYSTEM python3 + apt `python3-pygame` (linked to system SDL2 w/ KMSDRM).
+# The pip/poetry pygame bundles its own SDL WITHOUT kmsdrm, so it is NOT used here.
+#   prereq: sudo apt install -y python3-pygame
+#
+# Install (on the Pi):
+#   sudo cp chest-display.service /etc/systemd/system/
+#   sudo systemctl disable getty@tty1.service        # console login no longer owns the panel
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now chest-display.service
+#
+# Reversible spike (no install): sudo systemctl stop getty@tty1 && \
+#   SDL_VIDEODRIVER=kmsdrm python3 -m chest_display.app   # from this dir
+#
+# NOTE (Saved Question #3): if the app cannot become DRM master here, run it on
+# tty1 via TTYPath/StandardInput=tty (uncommented below) or a logind/seatd path.
+
+[Unit]
+Description=OLAF chest display (animated heart dashboard on DSI panel)
+After=getty@tty1.service multi-user.target
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=kamal
+# Render directly to the framebuffer via KMSDRM (no X/Wayland).
+Environment=SDL_VIDEODRIVER=kmsdrm
+# KMSDRM hands the app the native 800x480 LANDSCAPE surface; the app rotates the
+# 480x800 portrait canvas by this many degrees. Flip 90 <-> 270 if upside down.
+Environment=CHEST_ROTATE_DEG=90
+WorkingDirectory=/home/kamal/olaf/ros2/src/chest_display
+# System python3 + apt python3-pygame (kmsdrm-capable). NOT poetry (bundled SDL lacks kmsdrm).
+ExecStart=/usr/bin/python3 -m chest_display.app
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

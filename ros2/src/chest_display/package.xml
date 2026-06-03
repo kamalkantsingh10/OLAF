@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>chest_display</name>
+  <version>0.1.0</version>
+  <description>OLAF chest-display app (Epic 8) — standalone pygame/KMSDRM portrait
+    dashboard on the 4.3" DSI chest panel: animated anatomical heart + three log
+    panels, with a view-manager for full-screen takeover. The heart is driven by
+    the expression engine via a delegating adapter (Story 8.4); 8.1 stands up the
+    app, layout, and view-manager. See docs/planning-artifacts/sprint-change-proposal-2026-06-03.md.</description>
+  <maintainer email="kamalkantsingh10@gmail.com">Kamal Kant Singh</maintainer>
+  <license>MIT</license>
+
+  <!-- pygame-ce (maintained fork, KMSDRM support) is provided via the project
+       poetry environment (setup.py install_requires), the same runtime OLAF
+       already uses on the Pi (`~/.local/bin/poetry run`). No rosdep key is
+       declared for it. ROS deps (rclpy/std_msgs) are added in Story 8.4 when
+       the engine->chest IPC link lands; 8.1 is ROS-free. -->
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

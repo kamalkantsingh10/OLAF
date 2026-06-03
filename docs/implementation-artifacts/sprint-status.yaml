@@ -45,7 +45,7 @@
 #   while closing 5.3.
 
 generated: 2026-05-16T00:24:25
-last_updated: 2026-05-23T00:00:01
+last_updated: 2026-06-03T00:00:01
 project: OLAF
 project_key: NOKEY
 tracking_system: file-system
@@ -83,9 +83,19 @@ development_status:
   7-6-body-owned-expression-interface-contract: review
   epic-7-retrospective: optional
 
-  # ── Epic 8: Heart Display Animation ──
-  epic-8: backlog
-  8-1-mood-activity-driven-heart: backlog
+  # ── Epic 8: Chest Display & Animated Heart ──
+  # Re-scoped 2026-06-03 (SCP approved): standalone pygame chest-display app
+  # (portrait 2x2 dashboard) is the renderer; heart reclassified Engine-owned
+  # -> Delegating surface — engine composes heart bpm/intensity/color from
+  # expression_map.yaml (mood+activity+speech_emotion, NOT vocalization), eases
+  # it in lockstep with pose, and forwards to the chest app (eye/ESP32 pattern).
+  # Frozen §4 Protocols + §5.2 map freeze unchanged. See sprint-change-proposal-2026-06-03.md.
+  epic-8: in-progress
+  8-1-chest-display-foundation: ready-for-dev    # boot-to-app, portrait 2x2 grid, view-manager
+  8-2-animated-anatomical-heart-widget: ready-for-dev  # living lub-dub heart, glow-from-within
+  8-3-log-panels: ready-for-dev                  # 3 placeholder LogPanel widgets (dummy data)
+  # Deferred (later stories, not MVP): 8-4 reactive heart, 8-5 fullscreen-takeover,
+  # 8-6 capacitive touch, 8-7 regression-lock, 8-8 boot/runtime hardening.
   epic-8-retrospective: optional
 
   # ── Epic 9: Hardening (non-blocking backlog — does NOT gate 6/7/8) ──

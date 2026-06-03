@@ -46,9 +46,11 @@ Inspection of the Phase 1 drivers (grounding, not assumption) yields two adapter
 |---|---|---|---|
 | **Continuous** | `neck_adapter` → `NeckServoDriver`, `ears_adapter` → `EarsServoDriver` | Engine computes target joint angles from the map, **interpolates per render tick**, and issues `move_*` calls. Easing, anticipatory window, gesture attack all live in the engine. | Yes — driven by `render_loop` |
 | **Delegating** | `eye_adapter` → `HeadI2CClient` | Engine forwards a **semantic** `set_expression(name, intensity)` / `trigger_blink()` / `set_look_direction(x,y)` to the Head ESP32, which owns 60 FPS eye animation (Phase 1 Smart Peripheral Pattern). Engine does **not** interpolate eyes per tick. | No — fire-on-change |
-| **Engine-owned** | `led_adapter` (WS2812), `heart_adapter` (4" display) | No Phase 1 driver exists; the engine renders these directly. Continuous for LED breathe; fire-on-change otherwise. | LED: yes; heart: low-rate |
+| **Engine-owned** | `led_adapter` (WS2812) | No Phase 1 driver exists; the engine renders the LED directly (continuous for breathe). | Yes (LED breathe) |
 
-**Consequence:** the render loop interpolates *neck + ears* every tick; it pushes *eye* state only on transitions (and lets the ESP32 ease); it ticks *LED* for breathe and pushes *heart* at a low rate. The 30–80ms anticipatory window (NFR2) is therefore enforced for neck/ears in the loop, and for eyes by *sending the semantic event early* (the ESP32's own ramp covers the rest).
+**Consequence:** the render loop interpolates *neck + ears* every tick; it pushes *eye* state only on transitions (and lets the ESP32 ease); it ticks *LED* for breathe; and it composes + eases the *heart* state and forwards it to the standalone chest renderer (see §2-Amendment). The 30–80ms anticipatory window (NFR2) is therefore enforced for neck/ears in the loop, and for eyes by *sending the semantic event early* (the ESP32's own ramp covers the rest).
+
+> **§2-Amendment (2026-06-03, Sprint Change Proposal 2026-06-03):** the **heart** is reclassified from *Engine-owned* to a **Delegating surface**. The chest panel is a 4.3" DSI capacitive touchscreen (800×480, kernel-rotated to portrait → app draws 480×800) running a **standalone pygame/KMSDRM app** — a portrait 2×2 dashboard (animated anatomical heart + three log panels) with a view-manager for full-screen takeover. The engine composes the heart's `bpm`/`intensity`/`color` from `expression_map.yaml` across **mood + activity + speech_emotion** (NOT vocalization) and **eases it on the same time-constants as the pose**; the `heart_adapter` then **forwards** the eased state to the chest app over local IPC (transport TBD Story 8.4), and the chest app owns the lub-dub beat animation — exactly mirroring how the Head ESP32 owns eye animation. **No change to the frozen §4 Protocol signatures or `SurfaceFrame`** — `heart_adapter` still implements `render(SurfaceFrame)`; only its *implementation strategy* (forward vs draw-local) and *classification* change.
 
 ---
 
@@ -117,10 +119,10 @@ class SurfaceAdapter(Protocol):
     """Engine-owned surface (LED strip, heart display)."""
     def connect(self) -> None: ...
     def close(self) -> None: ...
-    def render(self, frame: SurfaceFrame) -> None: ...   # called per tick (LED) / low-rate (heart)
+    def render(self, frame: SurfaceFrame) -> None: ...   # LED: per tick. heart: forwards eased heart_* to chest renderer (§2-Amendment)
 ```
 
-`SurfaceFrame` (defined for the freeze — Story 6.3 shipped it in `adapters/base.py`; no real surface adapter consumes it until §6.6/8.1). The three Protocols (`ContinuousAdapter`, `DelegatingAdapter`, `SurfaceAdapter`) are **unchanged** from the original §4 and freeze AS-IS in Story 6.4.
+`SurfaceFrame` (defined for the freeze — Story 6.3 shipped it in `adapters/base.py`; no real surface adapter consumes it until §6.6 (LED) / Story 8.4 (heart forwarding, §2-Amendment)). The three Protocols (`ContinuousAdapter`, `DelegatingAdapter`, `SurfaceAdapter`) are **unchanged** from the original §4 and freeze AS-IS in Story 6.4.
 
 **Concrete mappings (grounded in Phase 1 driver signatures):**
 
@@ -130,7 +132,7 @@ class SurfaceAdapter(Protocol):
 | `ears_adapter` | `EarsServoDriver` | `apply({"left_pan":…,"left_tilt":…,"right_pan":…,"right_tilt":…})` → `move_left_pan/left_tilt/right_pan/right_tilt(deg, speed_pct)`; `neutral()` → `center_all()` targets |
 | `eye_adapter` | `HeadI2CClient` | `set_expression(name,intensity)` → `set_expression(name,intensity)`; `blink()` → `trigger_blink()`; `look(x,y)` → `set_look_direction(x,y)`; `connect()` → `open()` |
 | `led_adapter` | *(engine-owned WS2812)* | `render(frame)` → drive 24 LEDs from `frame.led_color/intensity/pattern` |
-| `heart_adapter` | *(engine-owned 4" display)* | `render(frame)` → draw heart from `frame.heart_bpm/intensity/color` |
+| `heart_adapter` | *(delegating → chest renderer)* | `render(frame)` → **forward** `frame.heart_bpm/intensity/color` over local IPC to the standalone chest-display app (which owns the lub-dub animation). State composed from mood+activity+speech_emotion (not vocalization), eased in lockstep with pose (§2-Amendment). |
 
 `NFR6` (one-adapter hardware swap) is satisfied by construction: anything new implements one Protocol; nothing else changes.
 
@@ -257,7 +259,7 @@ schema_version = 1
 [topics]     mood="/olaf/mood"  activity="/olaf/activity"
              speech_emotion="/olaf/speech_emotion"  vocalization="/olaf/vocalization"
 [hardware]   neck_port="…"  ears_port="…"  head_i2c_addr=0x08
-             led_strip_count=24  led_strip_pin=18  heart_display="spi-0.0"
+             led_strip_count=24  led_strip_pin=18  heart_ipc="…"   # chest-app endpoint (transport TBD Story 8.4)
 [animation]  servo_tick_hz=100  led_tick_hz=30
              mood_ease_seconds=3.0  emotion_anticipatory_ms=50
              gesture_attack_ms=80  gesture_settle_ms=200

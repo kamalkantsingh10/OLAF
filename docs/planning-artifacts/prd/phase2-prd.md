@@ -62,7 +62,7 @@ Phase 1 (hardware foundation, drivers, firmware, calibration) is **complete and 
 
 **FR11**: The engine MUST drive the WS2812 LED strip via an engine-owned adapter (no separate driver package).
 
-**FR12**: The engine MUST drive the 4" Pi heart display via an engine-owned adapter, animating it from `mood` + `activity` (this replaces the retired `HeartRate.msg`).
+**FR12**: The engine MUST drive the chest heart surface via a **delegating adapter**: it composes the heart state (`bpm`/`intensity`/`color`) from `expression_map.yaml` — exactly as for neck/ears/eyes — across the **mood** (slow base), **activity** (held base, incl. `starting`/`sleeping`/`working`), and **speech_emotion** (per-utterance overlay) layers, **eased in lockstep with the body's emotion easing** (the heart eases out as the emotion eases out, never jumps independently), and **forwards** the eased state over local IPC to the standalone chest-display renderer, which owns the heartbeat animation (mirrors the eye-adapter / ESP32 split). **Vocalizations do NOT affect the heart** — punctual gestures (`nod`/`shake`) touch pose only. This replaces the retired `HeartRate.msg`. _(Re-scoped 2026-06-03 — see sprint-change-proposal-2026-06-03.md.)_
 
 **FR13**: An unknown canonical name (engine map lags the companion) MUST log `expression.unmapped_<topic>` at WARN and fall back to a `default_*` pose — never freeze, never crash at runtime (distinct from FR4's schema-version fail-fast).
 
@@ -80,7 +80,7 @@ Phase 1 (hardware foundation, drivers, firmware, calibration) is **complete and 
 
 **NFR5 (Extensible vocabulary)**: Adding a new mood / activity / emotion / vocalization MUST be a pure `expression_map.yaml` data edit with **no engine code change**. Startup validation is strict against the pinned companion release's canonical set (complete-for-this-version, not complete-forever); runtime is graceful per FR13; the pinned companion tag is bumped in lockstep with map extensions.
 
-**NFR6 (Hardware swap)**: Replacing a hardware element (servo bus, eye display, LED strip, heart display) MUST be a single new Protocol-adapter implementation — no change to the mapping, DDS layer, or animation loop.
+**NFR6 (Hardware swap)**: Replacing a hardware element (servo bus, eye display, LED strip, chest heart renderer) MUST be a single new Protocol-adapter implementation (for the heart, swapping the renderer behind the same forwarding `heart_adapter`) — no change to the mapping, DDS layer, or animation loop.
 
 **NFR7 (Fail-fast on missing deps)**: Missing DDS connection, missing/invalid `expression_map.yaml`, or an offline hardware adapter at startup MUST be fatal (exit non-zero; systemd restarts). v1 has no graceful-degradation layer.
 
@@ -113,7 +113,7 @@ Phase 1 (hardware foundation, drivers, firmware, calibration) is **complete and 
 | **Epic 5** | Restructure & Driver Verification *(gate)* | Clean foundation; every reused driver proven on real hardware. Blocks Epics 6–8. |
 | **Epic 6** | Expression Engine | A working engine: canonical events in → expression out, never statue-still. |
 | **Epic 7** | Expression Authoring & Finalization | The full emotional vocabulary, tuned and regression-locked. |
-| **Epic 8** | Heart Display Animation | Mood/activity-driven heart on the 4" display, after core body language is locked. |
+| **Epic 8** | Chest Display & Animated Heart | Standalone portrait 2×2 chest dashboard (animated heart + 3 log panels) on the 4.3" DSI panel; heart driven by the engine via a delegating adapter from `expression_map.yaml`. After core body language is locked. |
 
 Sequencing is strict: 5 → 6 → 7 → 8. No dependency on the companion's *implementation* — develop against the schema with the FR14 mock publisher.
 
@@ -249,16 +249,20 @@ As the maintainer, I want the engine to run as a robust long-lived service.
 
 ---
 
-## Epic 8 — Heart Display Animation
+## Epic 8 — Chest Display & Animated Heart
 
-**Goal:** Add the secondary heart surface once core body language is finalized.
+**Goal:** Turn the chest DSI panel into a managed display surface — a standalone portrait 2×2 dashboard (animated anatomical heart + three log panels) that boots straight to the app, with a view-manager for full-screen takeover. The heart's emotional input is composed by the engine from `expression_map.yaml` and forwarded to the chest renderer via a **delegating** adapter (mirrors the eye/ESP32 split). _(Re-scoped 2026-06-03 — see sprint-change-proposal-2026-06-03.md. Full BDD detail in `epics.md`.)_
 
-### Story 8.1 — Mood/activity-driven heart
-**Acceptance Criteria**
-1. Engine-owned heart adapter behind the heart Protocol drives the 4" Pi display (FR12).
-2. Heart animation driven by `mood` + `activity` (replaces retired `HeartRate.msg`).
-3. Heart adapter swap is one Protocol implementation (NFR6).
-4. Heart states added to the regression harness (NFR10).
+### Story 8.1 — Chest display foundation
+Boot-to-app (kill `getty@tty1`), fullscreen KMSDRM portrait 480×800, 2×2 grid (240×400 cells), view-manager (`DASHBOARD` + stubbed `FULLSCREEN_TAKEOVER`), systemd `Restart=always`.
+
+### Story 8.2 — Animated anatomical heart widget
+Warm, painterly (not clinical) heart top-left, glow-from-within, asymmetric lub-dub, always-alive resting beat + jitter, wake animation, ≥30 fps; exposes `set_beat_rate`/`set_intensity`/`set_tint` for later reactive wiring.
+
+### Story 8.3 — Log panels
+Three reusable `LogPanel` widgets with dummy data, scrolling/bounded/wrapped; `push()`/`set_lines()` wiring hook; heart stays the focal point.
+
+**Deferred (not MVP):** 8.4 reactive heart (engine delegating `heart_adapter` forwards eased `heart:` state composed from `mood`+`activity`+`speech_emotion`, **not** `vocalization`, eased in lockstep with the body; FR12, NFR6, NFR10); 8.5 fullscreen-takeover views; 8.6 capacitive touch ("pet"); 8.7 regression-lock heart/dashboard; 8.8 boot/runtime hardening.
 
 ---
 

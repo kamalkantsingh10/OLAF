@@ -104,10 +104,10 @@ A long-running engine that turns canonical events into correctly-timed body expr
 Populate and lock the full emotional vocabulary against the frozen schema, seeded from existing presets; retire head_ears_driver/expressions.py (AR11); regression-lock finalized expressions.
 **FRs covered:** FR5, FR6, FR7, FR8; NFR10.
 
-### Epic 8: Heart Display Animation
+### Epic 8: Chest Display & Animated Heart
 
-Add the secondary heart surface once core body language is finalized: mood/activity-driven heart on the 4" Pi display.
-**FRs covered:** FR12.
+Stand up the chest DSI panel as a managed display surface: a standalone portrait dashboard (2×2 grid — animated anatomical heart top-left, three log panels) that boots straight to the app, with a view-manager that allows a single app to take the full screen and return to the dashboard. Supersedes the original narrow "in-engine heart adapter" framing of FR12 (see Architecture Note below).
+**FRs covered:** FR12 (heart surface; realized as a standalone subscribing app rather than an in-engine adapter).
 
 ### Epic 9: Hardening
 
@@ -462,33 +462,117 @@ So that they do not drift as the vocabulary grows.
 **Then** the workflow is documented and repeatable
 **And** existing locks still pass.
 
-## Epic 8: Heart Display Animation
+## Epic 8: Chest Display & Animated Heart
 
-Add the secondary heart surface once core body language is finalized.
+Turn OLAF's chest into an expressive, managed display surface. The 4.3" capacitive DSI panel (mounted left-of-chest, the anatomical heart position) boots straight into a fullscreen portrait app — no desktop, no login prompt. Its default view is a 2×2 dashboard: a living anatomical heart top-left, three log panels filling the rest. A view-manager lets a single application take over the whole screen when needed and fall back to the dashboard when done.
 
-### Story 8.1: Mood/activity-driven heart
+**Hardware reality (verified on the robot, 2026-06-03):** Pi 5, Ubuntu 24.04 (aarch64). The panel is the **LUCKFOX 4.3" DSI, 800×480, capacitive touch**, on DRM `card0`/`DSI-2` (HDMI is a separate `card2`). The kernel is **already rotated to portrait** via `video=DSI-2:800x480,rotate=90` in `cmdline.txt`, so the app draws a **480×800** surface. There is **no display manager** — the "please login" seen today is just `getty@tty1` on the panel. User `kamal` is in the `video` + `render` groups, so the app acquires the DRM surface **without sudo**. `pygame` is not yet installed.
+
+**Render stack:** `pygame-ce` on SDL2 **KMSDRM** (fullscreen, no X/Wayland), launched as a `systemd` service (`Restart=always`, JSON logs to journald), with `getty@tty1` overridden so the panel shows the app from boot.
+
+**Architecture Note (resolved — Sprint Change Proposal 2026-06-03, approved):** The heart is reclassified from an *Engine-owned `SurfaceAdapter`* (drawn inside the render loop) to a **Delegating surface**, mirroring the eye/ESP32 split. The engine still composes the heart's `bpm`/`intensity`/`color` from `expression_map.yaml` — across **mood + activity + speech_emotion** (NOT vocalization) and **eased in lockstep with the body's emotion easing** — exactly like neck/ears/eyes; the `heart_adapter` then **forwards** that eased state to the **standalone chest-display app** over local IPC, and the chest app (its own pygame/KMSDRM render loop on the Pi DSI) owns the lub-dub animation, the dashboard, the log panels, and the view-manager. **No change to the frozen §4 Protocol signatures or the §5.2 `expression_map.yaml` freeze** — `heart_adapter` still implements `render(SurfaceFrame)`; only its implementation strategy (forward vs draw-local) and §2 classification change. PRD FR12/NFR6 and architecture §2/§4 were updated accordingly. Rationale: the panel is a full GPU framebuffer (dashboard + logs + view-manager + future touch), so its rendering belongs in a separate process — but its *emotional input stays map-driven and engine-eased* so the heart never diverges from the face.
+
+This epic delivers the **MVP foundation** (boot-to-app, dashboard layout, living heart, placeholder logs). Reactive wiring, fullscreen-takeover views, capacitive touch, and regression-locking are scoped as later stories (see *Deferred* below) so the dummy-log MVP ships first and real data/reactivity follow.
+
+### Story 8.1: Chest display foundation — boot-to-app, portrait 2×2 grid, view-manager
 
 As the avatar,
-I want a mood/activity-driven heart on the 4" display,
-So that the secondary surface reinforces the body's emotional state.
+I want the chest panel to boot straight into a fullscreen portrait dashboard instead of a Linux login prompt,
+So that OLAF always presents a face on its chest, with room to host a full-screen app later.
 
 **Acceptance Criteria:**
 
-**Given** the 4" Pi display
-**When** the engine drives the heart
-**Then** an engine-owned adapter behind the `SurfaceAdapter` Protocol drives it (FR12, AR1).
+**Given** the Pi has finished booting
+**When** the chest panel powers up
+**Then** it shows the chest app — not the `getty@tty1` `login:` prompt — because `getty@tty1` is disabled/overridden and a `systemd` service launches the app on the panel.
 
-**Given** `mood` and `activity` state
-**When** the heart renders
-**Then** the animation is driven by `mood` + `activity` (replacing the retired `HeartRate.msg`).
+**Given** the app starts
+**When** it initializes the display
+**Then** it opens a single fullscreen **KMSDRM** surface on `card0`/`DSI-2` at the rotated portrait resolution (**480×800**), with no X/Wayland/desktop session, acquired as user `kamal` **without sudo** (`video`/`render` group membership).
 
-**Given** a need to swap the heart hardware
-**When** assessed
-**Then** the change is a single new Protocol implementation only (NFR6).
+**Given** the running app
+**When** it draws a frame
+**Then** it renders a **2×2 grid of four 240×400 cells** with visible separators — top-left reserved for the heart, the other three reserved for log panels — placeholder cell content is acceptable in this story.
 
-**Given** finalized heart states
-**When** the regression harness runs
-**Then** heart output is asserted alongside pose/LED/eye (NFR10, AR14).
+**Given** the app architecture
+**When** a frame is composed
+**Then** a **view-manager** selects the active view each frame; `DASHBOARD` is fully implemented, and a `FULLSCREEN_TAKEOVER` view (480×800, single app) can be **registered and switched to and back** without restructuring — proven this story by a stub takeover view.
+
+**Given** the service
+**When** the app process crashes or exits non-zero
+**Then** `systemd` restarts it (`Restart=always`) and structured JSON logs are written to journald.
+
+**Given** the other OLAF services (expression engine, drivers)
+**When** the chest app runs
+**Then** it runs as a separate process that owns only the DSI panel and does not interfere with the engine, the I2C/servo buses, or the head ESP32.
+
+### Story 8.2: Animated anatomical heart widget
+
+As the avatar,
+I want a living, beating anatomical heart in the top-left cell,
+So that my chest reads as alive and warm — not as a clinical organ diagram.
+
+**Acceptance Criteria:**
+
+**Given** the top-left 240×400 cell
+**When** the app runs
+**Then** an anatomical heart renders centered in the cell in a **warm, painterly style** (deep crimson → coral → amber, rounded forms, simplified vessels — no surgical/medical look) with a **glow-from-within** (fake subsurface scattering) as its focal quality.
+
+**Given** the heart
+**When** it beats
+**Then** it performs an asymmetric **lub-dub**: a fast systolic contraction (scale down ~8% + inner-glow flash), a short held gap, a smaller second beat, then a slow diastolic relaxation back to rest (fast-in / slow-out easing) so it reads as a pump, not a throb.
+
+**Given** no external state is driving it
+**When** the app idles
+**Then** the heart still beats continuously at a resting rate (~60–80 bpm feel) with per-interval **jitter** so it is never metronomic and never static — alive by default, robust to having no data source yet.
+
+**Given** the app first shows the heart
+**When** it starts
+**Then** a one-shot **wake** animation plays (glow ignites → first beat) rather than the heart snapping on.
+
+**Given** the Pi 5 render budget
+**When** the heart animates
+**Then** it sustains **≥30 fps** with no per-pixel Python in the hot loop (pre-rendered glow gradient, hardware/additive blits).
+
+**Given** the widget will be driven later
+**When** it is built
+**Then** it exposes a small interface (e.g. `set_beat_rate`, `set_intensity`, `set_tint`) for future reactive wiring — present but not yet driven in this story.
+
+### Story 8.3: Log panels (three placeholder panels)
+
+As the maintainer,
+I want the three non-heart quarters to be reusable log panels showing dummy data,
+So that the dashboard layout and legibility can be evaluated now and real feeds wired in later with no rework.
+
+**Acceptance Criteria:**
+
+**Given** the three non-heart cells
+**When** the app runs
+**Then** each renders a reusable **`LogPanel`** widget: a titled, monospace, dim/cool-styled panel showing scrolling text lines within its 240×400 bounds.
+
+**Given** no real data feed is wired yet
+**When** the panels render
+**Then** each shows **placeholder/dummy lines** under a placeholder title (e.g. `SYSTEM` / `SPEECH` / `SENSORS`) so layout and readability can be judged.
+
+**Given** a `LogPanel`
+**When** lines accumulate
+**Then** it scrolls (newest-first), caps retained lines to a bounded buffer, and wraps/truncates long lines to the cell width without overflowing into adjacent cells.
+
+**Given** real data becomes available later
+**When** a panel is wired
+**Then** feeding it is a single `push(line)` / `set_lines(...)` call per panel — no layout or styling rework required.
+
+**Given** all four cells render together
+**When** the dashboard is viewed
+**Then** the **heart remains the focal point** (warm glow) and the log panels stay visually subordinate (cool, dim) so the chest reads as "a heart with status around it," not "three text boxes and a heart."
+
+### Deferred to later stories (not in this epic's MVP)
+
+- **8.4 Reactive heart (engine ↔ chest wiring)** — implement the delegating `heart_adapter`: the engine composes the heart's `bpm`/`intensity`/`color` from `expression_map.yaml` across **mood + activity (incl. `starting`/`sleeping`/`working`) + every `speech_emotion`** — **NOT `vocalization`** — eased on the same time-constants as the pose (mood 2–4s, speech short ease-out, activity medium), and **forwards** the eased state to the chest app over local IPC (transport: ROS topic or local socket, decided here). Chest app maps the received state onto the heart widget (`set_beat_rate`/`set_intensity`/`set_tint`). Add a map-load validation: `heart:` required on `speech_emotion` + `activity` entries, forbidden/ignored on `vocalization` (FR12, NFR6).
+- **8.5 Fullscreen-takeover views** — real takeover applications + dashboard↔fullscreen transitions on top of the 8.1 view-manager.
+- **8.6 Capacitive touch** — tap/hold the heart → "pet" interaction (beat quickens, colour warms, ripple). Hardware already supports touch.
+- **8.7 Regression-lock** — assert heart/dashboard states in a replay harness alongside pose/LED/eye (carries the original NFR10/AR14 intent).
+- **8.8 Boot/runtime hardening** — finalize the permanent boot config, panel power/blanking behaviour, and recovery.
 
 ## Epic 9: Hardening
 

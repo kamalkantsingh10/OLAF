@@ -1,8 +1,10 @@
 """Headless tests for the chest heart logic (Story 8.4) — no pygame, no ROS."""
 
+import json
 from pathlib import Path
 
 from chest_display.emotion_source import HeartConfig, HeartDirector, load_heart_config
+from chest_display.ros_link import EmotionLink
 
 
 CFG = HeartConfig(
@@ -66,6 +68,27 @@ def test_director_image_switches_discretely():
     d = HeartDirector(CFG)
     d.update(0.1, activity_state="speaking", speech_emotion="sad")
     assert d.image == "sad"
+
+
+class _Msg:
+    def __init__(self, data):
+        self.data = data
+
+
+def _envelope(payload):
+    return _Msg(json.dumps({"payload": payload}))
+
+
+def test_speech_emotion_is_per_utterance():
+    # rclpy is absent in CI -> EmotionLink is a stub, but the handlers still run.
+    link = EmotionLink()
+    link._on_activity(_envelope({"state": "speaking"}))
+    link._on_speech(_envelope({"emotion": "excited"}))
+    assert link.speech_emotion == "excited"
+    # speech ends -> emotion cleared; only a fresh publish can set it again
+    link._on_activity(_envelope({"state": "listening"}))
+    assert link.speech_emotion is None
+    assert link.activity_state == "listening"
 
 
 def test_load_heart_config_reads_the_real_map():

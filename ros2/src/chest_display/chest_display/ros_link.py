@@ -55,7 +55,14 @@ class EmotionLink:
 
     def _on_activity(self, msg) -> None:
         p = self._payload(msg.data)
-        self.activity_state = p.get("state", self.activity_state)
+        state = p.get("state")
+        if state is not None:
+            self.activity_state = state
+            # Emotion is per-utterance: when speech ends the heart returns to the
+            # activity's calm/neutral beat, and the next emotion can ONLY come from
+            # a fresh speech_emotion publish (no leftover leaking into the next turn).
+            if state != "speaking":
+                self.speech_emotion = None
         self.working_submode = p.get("working_submode", self.working_submode)
 
     def _on_speech(self, msg) -> None:

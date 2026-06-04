@@ -56,7 +56,15 @@ class HeartWidget:
     # -- render --
     def _ensure_sprite(self) -> pygame.Surface:
         if self._sprite is None:
-            self._sprite = pygame.image.load(self._image_path).convert_alpha()
+            img = pygame.image.load(self._image_path).convert_alpha()
+            # Crop to the non-transparent content so every emotion image fills
+            # the cell by its actual heart, not its canvas — the source PNGs have
+            # different amounts of transparent padding (e.g. calm 369x350 tight vs
+            # sad/sleepy 450x450 padded), which otherwise renders some hearts small.
+            bounds = img.get_bounding_rect()
+            if bounds.width and bounds.height and bounds.size != img.get_size():
+                img = img.subsurface(bounds).copy()
+            self._sprite = img
         return self._sprite
 
     def draw(self, surface, rect) -> None:

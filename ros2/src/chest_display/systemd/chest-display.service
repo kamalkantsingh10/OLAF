@@ -33,9 +33,13 @@ Environment=SDL_VIDEODRIVER=kmsdrm
 # KMSDRM hands the app the native 800x480 LANDSCAPE surface; the app rotates the
 # 480x800 portrait canvas by this many degrees. Flip 90 <-> 270 if upside down.
 Environment=CHEST_ROTATE_DEG=90
+# Story 8.4 — must match the robot's DDS domain to hear activity/speech_emotion.
+Environment=ROS_DOMAIN_ID=42
 WorkingDirectory=/home/kamal/olaf/ros2/src/chest_display
-# System python3 + apt python3-pygame (kmsdrm-capable). NOT poetry (bundled SDL lacks kmsdrm).
-ExecStart=/usr/bin/python3 -m chest_display.app
+# System python3 + apt python3-pygame (kmsdrm) + ROS Jazzy sourced (rclpy for the
+# heart subscription, Story 8.4). If ROS isn't available the app still runs — the
+# heart just stays on its calm default (graceful).
+ExecStart=/bin/bash -lc 'source /opt/ros/jazzy/setup.bash && exec /usr/bin/python3 -m chest_display.app'
 Restart=always
 RestartSec=2
 StandardOutput=journal

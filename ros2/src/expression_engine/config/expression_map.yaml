@@ -31,7 +31,7 @@ defaults:
     ears: { left_pan: 0, left_tilt: 0, right_pan: 0, right_tilt: 0 }
   eye: { expression: neutral, intensity: 3 }
   led: { color: "#404040", intensity: 0.2, pattern: solid }
-  heart: { bpm: 60, intensity: 2, color: "#802020" }
+  heart: { image: calm, bpm: 25, amplitude: 0.15 }   # boot default = asleep; companion awakens it
 
 # ALL Mood values. Story 7.4 DE-SCOPE (2026-05-22): mood is NOT a head
 # modifier — no neck lean (lean_bias removed), no eye recolour. Mood's
@@ -79,19 +79,19 @@ activity:
   # asleep and "wakes up from" this pose, so `starting` shares the
   # `sleeping` body (dropped head + drooped ears) + sleepy eye + IDLE
   # (dark) strip. Intentionally the same posture as `sleeping`.
-  starting:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: boot,     intensity: 3 }, led: { pattern: boot_seq } }
-  sleeping:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: closed,   intensity: 1 }, led: { pattern: breathe_slow } }
-  waking:         { pose: { neck: { pan: 0,   tilt: -4,  roll: 0 },  ears: { left_pan: 22, left_tilt: -5,  right_pan: 22, right_tilt: -5 } },  eye: { expression: waking,   intensity: 2 }, led: { pattern: fade_in } }
-  listening:      { pose: { neck: { pan: 0,   tilt: 2,   roll: 0 },  ears: { left_pan: 3,  left_tilt: 14,  right_pan: 3,  right_tilt: 14 } },  eye: { expression: curious,  intensity: 2 }, led: { pattern: ear_breathe } }
+  starting:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: boot,     intensity: 3 }, led: { pattern: boot_seq }, heart: { image: calm, bpm: 26, amplitude: 0.18 } }
+  sleeping:       { pose: { neck: { pan: 0,   tilt: -28, roll: 0 },  ears: { left_pan: 25, left_tilt: -25, right_pan: 25, right_tilt: -7 } },  eye: { expression: closed,   intensity: 1 }, led: { pattern: breathe_slow }, heart: { image: calm, bpm: 25, amplitude: 0.15 } }
+  waking:         { pose: { neck: { pan: 0,   tilt: -4,  roll: 0 },  ears: { left_pan: 22, left_tilt: -5,  right_pan: 22, right_tilt: -5 } },  eye: { expression: waking,   intensity: 2 }, led: { pattern: fade_in }, heart: { image: calm, bpm: 37, amplitude: 0.30 } }
+  listening:      { pose: { neck: { pan: 0,   tilt: 2,   roll: 0 },  ears: { left_pan: 3,  left_tilt: 14,  right_pan: 3,  right_tilt: 14 } },  eye: { expression: curious,  intensity: 2 }, led: { pattern: ear_breathe }, heart: { image: calm, bpm: 42, amplitude: 0.35 } }
   working:
-    thinking:     { pose: { neck: { pan: -8,  tilt: 4,   roll: -3 }, ears: { left_pan: 14, left_tilt: 18,  right_pan: 8,  right_tilt: 4 } },   eye: { expression: focused,  intensity: 3 }, led: { pattern: pulse_blue } }
-    delegating:   { pose: { neck: { pan: 8,   tilt: 0,   roll: 3 },  ears: { left_pan: 10, left_tilt: 18,  right_pan: 12, right_tilt: 18 } },  eye: { expression: distant,  intensity: 3 }, led: { pattern: spinner } }
+    thinking:     { pose: { neck: { pan: -8,  tilt: 4,   roll: -3 }, ears: { left_pan: 14, left_tilt: 18,  right_pan: 8,  right_tilt: 4 } },   eye: { expression: focused,  intensity: 3 }, led: { pattern: pulse_blue }, heart: { image: calm, bpm: 47, amplitude: 0.40 } }
+    delegating:   { pose: { neck: { pan: 8,   tilt: 0,   roll: 3 },  ears: { left_pan: 10, left_tilt: 18,  right_pan: 12, right_tilt: 18 } },  eye: { expression: distant,  intensity: 3 }, led: { pattern: spinner }, heart: { image: calm, bpm: 48, amplitude: 0.42 } }
   # speaking authors NO eye — the eye is driven by whatever speech_emotion
   # is active (Story 7.3). Activity contributes only the body pose + the
   # SPEAKING system_status (LED); the eye defers to speech (neutral
   # default if nothing is speaking yet).
-  speaking:       { pose: { neck: { pan: 0,   tilt: 4,   roll: 0 },  ears: { left_pan: 10, left_tilt: 24,  right_pan: 10, right_tilt: 24 } }, led: { pattern: warm_active } }
-  going_to_sleep: { pose: { neck: { pan: 0,   tilt: -10, roll: 0 },  ears: { left_pan: 25, left_tilt: -12, right_pan: 25, right_tilt: -7 } },  eye: { expression: closing,  intensity: 1 }, led: { pattern: fade_out } }
+  speaking:       { pose: { neck: { pan: 0,   tilt: 4,   roll: 0 },  ears: { left_pan: 10, left_tilt: 24,  right_pan: 10, right_tilt: 24 } }, led: { pattern: warm_active }, heart: { image: calm, bpm: 51, amplitude: 0.50 } }
+  going_to_sleep: { pose: { neck: { pan: 0,   tilt: -10, roll: 0 },  ears: { left_pan: 25, left_tilt: -12, right_pan: 25, right_tilt: -7 } },  eye: { expression: closing,  intensity: 1 }, led: { pattern: fade_out }, heart: { image: calm, bpm: 31, amplitude: 0.22 } }
 
 # ALL 12 first-class speech-emotion names — overlay on the mood base.
 # Each carries BOTH a neck bias and an ear pose.
@@ -107,26 +107,26 @@ activity:
 # the hardened neck/ears adapter clamps (neck pan±80 tilt±20 roll±15;
 # ears pan±50 tilt−60..90) so no clamp fires.
 speech_emotion:
-  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 5,  left_tilt: 0,   right_pan: 5,  right_tilt: 0 } },   eye: { expression: neutral,     intensity: 2 }, led_overlay: none }
-  content:     { pose: { neck: { pan: 0,  tilt: 8,   roll: 4 },  ears: { left_pan: 10, left_tilt: 8,   right_pan: 10, right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm }
-  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: -6 },  ears: { left_pan: 22, left_tilt: 18,  right_pan: 22, right_tilt: 18 } }, eye: { expression: excited,     intensity: 3 }, led_overlay: bright }
-  sad:         { pose: { neck: { pan: 0,  tilt: -22, roll: 0 },  ears: { left_pan: 30, left_tilt: -10, right_pan: 30, right_tilt: -10 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool }
+  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 5,  left_tilt: 0,   right_pan: 5,  right_tilt: 0 } },   eye: { expression: neutral,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 45, amplitude: 0.35 } }
+  content:     { pose: { neck: { pan: 0,  tilt: 8,   roll: 4 },  ears: { left_pan: 10, left_tilt: 8,   right_pan: 10, right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm, heart: { image: calm, bpm: 43, amplitude: 0.40 } }
+  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: -6 },  ears: { left_pan: 22, left_tilt: 18,  right_pan: 22, right_tilt: 18 } }, eye: { expression: excited,     intensity: 3 }, led_overlay: bright, heart: { image: calm, bpm: 81, amplitude: 0.90 } }
+  sad:         { pose: { neck: { pan: 0,  tilt: -22, roll: 0 },  ears: { left_pan: 30, left_tilt: -10, right_pan: 30, right_tilt: -10 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool, heart: { image: sad, bpm: 35, amplitude: 0.22 } }
   # ⚠ angry/frustrated/scared carry negative right_tilt; servo-ids.yaml
   # right_tilt physical min is -7 (adapter clamp is wider, -60). These
   # three are the hardware-tuning set for the Task 5 robot pass.
-  angry:       { pose: { neck: { pan: 0,  tilt: -20, roll: 0 },  ears: { left_pan: 8,  left_tilt: -14, right_pan: 8,  right_tilt: -14 } }, eye: { expression: angry,       intensity: 2 }, led_overlay: hot }
-  scared:      { pose: { neck: { pan: -14, tilt: 12, roll: 0 },  ears: { left_pan: 10, left_tilt: -20, right_pan: 10, right_tilt: -20 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool }
+  angry:       { pose: { neck: { pan: 0,  tilt: -20, roll: 0 },  ears: { left_pan: 8,  left_tilt: -14, right_pan: 8,  right_tilt: -14 } }, eye: { expression: angry,       intensity: 2 }, led_overlay: hot, heart: { image: calm, bpm: 77, amplitude: 0.85 } }
+  scared:      { pose: { neck: { pan: -14, tilt: 12, roll: 0 },  ears: { left_pan: 10, left_tilt: -20, right_pan: 10, right_tilt: -20 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool, heart: { image: calm, bpm: 85, amplitude: 0.60 } }
   # Story 6.4 REFERENCE expression — KEPT AS-IS (do not churn). Ears
   # seeded verbatim from head_ears_driver/expressions.py EMOTION_HAPPY
   # (left_pan 20, left_tilt 18, right_pan 20, right_tilt 18;
   # right_pan ≤50 safe). neck bias is a modest joyful chin-up.
   # Proven end-to-end on hardware in Story 6.4 Task 5.
-  happy:       { pose: { neck: { tilt: 12, roll: 4 }, ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 2 }, led_overlay: warm }
-  curious:     { pose: { neck: { pan: 24, tilt: 8,   roll: 14 }, ears: { left_pan: 6,  left_tilt: 16,  right_pan: 30, right_tilt: 6 } },  eye: { expression: curious,     intensity: 2 }, led_overlay: none }
-  sympathetic: { pose: { neck: { pan: 8,  tilt: 0,   roll: 14 }, ears: { left_pan: 12, left_tilt: 8,   right_pan: 12, right_tilt: 8 } },   eye: { expression: sympathetic, intensity: 2 }, led_overlay: warm }
-  surprised:   { pose: { neck: { pan: 10, tilt: 16,  roll: 0 },  ears: { left_pan: 28, left_tilt: 6,   right_pan: 28, right_tilt: 6 } },   eye: { expression: surprised,   intensity: 2 }, led_overlay: bright }
-  frustrated:  { pose: { neck: { pan: 30, tilt: -10, roll: -12 }, ears: { left_pan: 14, left_tilt: -6,  right_pan: 20, right_tilt: -10 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot }
-  melancholic: { pose: { neck: { pan: -20, tilt: -16, roll: -12 }, ears: { left_pan: 24, left_tilt: -6,  right_pan: 24, right_tilt: -6 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool }
+  happy:       { pose: { neck: { tilt: 12, roll: 4 }, ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 61, amplitude: 0.60 } }
+  curious:     { pose: { neck: { pan: 24, tilt: 8,   roll: 14 }, ears: { left_pan: 6,  left_tilt: 16,  right_pan: 30, right_tilt: 6 } },  eye: { expression: curious,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 51, amplitude: 0.45 } }
+  sympathetic: { pose: { neck: { pan: 8,  tilt: 0,   roll: 14 }, ears: { left_pan: 12, left_tilt: 8,   right_pan: 12, right_tilt: 8 } },   eye: { expression: sympathetic, intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 42, amplitude: 0.35 } }
+  surprised:   { pose: { neck: { pan: 10, tilt: 16,  roll: 0 },  ears: { left_pan: 28, left_tilt: 6,   right_pan: 28, right_tilt: 6 } },   eye: { expression: surprised,   intensity: 2 }, led_overlay: bright, heart: { image: calm, bpm: 73, amplitude: 0.75 } }
+  frustrated:  { pose: { neck: { pan: 30, tilt: -10, roll: -12 }, ears: { left_pan: 14, left_tilt: -6,  right_pan: 20, right_tilt: -10 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot, heart: { image: calm, bpm: 69, amplitude: 0.70 } }
+  melancholic: { pose: { neck: { pan: -20, tilt: -16, roll: -12 }, ears: { left_pan: 24, left_tilt: -6,  right_pan: 24, right_tilt: -6 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool, heart: { image: sad, bpm: 34, amplitude: 0.20 } }
 
 # ALL vocalization tags. Story 7.2 authors `layered_action` for each:
 # a CRISP transient (total window attack_ms+settle_ms ∈ [500, 1500]ms)

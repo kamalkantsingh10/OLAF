@@ -21,9 +21,25 @@ import time
 
 import pygame
 
+from pathlib import Path
+
+from .emotion_source import HeartDirector, load_heart_config
+from .ros_link import EmotionLink
 from .view_manager import ViewManager
 from .views.dashboard import DashboardView
 from .views.takeover import FullscreenTakeoverView
+from .widgets.heart import _ASSET_DIR
+
+
+def _default_map_path() -> str:
+    """The engine's expression_map.yaml (source-tree layout); CHEST_HEART_MAP overrides.
+
+    .../ros2/src/chest_display/chest_display/app.py -> .../ros2/src/expression_engine/config/...
+    """
+    return str(
+        Path(__file__).resolve().parents[2]
+        / "expression_engine" / "config" / "expression_map.yaml"
+    )
 
 PORTRAIT_SIZE = (480, 800)
 TARGET_FPS = 30
@@ -84,8 +100,59 @@ class ChestDisplayApp:
 
     def _build_views(self) -> None:
         self.vm = ViewManager()
-        self.vm.register(DashboardView(self.portrait), default=True, activate=True)
+        self._dashboard = DashboardView(self.portrait)
+        self.vm.register(self._dashboard, default=True, activate=True)
         self.vm.register(FullscreenTakeoverView(self.portrait))
+
+    # -- heart reactivity (Story 8.4) -----------------------------------
+    def _setup_emotion(self) -> None:
+        """Read the map's heart config + subscribe to activity/speech_emotion.
+
+        All graceful: if the map or ROS is unavailable, the heart stays on its
+        default calm beat (8.2 behaviour preserved)."""
+        self._heart_widget = self._dashboard.widgets.get("heart")
+        self._director = None
+        self._link = None
+        self._img_cache: dict[str, str] = {}
+
+        map_path = os.environ.get("CHEST_HEART_MAP") or _default_map_path()
+        try:
+            cfg = load_heart_config(map_path)
+            self._director = HeartDirector(cfg)
+            _log("heart_config_loaded", path=str(map_path),
+                 emotions=len(cfg.speech), activities=len(cfg.activity))
+        except Exception as exc:
+            _log("heart_config_unavailable", error=f"{type(exc).__name__}: {exc}")
+
+        self._link = EmotionLink()
+        if self._link.available:
+            _log("emotion_link_ready")
+        else:
+            _log("emotion_link_unavailable", error=self._link.error)
+
+    def _heart_image_path(self, name: str) -> str:
+        if name not in self._img_cache:
+            p = os.path.join(_ASSET_DIR, f"heart_{name}.png")
+            self._img_cache[name] = p if os.path.exists(p) else os.path.join(
+                _ASSET_DIR, "heart_calm.png"
+            )
+        return self._img_cache[name]
+
+    def _drive_heart(self, dt: float) -> None:
+        if self._director is None or self._heart_widget is None:
+            return
+        act = sub = emo = None
+        if self._link is not None:
+            self._link.poll()
+            act, sub, emo = (
+                self._link.activity_state,
+                self._link.working_submode,
+                self._link.speech_emotion,
+            )
+        name, bpm, amp = self._director.update(dt, act, sub, emo)
+        self._heart_widget.set_profile(
+            image=self._heart_image_path(name), bpm=bpm, amplitude=amp
+        )
 
     # -- frame presentation ---------------------------------------------
     def _present(self) -> None:
@@ -119,6 +186,7 @@ class ChestDisplayApp:
         self._init_display()
         self._install_signals()
         self._build_views()
+        self._setup_emotion()
         clock = pygame.time.Clock()
         self._running = True
         _log("running", fps=self.fps)
@@ -126,6 +194,7 @@ class ChestDisplayApp:
             while self._running:
                 dt = clock.tick(self.fps) / 1000.0
                 self._handle_events()
+                self._drive_heart(dt)
                 self.vm.update(dt)
                 self.vm.draw(self.frame)
                 self._present()
@@ -133,6 +202,8 @@ class ChestDisplayApp:
             self._shutdown()
 
     def _shutdown(self) -> None:
+        if getattr(self, "_link", None) is not None:
+            self._link.close()
         _log("shutting_down")
         pygame.quit()
 

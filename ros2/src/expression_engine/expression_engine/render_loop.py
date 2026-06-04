@@ -430,9 +430,9 @@ class RenderLoop:
         self._speak_neck_val = {"pan": 0.0, "tilt": 0.0}
         self._speak_neck_vel = {"pan": 0.0, "tilt": 0.0}
         self._speak_neck_target = {"pan": 0.0, "tilt": 0.0}
-        self._speak_ears_val = {"left_tilt": 0.0, "right_tilt": 0.0}
-        self._speak_ears_vel = {"left_tilt": 0.0, "right_tilt": 0.0}
-        self._speak_ears_target = {"left_tilt": 0.0, "right_tilt": 0.0}
+        self._speak_ears_val = {j: 0.0 for j in _EARS}
+        self._speak_ears_vel = {j: 0.0 for j in _EARS}
+        self._speak_ears_target = {j: 0.0 for j in _EARS}
         self._speak_ease = self._speaking.ease_max_s
         self._speak_next_move = 0.0
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
@@ -746,6 +746,7 @@ class RenderLoop:
             cfg.tilt_amp_max_deg <= 0.0
             and cfg.pan_amp_max_deg <= 0.0
             and cfg.ear_amp_max_deg <= 0.0
+            and cfg.ear_pan_amp_max_deg <= 0.0
         ):
             return {}, {}
         act = snap.get("activity")
@@ -770,13 +771,27 @@ class RenderLoop:
                     * rng.uniform(cfg.pan_amp_min_deg, cfg.pan_amp_max_deg)
                     * energy,
                 }
-                ear = rng.choice((-1.0, 1.0)) * rng.uniform(
+                # Ears: a perk (TILT) + swivel (PAN) move, both scaled by
+                # speech energy. MOSTLY SYMMETRIC (both ears mirror) with
+                # an occasional single-ear ACCENT (Kamal 2026-06-04) so the
+                # ears read alive & talking, not a uniform coupled twitch.
+                tilt = rng.choice((-1.0, 1.0)) * rng.uniform(
                     cfg.ear_amp_min_deg, cfg.ear_amp_max_deg
                 ) * energy
-                self._speak_ears_target = {
-                    "left_tilt": ear * rng.uniform(0.7, 1.0),
-                    "right_tilt": ear * rng.uniform(0.7, 1.0),
+                pan = rng.choice((-1.0, 1.0)) * rng.uniform(
+                    cfg.ear_pan_amp_min_deg, cfg.ear_pan_amp_max_deg
+                ) * energy
+                ears = {
+                    "left_tilt": tilt, "right_tilt": tilt,
+                    "left_pan": pan, "right_pan": pan,
                 }
+                if rng.random() < cfg.ear_accent_chance:
+                    # accent: hold ONE ear at base so only the other flicks
+                    # / swivels — asymmetric life without chaos.
+                    side = "left" if rng.random() < 0.5 else "right"
+                    ears[f"{side}_tilt"] = 0.0
+                    ears[f"{side}_pan"] = 0.0
+                self._speak_ears_target = ears
                 self._speak_ease = rng.uniform(cfg.ease_min_s, cfg.ease_max_s)
                 # Higher energy → shorter gap between moves (livelier),
                 # bounded so a quiet emotion never stalls the motion.
@@ -788,7 +803,7 @@ class RenderLoop:
             ease = self._speak_ease
         else:
             neck_t = {"pan": 0.0, "tilt": 0.0}
-            ears_t = {"left_tilt": 0.0, "right_tilt": 0.0}
+            ears_t = {j: 0.0 for j in _EARS}
             ease = cfg.ease_max_s
         for k, tgt in neck_t.items():
             self._speak_neck_val[k], self._speak_neck_vel[k] = smooth_damp(

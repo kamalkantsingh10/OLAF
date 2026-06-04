@@ -30,8 +30,8 @@ _JOINTS = ("left_pan", "left_tilt", "right_pan", "right_tilt")
 _LIMITS = {
     "left_pan": (-50.0, 50.0),
     "right_pan": (-50.0, 50.0),
-    "left_tilt": (-60.0, 90.0),
-    "right_tilt": (-60.0, 90.0),
+    "left_tilt": (-72.0, 90.0),
+    "right_tilt": (-72.0, 90.0),
 }
 
 

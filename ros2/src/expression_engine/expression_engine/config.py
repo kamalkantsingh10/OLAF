@@ -103,6 +103,9 @@ class SpeakingConfig:
     pan_amp_max_deg: float = 3.0     # largest glance
     ear_amp_min_deg: float = 2.0     # smallest ear perk-twitch (ear tilt)
     ear_amp_max_deg: float = 6.0     # largest ear perk-twitch
+    ear_pan_amp_min_deg: float = 1.5  # smallest ear swivel (ear pan)
+    ear_pan_amp_max_deg: float = 4.0  # largest ear swivel
+    ear_accent_chance: float = 0.30  # P(single-ear asymmetric accent vs symmetric)
     period_min_s: float = 1.0        # min time between moves (livelier than listening)
     period_max_s: float = 3.0        # max time between moves
     ease_min_s: float = 0.4          # fastest move
@@ -370,6 +373,9 @@ _SPEAKING_BOUNDS = {
     "pan_amp_max_deg": (0.0, 30.0),
     "ear_amp_min_deg": (0.0, 40.0),
     "ear_amp_max_deg": (0.0, 40.0),
+    "ear_pan_amp_min_deg": (0.0, 30.0),
+    "ear_pan_amp_max_deg": (0.0, 30.0),
+    "ear_accent_chance": (0.0, 1.0),
     "period_min_s": (0.2, 60.0),
     "period_max_s": (0.2, 60.0),
     "ease_min_s": (0.1, 30.0),
@@ -405,6 +411,7 @@ def _parse_speaking(section: object) -> SpeakingConfig:
         ("tilt_amp_min_deg", "tilt_amp_max_deg"),
         ("pan_amp_min_deg", "pan_amp_max_deg"),
         ("ear_amp_min_deg", "ear_amp_max_deg"),
+        ("ear_pan_amp_min_deg", "ear_pan_amp_max_deg"),
         ("period_min_s", "period_max_s"),
         ("ease_min_s", "ease_max_s"),
     ):

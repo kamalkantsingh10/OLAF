@@ -107,26 +107,33 @@ activity:
 # the hardened neck/ears adapter clamps (neck pan±80 tilt±20 roll±15;
 # ears pan±50 tilt−60..90) so no clamp fires.
 speech_emotion:
-  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 5,  left_tilt: 0,   right_pan: 5,  right_tilt: 0 } },   eye: { expression: neutral,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 45, amplitude: 0.35, scale: 1.0 } }
-  content:     { pose: { neck: { pan: 0,  tilt: 8,   roll: 4 },  ears: { left_pan: 10, left_tilt: 8,   right_pan: 10, right_tilt: 8 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm, heart: { image: calm, bpm: 43, amplitude: 0.40, scale: 1.0 } }
-  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: -6 },  ears: { left_pan: 22, left_tilt: 18,  right_pan: 22, right_tilt: 18 } }, eye: { expression: excited,     intensity: 3 }, led_overlay: bright, heart: { image: calm, bpm: 81, amplitude: 0.90, scale: 1.12 } }
-  sad:         { pose: { neck: { pan: 0,  tilt: -22, roll: 0 },  ears: { left_pan: 30, left_tilt: -10, right_pan: 30, right_tilt: -10 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool, heart: { image: sad, bpm: 35, amplitude: 0.22, scale: 0.82 } }
+  # Ears authored to the HARE model (see
+  # docs/brainstorming/brainstorming-session-2026-06-04-1817.md):
+  # tilt = engagement (+perk / -droop), pan/asymmetry = thinking,
+  # twitch = arousal. After the 2026-06-04 right-ear REMOUNT both ears
+  # are SYMMETRIC: tilt +20 (perk cap = left limit) .. -70 (droop),
+  # pan 0..90. Droop is now symmetric (both ears equal). Asymmetry is
+  # intentional only where noted (curious cock, frustrated uneven).
+  neutral:     { pose: { neck: { pan: 0,  tilt: 0,   roll: 0 },  ears: { left_pan: 4, left_tilt: 6, right_pan: 4, right_tilt: 6 } },   eye: { expression: neutral,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 45, amplitude: 0.35, scale: 1.0 } }
+  content:     { pose: { neck: { pan: 0,  tilt: 8,   roll: 4 },  ears: { left_pan: 8, left_tilt: -12, right_pan: 8, right_tilt: -12 } },   eye: { expression: content,     intensity: 3 }, led_overlay: warm, heart: { image: calm, bpm: 43, amplitude: 0.40, scale: 1.0 } }
+  excited:     { pose: { neck: { pan: 0,  tilt: 18,  roll: -6 },  ears: { left_pan: 18, left_tilt: 20, right_pan: 18, right_tilt: 20 } }, eye: { expression: excited,     intensity: 3 }, led_overlay: bright, heart: { image: calm, bpm: 81, amplitude: 0.90, scale: 1.12 } }
+  sad:         { pose: { neck: { pan: 0,  tilt: -22, roll: 0 },  ears: { left_pan: 4, left_tilt: -40, right_pan: 4, right_tilt: -40 } }, eye: { expression: sad,         intensity: 2 }, led_overlay: cool, heart: { image: sad, bpm: 35, amplitude: 0.22, scale: 0.82 } }
   # ⚠ angry/frustrated/scared carry negative right_tilt; servo-ids.yaml
   # right_tilt physical min is -7 (adapter clamp is wider, -60). These
   # three are the hardware-tuning set for the Task 5 robot pass.
-  angry:       { pose: { neck: { pan: 0,  tilt: -20, roll: 0 },  ears: { left_pan: 8,  left_tilt: -14, right_pan: 8,  right_tilt: -14 } }, eye: { expression: angry,       intensity: 2 }, led_overlay: hot, heart: { image: calm, bpm: 77, amplitude: 0.85, scale: 1.08 } }
-  scared:      { pose: { neck: { pan: -14, tilt: 12, roll: 0 },  ears: { left_pan: 10, left_tilt: -20, right_pan: 10, right_tilt: -20 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool, heart: { image: calm, bpm: 85, amplitude: 0.60, scale: 1.0 } }
+  angry:       { pose: { neck: { pan: 0,  tilt: -20, roll: 0 },  ears: { left_pan: 4, left_tilt: -28, right_pan: 4, right_tilt: -28 } }, eye: { expression: angry,       intensity: 2 }, led_overlay: hot, heart: { image: calm, bpm: 77, amplitude: 0.85, scale: 1.08 } }
+  scared:      { pose: { neck: { pan: -14, tilt: 12, roll: 0 },  ears: { left_pan: 2, left_tilt: 13, right_pan: 2, right_tilt: 13 } }, eye: { expression: scared,      intensity: 3 }, led_overlay: cool, heart: { image: calm, bpm: 85, amplitude: 0.60, scale: 1.0 } }
   # Story 6.4 REFERENCE expression — KEPT AS-IS (do not churn). Ears
   # seeded verbatim from head_ears_driver/expressions.py EMOTION_HAPPY
   # (left_pan 20, left_tilt 18, right_pan 20, right_tilt 18;
   # right_pan ≤50 safe). neck bias is a modest joyful chin-up.
   # Proven end-to-end on hardware in Story 6.4 Task 5.
-  happy:       { pose: { neck: { tilt: 12, roll: 4 }, ears: { left_pan: 20, left_tilt: 18, right_pan: 20, right_tilt: 18 } }, eye: { expression: happy,       intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 61, amplitude: 0.60, scale: 1.08 } }
-  curious:     { pose: { neck: { pan: 24, tilt: 8,   roll: 14 }, ears: { left_pan: 6,  left_tilt: 16,  right_pan: 30, right_tilt: 6 } },  eye: { expression: curious,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 51, amplitude: 0.45, scale: 1.0 } }
-  sympathetic: { pose: { neck: { pan: 8,  tilt: 0,   roll: 14 }, ears: { left_pan: 12, left_tilt: 8,   right_pan: 12, right_tilt: 8 } },   eye: { expression: sympathetic, intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 42, amplitude: 0.35, scale: 0.92 } }
-  surprised:   { pose: { neck: { pan: 10, tilt: 16,  roll: 0 },  ears: { left_pan: 28, left_tilt: 6,   right_pan: 28, right_tilt: 6 } },   eye: { expression: surprised,   intensity: 2 }, led_overlay: bright, heart: { image: calm, bpm: 73, amplitude: 0.75, scale: 1.12 } }
-  frustrated:  { pose: { neck: { pan: 30, tilt: -10, roll: -12 }, ears: { left_pan: 14, left_tilt: -6,  right_pan: 20, right_tilt: -10 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot, heart: { image: calm, bpm: 69, amplitude: 0.70, scale: 1.05 } }
-  melancholic: { pose: { neck: { pan: -20, tilt: -16, roll: -12 }, ears: { left_pan: 24, left_tilt: -6,  right_pan: 24, right_tilt: -6 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool, heart: { image: sad, bpm: 34, amplitude: 0.20, scale: 0.8 } }
+  happy:       { pose: { neck: { tilt: 12, roll: 4 }, ears: { left_pan: 14, left_tilt: 18, right_pan: 14, right_tilt: 18 } }, eye: { expression: happy,       intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 61, amplitude: 0.60, scale: 1.08 } }
+  curious:     { pose: { neck: { pan: 24, tilt: 8,   roll: 14 }, ears: { left_pan: 5, left_tilt: 18, right_pan: 6, right_tilt: -4 } },  eye: { expression: curious,     intensity: 2 }, led_overlay: none, heart: { image: calm, bpm: 51, amplitude: 0.45, scale: 1.0 } }
+  sympathetic: { pose: { neck: { pan: 8,  tilt: 0,   roll: 14 }, ears: { left_pan: 10, left_tilt: -6, right_pan: 10, right_tilt: -6 } },   eye: { expression: sympathetic, intensity: 2 }, led_overlay: warm, heart: { image: calm, bpm: 42, amplitude: 0.35, scale: 0.92 } }
+  surprised:   { pose: { neck: { pan: 10, tilt: 16,  roll: 0 },  ears: { left_pan: 3, left_tilt: 14, right_pan: 3, right_tilt: 14 } },   eye: { expression: surprised,   intensity: 2 }, led_overlay: bright, heart: { image: calm, bpm: 73, amplitude: 0.75, scale: 1.12 } }
+  frustrated:  { pose: { neck: { pan: 30, tilt: -10, roll: -12 }, ears: { left_pan: 14, left_tilt: -34, right_pan: 26, right_tilt: -24 } }, eye: { expression: frustrated,  intensity: 3 }, led_overlay: hot, heart: { image: calm, bpm: 69, amplitude: 0.70, scale: 1.05 } }
+  melancholic: { pose: { neck: { pan: -20, tilt: -16, roll: -12 }, ears: { left_pan: 5, left_tilt: -58, right_pan: 5, right_tilt: -58 } },  eye: { expression: melancholic, intensity: 1 }, led_overlay: cool, heart: { image: sad, bpm: 34, amplitude: 0.20, scale: 0.8 } }
 
 # ALL vocalization tags. Story 7.2 authors `layered_action` for each:
 # a CRISP transient (total window attack_ms+settle_ms ∈ [500, 1500]ms)
@@ -171,7 +178,7 @@ vocalization:
       settle_ms: [1200, 2000]
       eye:           { expression: happy,     intensity: [3, 4] }
       neck_gesture:  { token: nod,     amp_deg: [18, 24], dur_s: [1.3, 2.2], cycles: [6, 10] }
-      ears_gesture:  { token: flick,   amp_deg: [16, 22], dur_s: [0.45, 0.80] }
+      ears_gesture:  { token: flutter, amp_deg: [8, 12], dur_s: [0.5, 0.9] }
   # Review iter #3 (2026-05-20): eye = neutral (oval-steady). Earlier
   # `content` was visibly indistinguishable from `happy` on the device
   # — firmware comments confirm both are "crescent-up" shapes; only
@@ -184,7 +191,7 @@ vocalization:
       settle_ms: [380, 1300]
       eye:           { expression: neutral, intensity: [1, 3] }
       neck_gesture:  { token: dip,     amp_deg: [6, 10],  dur_s: [0.7, 1.4] }
-      ears_gesture:  { token: droop,   amp_deg: [6, 10],  dur_s: [0.7, 1.3] }
+      ears_gesture:  { token: drop_and_spring, amp_deg: [10, 16], dur_s: [0.8, 1.4] }
   # Review iter #2: eye = sad at L1 (intensity 1, fixed). Gasp reads
   # as a quiet "oh no" rather than the noisy surprised/sympathetic
   # earlier drafts.
@@ -195,10 +202,10 @@ vocalization:
       settle_ms: [460, 1420]
       eye:           { expression: sad, intensity: 1 }
       neck_gesture:  { token: peek,    amp_deg: [10, 16], dur_s: [0.5, 1.0] }
-      ears_gesture:  { token: perk_up, amp_deg: [12, 18], dur_s: [0.5, 1.0] }
+      ears_gesture:  { token: startle_bolt, amp_deg: [10, 14], dur_s: [0.5, 0.9] }
   # Review iter #2 (2026-05-20): NO eye override (the speech_emotion
   # eye shows through — clears_throat is throat-only, not emotional).
-  # NO ears (literal-still). Neck = small sideways jerks (`shake` at
+  # Tiny ear twitch (hare, 2026-06-04). Neck = small sideways jerks (`shake` at
   # low amp).
   clears_throat:
     visible_only: false
@@ -206,6 +213,7 @@ vocalization:
       attack_ms: [80, 150]
       settle_ms: [420, 1350]
       neck_gesture:  { token: shake,   amp_deg: [2, 5],   dur_s: [0.5, 0.9] }
+      ears_gesture:  { token: twitch,  amp_deg: [3, 6],   dur_s: [0.3, 0.6] }
   # Review iter #2: NO eye override on nod/shake — they're physical
   # responses (yes/no); the speaker's CURRENT eye (held speech_emotion)
   # is the right thing to keep visible while the head bobs. cycles is
@@ -216,6 +224,7 @@ vocalization:
       attack_ms: [60, 120]
       settle_ms: [440, 1380]
       neck_gesture:  { token: nod,     amp_deg: [12, 18], dur_s: [0.5, 1.0], cycles: [1, 3] }
+      ears_gesture:  { token: droop,   amp_deg: [4, 8],   dur_s: [0.4, 0.8] }
   shake:
     visible_only: true
     layered_action:
@@ -238,3 +247,4 @@ vocalization:
       attack_ms: [40, 80]
       settle_ms: [200, 380]
       neck_gesture:  { token: nod,     amp_deg: [11, 17], dur_s: [0.24, 0.42], cycles: 1 }
+      ears_gesture:  { token: perk_up, amp_deg: [5, 10],  dur_s: [0.18, 0.30] }

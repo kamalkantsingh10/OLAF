@@ -75,13 +75,50 @@ def one_cock(u: float, amp: float) -> OffsetT:
     return (0.0, +amp * _pulse(u), 0.0, -amp * 0.4 * _pulse(u))
 
 
+# ── Hare repertoire (2026-06-04) ───────────────────────────────
+
+def flutter(u: float, amp: float) -> OffsetT:
+    """Both ears rapid multi-cycle tilt flutter (rise+fall envelope) —
+    glee / laughter. Faster + busier than `flick`."""
+    osc = amp * math.sin(8.0 * math.pi * u) * _pulse(u)
+    return (0.0, osc, 0.0, osc)
+
+
+def startle_bolt(u: float, amp: float) -> OffsetT:
+    """Snap UP fast (first 15%), HOLD with a fine tremble, then release —
+    gasp / startle. The hare 'freeze + ears bolt up' reaction."""
+    if u < 0.15:
+        base = amp * (u / 0.15)
+    elif u < 0.70:
+        base = amp
+    else:
+        base = amp * (1.0 - (u - 0.70) / 0.30)
+    tremble = amp * 0.12 * math.sin(20.0 * math.pi * u)
+    t = base + tremble
+    return (0.0, t, 0.0, t)
+
+
+def drop_and_spring(u: float, amp: float) -> OffsetT:
+    """Droop DOWN, then spring back up and settle — a sigh that recovers."""
+    if u < 0.45:
+        x = u / 0.45
+        t = -amp * (1.0 - math.cos(math.pi * x)) / 2.0      # smooth 0 → -amp
+    else:
+        x = (u - 0.45) / 0.55
+        t = -amp * math.cos(math.pi * x) * math.exp(-2.0 * x)  # spring up, damped
+    return (0.0, t, 0.0, t)
+
+
 GESTURES: Dict[str, Callable[[float, float], OffsetT]] = {
-    "perk_up":     perk_up,
-    "droop":       droop,
-    "flatten":     flatten,
-    "flick":       flick,
-    "twitch":      twitch,
-    "swivel_in":   swivel_in,
-    "swivel_out":  swivel_out,
-    "one_cock":    one_cock,
+    "perk_up":         perk_up,
+    "droop":           droop,
+    "flatten":         flatten,
+    "flick":           flick,
+    "twitch":          twitch,
+    "swivel_in":       swivel_in,
+    "swivel_out":      swivel_out,
+    "one_cock":        one_cock,
+    "flutter":         flutter,
+    "startle_bolt":    startle_bolt,
+    "drop_and_spring": drop_and_spring,
 }

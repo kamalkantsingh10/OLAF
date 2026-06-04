@@ -101,8 +101,11 @@ tilt_amp_min_deg = 2.5     # smallest nod (neck tilt) — ×energy at render
 tilt_amp_max_deg = 7.0     # largest nod
 pan_amp_min_deg = 2.0      # smallest glance (neck pan)
 pan_amp_max_deg = 6.0      # largest glance
-ear_amp_min_deg = 2.0      # smallest ear perk-twitch (ears parked — base kept)
+ear_amp_min_deg = 2.0      # smallest ear perk-twitch (TILT — perk fwd / droop back)
 ear_amp_max_deg = 6.0      # largest ear perk-twitch
+ear_pan_amp_min_deg = 1.5  # smallest ear SWIVEL (pan — turn out/in); 0 disables swivel
+ear_pan_amp_max_deg = 4.0  # largest ear swivel
+ear_accent_chance = 0.30   # P(single-ear asymmetric accent) — 0 = always symmetric
 period_min_s = 0.6         # min seconds between moves (÷energy → livelier)
 period_max_s = 1.8         # max seconds between moves
 ease_min_s = 0.2           # fastest move (sudden)

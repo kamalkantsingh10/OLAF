@@ -32,17 +32,17 @@ ears:
       id: 6
       model: SCS0009
       function: "Right ear base rotation"
-      center_position: 241
+      center_position: 374  # remount 2026-06-04: ear straight up = raw ~374
       min_angle: 0     # Center position (degrees)
-      max_angle: 70    # Max outward — limited by center at raw 241
+      max_angle: 90    # Max outward — now ~110° of room (matches left)
       direction: -1    # -1 = decreasing counts = outward for right ear
     right_tilt:
       id: 7
       model: SCS0009
       function: "Right ear angle"
-      center_position: 27
-      min_angle: -7    # Backward tilt limited — center near raw 0
-      max_angle: 110   # Forward tilt (degrees) — plenty of range
+      center_position: 318  # remount 2026-06-04: ear straight up = raw ~318
+      min_angle: -70   # Backward/droop — now ~87° of room (was -7, edge-mounted)
+      max_angle: 30    # Forward perk cap — symmetric with left (~+20)
       direction: 1     # 1 = increasing counts = forward tilt
 
 neck:

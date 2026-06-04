@@ -149,9 +149,9 @@ class ChestDisplayApp:
                 self._link.working_submode,
                 self._link.speech_emotion,
             )
-        name, bpm, amp = self._director.update(dt, act, sub, emo)
+        name, bpm, amp, scale = self._director.update(dt, act, sub, emo)
         self._heart_widget.set_profile(
-            image=self._heart_image_path(name), bpm=bpm, amplitude=amp
+            image=self._heart_image_path(name), bpm=bpm, amplitude=amp, scale=scale
         )
 
     # -- frame presentation ---------------------------------------------

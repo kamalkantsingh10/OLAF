@@ -27,6 +27,7 @@ class HeartWidget:
         self.model = model or HeartModel()
         self._image_path = image
         self._sprite: pygame.Surface | None = None   # lazy load (needs a display)
+        self._size_scale = 1.0   # per-emotion base size (Story 8.4); 1.0 = the FIT_FRACTION default
 
     # -- inputs (Story 8.4 wiring) --
     def set_beat_rate(self, bpm: float) -> None:
@@ -40,15 +41,21 @@ class HeartWidget:
             self._image_path = path
             self._sprite = None   # reload on next draw
 
+    def set_size_scale(self, scale: float) -> None:
+        """Per-emotion base size multiplier (on top of the beat throb)."""
+        self._size_scale = max(0.1, float(scale))
+
     def set_profile(self, image: str | None = None, bpm: float | None = None,
-                    amplitude: float | None = None) -> None:
-        """Apply an emotion profile in one call (image + feel)."""
+                    amplitude: float | None = None, scale: float | None = None) -> None:
+        """Apply an emotion profile in one call (image + feel + size)."""
         if image is not None:
             self.set_image(image)
         if bpm is not None:
             self.set_beat_rate(bpm)
         if amplitude is not None:
             self.set_amplitude(amplitude)
+        if scale is not None:
+            self.set_size_scale(scale)
 
     def update(self, dt: float) -> None:
         self.model.update(dt)
@@ -71,7 +78,7 @@ class HeartWidget:
         img = self._ensure_sprite()
         iw, ih = img.get_size()
         beat = self.model.scale
-        fit = min(rect.w * FIT_FRACTION / iw, rect.h * FIT_FRACTION / ih) * beat
+        fit = min(rect.w * FIT_FRACTION / iw, rect.h * FIT_FRACTION / ih) * beat * self._size_scale
         size = (max(1, int(iw * fit)), max(1, int(ih * fit)))
 
         sprite = pygame.transform.smoothscale(img, size)

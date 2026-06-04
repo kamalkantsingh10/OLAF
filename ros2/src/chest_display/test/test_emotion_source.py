@@ -9,22 +9,23 @@ from chest_display.ros_link import EmotionLink
 
 CFG = HeartConfig(
     speech={
-        "excited": {"image": "calm", "bpm": 115, "amplitude": 0.9},
-        "sad": {"image": "sad", "bpm": 58, "amplitude": 0.22},
+        "excited": {"image": "calm", "bpm": 115, "amplitude": 0.9, "scale": 1.2},
+        "sad": {"image": "sad", "bpm": 58, "amplitude": 0.22, "scale": 0.8},
     },
     activity={
-        "sleeping": {"image": "sleepy", "bpm": 45, "amplitude": 0.15},
-        "listening": {"image": "calm", "bpm": 66, "amplitude": 0.35},
-        "working.thinking": {"image": "calm", "bpm": 72, "amplitude": 0.40},
-        "speaking": {"image": "calm", "bpm": 78, "amplitude": 0.50},
+        "sleeping": {"image": "calm", "bpm": 45, "amplitude": 0.15, "scale": 0.78},
+        "listening": {"image": "calm", "bpm": 66, "amplitude": 0.35, "scale": 1.0},
+        "working.thinking": {"image": "calm", "bpm": 72, "amplitude": 0.40, "scale": 1.0},
+        "speaking": {"image": "calm", "bpm": 78, "amplitude": 0.50, "scale": 1.05},
     },
-    default={"image": "calm", "bpm": 62, "amplitude": 0.35},
+    default={"image": "calm", "bpm": 62, "amplitude": 0.35, "scale": 0.9},
 )
 
 
 def test_activity_drives_when_not_speaking():
-    assert CFG.target(activity_state="sleeping")["image"] == "sleepy"
+    assert CFG.target(activity_state="sleeping")["image"] == "calm"
     assert CFG.target(activity_state="sleeping")["bpm"] == 45
+    assert CFG.target(activity_state="sleeping")["scale"] == 0.78
     assert CFG.target(activity_state="listening")["bpm"] == 66
 
 
@@ -54,14 +55,26 @@ def test_director_eases_toward_target():
     first = None
     bpm = d.bpm
     for _ in range(60):                  # 1s at 60fps, excited while speaking
-        _img, bpm, _amp = d.update(1 / 60, activity_state="speaking", speech_emotion="excited")
+        _img, bpm, _amp, _scale = d.update(1 / 60, activity_state="speaking", speech_emotion="excited")
         if first is None:
             first = bpm
     assert first < bpm                   # eased upward
     assert bpm > 100                     # approached 115
     for _ in range(180):                 # now sleeping -> ramps down
-        _img, bpm, _amp = d.update(1 / 60, activity_state="sleeping")
-    assert bpm < 55 and d.image == "sleepy"
+        _img, bpm, _amp, _scale = d.update(1 / 60, activity_state="sleeping")
+    assert bpm < 55 and d.image == "calm"
+
+
+def test_director_eases_size_scale():
+    d = HeartDirector(CFG, ease=0.3)
+    start = d.scale
+    scale = start
+    for _ in range(120):                 # excited while speaking -> grows toward 1.2
+        _img, _bpm, _amp, scale = d.update(1 / 60, activity_state="speaking", speech_emotion="excited")
+    assert scale > start and scale > 1.1
+    for _ in range(240):                 # sleeping -> shrinks toward 0.78
+        _img, _bpm, _amp, scale = d.update(1 / 60, activity_state="sleeping")
+    assert scale < 0.85
 
 
 def test_director_image_switches_discretely():
@@ -95,6 +108,8 @@ def test_load_heart_config_reads_the_real_map():
     p = Path(__file__).resolve().parents[2] / "expression_engine/config/expression_map.yaml"
     cfg = load_heart_config(p)
     assert cfg.speech["excited"]["bpm"] == 81      # bpm rescaled to 25-85 range
+    assert cfg.speech["excited"]["scale"] == 1.12  # per-emotion base size
     assert cfg.activity["sleeping"]["image"] == "calm"   # sleep uses calm img, slowest bpm
+    assert cfg.activity["sleeping"]["scale"] == 0.78
     assert "working.thinking" in cfg.activity
     assert cfg.default["image"] == "calm"          # boot default = asleep (calm img, slowest bpm)

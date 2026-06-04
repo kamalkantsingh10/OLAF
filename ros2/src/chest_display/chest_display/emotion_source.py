@@ -10,8 +10,9 @@ interface (one-producer → many-bodies): it reads the SAME `expression_map.yaml
     default).
   * `HeartConfig.target(...)` — the active heart: the speech_emotion's heart while
     speaking, else the current activity's heart, else the default.
-  * `HeartDirector.update(dt, ...)` — eases bpm/amplitude toward the target (so the
-    heart eases in/out smoothly) and switches the image discretely.
+  * `HeartDirector.update(dt, ...)` — eases bpm/amplitude/scale toward the target (so
+    the heart's speed, throb depth AND base size ease in/out smoothly) and switches
+    the image discretely.
 
 Rendering (the beat) stays in `widgets/heart.py`; this just decides image/bpm/amplitude.
 """
@@ -19,7 +20,7 @@ Rendering (the beat) stays in `widgets/heart.py`; this just decides image/bpm/am
 from __future__ import annotations
 
 HEART_EASE_S = 0.6   # bpm/amplitude ease time-constant (smooth in/out)
-DEFAULT_HEART = {"image": "calm", "bpm": 25.0, "amplitude": 0.15}  # boot = asleep (calm img, slowest bpm); companion awakens
+DEFAULT_HEART = {"image": "calm", "bpm": 25.0, "amplitude": 0.15, "scale": 0.78}  # boot = asleep (calm img, slowest bpm, small); companion awakens
 
 
 def smooth_damp(current, target, velocity, smooth_time, dt):
@@ -88,7 +89,7 @@ def load_heart_config(map_path) -> HeartConfig:
 
 
 class HeartDirector:
-    """Holds the current eased heart state; `update` returns (image, bpm, amplitude)."""
+    """Holds the current eased heart state; `update` returns (image, bpm, amplitude, scale)."""
 
     def __init__(self, config: HeartConfig, ease: float = HEART_EASE_S):
         self.cfg = config
@@ -97,12 +98,15 @@ class HeartDirector:
         self.image = str(d.get("image", "calm"))
         self.bpm = float(d.get("bpm", 25.0))
         self.amp = float(d.get("amplitude", 0.15))
+        self.scale = float(d.get("scale", 1.0))
         self._bv = 0.0
         self._av = 0.0
+        self._sv = 0.0
 
     def update(self, dt, activity_state=None, working_submode=None, speech_emotion=None):
         t = self.cfg.target(activity_state, working_submode, speech_emotion)
         self.image = str(t.get("image", self.image))
         self.bpm, self._bv = smooth_damp(self.bpm, float(t.get("bpm", self.bpm)), self._bv, self.ease, dt)
         self.amp, self._av = smooth_damp(self.amp, float(t.get("amplitude", self.amp)), self._av, self.ease, dt)
-        return self.image, self.bpm, self.amp
+        self.scale, self._sv = smooth_damp(self.scale, float(t.get("scale", 1.0)), self._sv, self.ease, dt)
+        return self.image, self.bpm, self.amp, self.scale

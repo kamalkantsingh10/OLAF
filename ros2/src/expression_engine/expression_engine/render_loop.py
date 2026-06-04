@@ -19,6 +19,7 @@ mood never snaps (NFR3).
 from __future__ import annotations
 
 import logging
+import math
 import os
 import random
 import threading
@@ -75,6 +76,31 @@ _SPEECH_ENERGY = {
     "sad": 0.6,
     "melancholic": 0.5,
 }
+
+# Hare ear "aliveness" (2026-06-04) — the dynamic layer ported from the
+# hardware-validated ear_motion_preview tool. Module constants for now;
+# promote to an [ambient] toml section if/when these need field tuning.
+#   * EAR SPRING: ears ride an UNDER-damped spring (zeta≈0.5 → ~16%
+#     overshoot) so pose changes overshoot and the long ear tips wobble
+#     before settling (secondary motion) — instead of the neck's
+#     critically-damped ease.
+#   * AMBIENT: faint continuous tilt tremor + occasional single-ear flick,
+#     active only while AWAKE (off when listening / sleeping / decaying).
+#   * DREAM: a rare single tiny flick while asleep ("alive but dreaming").
+_EAR_SPRING_K = 120.0
+_EAR_SPRING_C = 11.0
+_AMB_TREMOR_DEG = 1.4
+_AMB_TREMOR_HZ = (3.5, 6.0)
+_AMB_FLICK_GAP_S = (4.0, 11.0)
+_AMB_FLICK_DEG = (5.0, 12.0)
+_AMB_FLICK_DUR_S = 0.18
+_DREAM_GAP_S = (8.0, 20.0)
+_DREAM_DEG = (4.0, 9.0)
+_DREAM_DUR_S = 0.25
+# States where the ears hold still (no ambient twitch): the mic-noise
+# freeze (listening) + the asleep/winding-down family.
+_EAR_QUIET_STATES = ("listening", "sleeping", "going_to_sleep", "starting")
+_EAR_SLEEP_STATES = ("sleeping", "going_to_sleep", "starting")
 
 # Empirically, critically-damped smooth_damp reaches ~98% of a step in
 # ≈2.9 × smooth_time. To make the pose *arrive* (~98%) at the
@@ -435,6 +461,18 @@ class RenderLoop:
         self._speak_ears_target = {j: 0.0 for j in _EARS}
         self._speak_ease = self._speaking.ease_max_s
         self._speak_next_move = 0.0
+        # Hare ambient/dream ear life + secondary-motion spring (2026-06-04).
+        # Own RNG so it never perturbs the vocalization/speaking RNGs.
+        self._amb_rng = random.Random()
+        self._amb_phase = {j: self._amb_rng.uniform(0.0, 2.0 * math.pi) for j in _EARS}
+        self._amb_freq = {j: self._amb_rng.uniform(*_AMB_TREMOR_HZ) for j in _EARS}
+        self._amb_flick: Optional[dict] = None
+        self._amb_flick_next = 0.0
+        self._dream_flick: Optional[dict] = None
+        self._dream_next = 0.0
+        self._ear_pos = {j: 0.0 for j in _EARS}   # spring position (applied)
+        self._ear_vel = {j: 0.0 for j in _EARS}   # spring velocity
+        self._ear_primed = False                  # boot into pose, no sweep
         _spose = self._map.activity.get("sleeping", {}).get("pose", {})
         self._sleep_neck = _overlay({j: 0.0 for j in _NECK}, _spose.get("neck"))
         self._sleep_ears = _overlay({j: 0.0 for j in _EARS}, _spose.get("ears"))
@@ -817,6 +855,57 @@ class RenderLoop:
             )
         return dict(self._speak_neck_val), dict(self._speak_ears_val)
 
+    def _flick_offset(self, sched: Optional[dict], now: float) -> float:
+        """Half-sine value of an in-progress flick schedule, else 0."""
+        if sched is not None and now < sched["end"]:
+            u = 1.0 - (sched["end"] - now) / sched["dur"]
+            return sched["amp"] * math.sin(math.pi * u)
+        return 0.0
+
+    def _ambient_ears(self, now: float, active: bool) -> dict[str, float]:
+        """Hare ambient ear life — a faint continuous tilt tremor plus an
+        occasional single-ear flick. Active only while AWAKE; returns zero
+        offsets (and disarms the flick) when gated off so the ears hold
+        still during listening / sleep."""
+        off = {j: 0.0 for j in _EARS}
+        if not active:
+            self._amb_flick = None
+            return off
+        for j in ("left_tilt", "right_tilt"):
+            off[j] += _AMB_TREMOR_DEG * math.sin(
+                2.0 * math.pi * self._amb_freq[j] * now + self._amb_phase[j]
+            )
+        rng = self._amb_rng
+        if now >= self._amb_flick_next:
+            self._amb_flick = {
+                "end": now + _AMB_FLICK_DUR_S, "dur": _AMB_FLICK_DUR_S,
+                "joint": rng.choice(("left_tilt", "right_tilt")),
+                "amp": rng.uniform(*_AMB_FLICK_DEG) * rng.choice((-1.0, 1.0)),
+            }
+            self._amb_flick_next = now + rng.uniform(*_AMB_FLICK_GAP_S)
+        if self._amb_flick is not None:
+            off[self._amb_flick["joint"]] += self._flick_offset(self._amb_flick, now)
+        return off
+
+    def _dream_ears(self, now: float, active: bool) -> dict[str, float]:
+        """Sleeping dream-twitch — a rare single tiny ear flick while
+        asleep ('alive but dreaming'). Active only while sleeping/decaying."""
+        off = {j: 0.0 for j in _EARS}
+        if not active:
+            self._dream_flick = None
+            return off
+        rng = self._amb_rng
+        if now >= self._dream_next:
+            self._dream_flick = {
+                "end": now + _DREAM_DUR_S, "dur": _DREAM_DUR_S,
+                "joint": rng.choice(("left_tilt", "right_tilt")),
+                "amp": rng.uniform(*_DREAM_DEG) * rng.choice((-1.0, 1.0)),
+            }
+            self._dream_next = now + rng.uniform(*_DREAM_GAP_S)
+        if self._dream_flick is not None:
+            off[self._dream_flick["joint"]] += self._flick_offset(self._dream_flick, now)
+        return off
+
     # ── the tick ───────────────────────────────────────────────────
 
     def tick(self, now: float) -> dict[str, float]:
@@ -941,16 +1030,41 @@ class RenderLoop:
             + drift[j]
             for j in _NECK
         }
-        ears_out = {
-            j: self._a.value.get(j, 0.0)
-            + self._s.value.get(j, 0.0)
-            + gest_ears.get(j, 0.0)
-            + speak_ears.get(j, 0.0)
+        # Ears (hare, 2026-06-04): a single UNDER-damped spring over the
+        # RAW composed target so pose changes overshoot and the long ear
+        # tips wobble (secondary motion) instead of the neck's critically-
+        # damped ease. Ambient hare twitch is added only while AWAKE; the
+        # dream-twitch only while sleeping/decaying; both are gated OFF
+        # while listening (the mic-noise freeze).
+        amb_active = (
+            act_state is not None
+            and idle_stage is None
+            and act_state not in _EAR_QUIET_STATES
+        )
+        sleeping_like = idle_stage is not None or act_state in _EAR_SLEEP_STATES
+        amb = self._ambient_ears(now, amb_active)
+        dream = self._dream_ears(now, sleeping_like)
+        ear_target = {
+            j: act_target.get(j, 0.0)          # raw activity ear pose (idle-adjusted)
+            + target.speech_ears.get(j, 0.0)   # raw speech_emotion overlay
+            + gest_ears.get(j, 0.0)            # vocalization gesture transient
+            + speak_ears.get(j, 0.0)           # speaking talk-twitch
+            + amb.get(j, 0.0)                  # ambient hare twitch (awake)
+            + dream.get(j, 0.0)                # dream-twitch (asleep)
             for j in _EARS
         }
+        if not self._ear_primed and snap.get("activity") is not None:
+            self._ear_pos = dict(ear_target)   # boot directly into pose
+            self._ear_vel = {j: 0.0 for j in _EARS}
+            self._ear_primed = True
+        for j in _EARS:
+            acc = (_EAR_SPRING_K * (ear_target[j] - self._ear_pos[j])
+                   - _EAR_SPRING_C * self._ear_vel[j])
+            self._ear_vel[j] += acc * dt
+            self._ear_pos[j] += self._ear_vel[j] * dt
 
         self._neck.apply(neck_out)
-        self._ears.apply(ears_out)
+        self._ears.apply(dict(self._ear_pos))
 
         # Delegating eye: fire-on-change ONLY, sent immediately. While
         # a vocalization is active and provides an eye_target, it
@@ -969,7 +1083,7 @@ class RenderLoop:
             self._eye.set_expression(eye[0], eye[1])
 
         self.tick_count += 1
-        return {**neck_out, **ears_out}
+        return {**neck_out, **self._ear_pos}
 
     # ── threaded driver ────────────────────────────────────────────
 

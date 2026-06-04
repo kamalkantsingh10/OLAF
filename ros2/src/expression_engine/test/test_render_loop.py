@@ -180,7 +180,10 @@ class TestSpeakingMotion:  # Story 7.6 — talking motion (neck + ears)
         assert (max(tilts) - min(tilts)) > 0.8       # nods
         assert max(abs(v) for v in ear_tilts) > 0.8  # ear perk-twitches
 
-    def test_disabled_no_speaking_motion(self):
+    def test_ambient_twitch_keeps_ears_alive_while_awake(self):
+        # Hare aliveness (2026-06-04): even with the speaking talk-motion
+        # disabled, an AWAKE bot's ears are never statue-still — the
+        # always-on ambient twitch keeps them faintly moving.
         clock = SimClock()
         state = EngineState()
         _push(state, "activity", {"state": "speaking", "from_state": "working"})
@@ -190,9 +193,20 @@ class TestSpeakingMotion:  # Story 7.6 — talking motion (neck + ears)
                            ear_amp_max_deg=0.0),
         )
         _run(lp, clock, 6.0)
-        # After the base settles, ears must be perfectly still (no twitch).
-        tail = [t.get("left_tilt", 0.0) for _, t, _ in ears.applied][-100:]
-        assert max(tail) - min(tail) < 1e-6
+        tail = [t.get("left_tilt", 0.0) for _, t, _ in ears.applied][-300:]
+        assert max(tail) - min(tail) > 0.3   # ambient tremor/flick keeps it alive
+
+    def test_ears_frozen_while_listening(self):
+        # Hard rule: ears must NOT move while listening (servo noise into
+        # the mic). The ambient twitch is gated OFF in the listening state,
+        # so once the ears settle into the listening pose they hold still.
+        clock = SimClock()
+        state = EngineState()
+        _push(state, "activity", {"state": "listening", "from_state": "waking"})
+        lp, neck = _loop_listen(state, clock, ListeningConfig())
+        _run(lp, clock, 6.0)
+        tail = [t.get("left_tilt", 0.0) for _, t, _ in lp._ears.applied][-100:]
+        assert max(tail) - min(tail) < 1e-6   # dead still while listening
 
 
 # ── smooth_damp unit ────────────────────────────────────────────────
@@ -347,14 +361,15 @@ class TestVocalizationDispatch:
     @pytest.mark.parametrize(
         "tag,neck_token,ears_token",
         [
-            # Review iter (2026-05-20): clears_throat dropped ears
-            # (literal-still per author intent) + uses small `shake`
-            # on neck instead of `dip` (minor sideways jerks).
-            ("laughter",      "nod",   "flick"),
-            ("sigh",          "dip",   "droop"),
-            ("gasp",          "peek",  "perk_up"),
-            ("clears_throat", "shake", None),
-            ("nod",           "nod",   None),
+            # Hare ear gestures (2026-06-04): laughter→flutter,
+            # sigh→drop_and_spring, gasp→startle_bolt; clears_throat and
+            # nod now carry a small ear gesture (twitch / droop). shake
+            # stays ear-free (head-only "no").
+            ("laughter",      "nod",   "flutter"),
+            ("sigh",          "dip",   "drop_and_spring"),
+            ("gasp",          "peek",  "startle_bolt"),
+            ("clears_throat", "shake", "twitch"),
+            ("nod",           "nod",   "droop"),
             ("shake",         "shake", None),
         ],
     )
@@ -648,16 +663,16 @@ class TestReviewIterExtensions:
             seen.add(a.eye_expression)
         assert seen == {"happy", "content"}
 
-    def test_clears_throat_has_no_ears_component(self):
-        # Review iter: clears_throat must NOT touch the ears — the
-        # action has no ears_token.
+    def test_clears_throat_has_tiny_ear_twitch(self):
+        # Hare (2026-06-04): clears_throat now carries a tiny ear `twitch`
+        # (was ear-free) — the ears DO move during the window.
         st = EngineState(); ck = SimClock()
         lp = _loop(st, ck, rng=random.Random(0))
         _voc(st, "clears_throat")
         lp.tick(ck())
         action = lp._vocalizations[-1]
-        assert action.ears_token is None
-        assert action.ears_offset(ck() + 0.1) == {}
+        assert action.ears_token == "twitch"
+        assert action.ears_offset(ck() + 0.1) != {}
 
 
 class TestDeterministicSampling:

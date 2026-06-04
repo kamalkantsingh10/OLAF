@@ -86,26 +86,26 @@ def flutter(u: float, amp: float) -> OffsetT:
 
 def startle_bolt(u: float, amp: float) -> OffsetT:
     """Snap UP fast (first 15%), HOLD with a fine tremble, then release —
-    gasp / startle. The hare 'freeze + ears bolt up' reaction."""
+    gasp / startle. The hare 'freeze + ears bolt up' reaction. Tremble is
+    carved OUT of amp (plateau + tremble peak == amp) so it never
+    overshoots the requested amplitude, and returns to 0 at both ends."""
+    tr = 0.12
+    peak = amp * (1.0 - tr)
     if u < 0.15:
-        base = amp * (u / 0.15)
+        base = peak * (u / 0.15)
     elif u < 0.70:
-        base = amp
+        base = peak
     else:
-        base = amp * (1.0 - (u - 0.70) / 0.30)
-    tremble = amp * 0.12 * math.sin(20.0 * math.pi * u)
-    t = base + tremble
+        base = peak * (1.0 - (u - 0.70) / 0.30)
+    t = base + amp * tr * math.sin(20.0 * math.pi * u)
     return (0.0, t, 0.0, t)
 
 
 def drop_and_spring(u: float, amp: float) -> OffsetT:
-    """Droop DOWN, then spring back up and settle — a sigh that recovers."""
-    if u < 0.45:
-        x = u / 0.45
-        t = -amp * (1.0 - math.cos(math.pi * x)) / 2.0      # smooth 0 → -amp
-    else:
-        x = (u - 0.45) / 0.55
-        t = -amp * math.cos(math.pi * x) * math.exp(-2.0 * x)  # spring up, damped
+    """Droop DOWN, then spring back up through zero and settle — a sigh
+    that recovers. A decaying half-cycle: 0 at both ends, dips down, then
+    overshoots up before returning to rest."""
+    t = -amp * math.sin(2.0 * math.pi * u) * (1.0 - u)
     return (0.0, t, 0.0, t)
 
 
